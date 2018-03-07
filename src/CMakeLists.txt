@@ -1,19 +1,19 @@
 include_directories(commons)
-add_subdirectory(assembler)
+add_subdirectory(exonpredictor)
 add_subdirectory(commons)
 add_subdirectory(version)
 add_subdirectory(workflow)
 
-add_executable(plass
+add_executable(metaeuk
         ${commons_source_files}
-        ${assembler_source_files}
+        ${exonpredictor_source_files}
         ${workflow_source_files}
         LocalCommandDeclarations.h
-        plass.cpp
+        metaeuk.cpp
         )
-mmseqs_setup_derived_target(plass)
-target_link_libraries(plass version kerasify)
+mmseqs_setup_derived_target(metaeuk)
+target_link_libraries(metaeuk version)
 
-add_dependencies(plass local-generated)
+add_dependencies(metaeuk local-generated)
 
-install(TARGETS plass DESTINATION bin)
+install(TARGETS metaeuk DESTINATION bin)

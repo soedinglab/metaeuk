@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 2.8.9 FATAL_ERROR)
-project(plass CXX)
+project(metaeuk CXX)
 set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${CMAKE_CURRENT_SOURCE_DIR}/cmake")
 set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${CMAKE_CURRENT_SOURCE_DIR}/lib/mmseqs/cmake")
 
@@ -8,5 +8,4 @@ include(MMseqsSetupDerivedTarget)
 add_subdirectory(lib/mmseqs)
 add_subdirectory(data)
 include_directories(lib)
-add_subdirectory(lib/kerasify)
 add_subdirectory(src)
