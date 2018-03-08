@@ -16,6 +16,7 @@ public:
         return static_cast<LocalParameters&>(LocalParameters::getInstance());
     }
 
+std::vector<MMseqsParameter> predictexonsworkflow;
 
 private:
     LocalParameters() : Parameters() {

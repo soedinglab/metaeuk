@@ -12,6 +12,12 @@ LocalParameters& par = LocalParameters::getLocalInstance();
 
 std::vector<struct Command> commands = {
         // Main tools  (for non-experts)
+        {"predictexons",             predictexons,            &par.predictexonsworkflow,    COMMAND_MAIN,
+                "Predict eukaryotic exons based on protein similarity.",
+                "An analog of 6-frame translation to produce putative protein fragments. Search against protein DB. Compatible exon set identified with respect to each target.",
+                "Eli Levy Karin <eli.levy.karin@gmail.com> ",
+                "<i:sequenceDB> <i:proteinTargetsDB> <o:outDB> <tmpDir>",
+                CITATION_MMSEQS2 | CITATION_LINCLUST},
         {"createdb",             createdb,             &par.createdb,             COMMAND_MAIN,
                 "Convert protein sequence set in a FASTA file to MMseqs sequence DB format",
                 "converts a protein sequence flat/gzipped FASTA or FASTQ file to the MMseqs sequence DB format. This format is needed as input to mmseqs search, cluster and many other tools.",
