@@ -1,4 +1,4 @@
 set(exonpredictor_source_files
-        exonpredictor/collectOptimalSet.cpp
+        exonpredictor/collectoptimalset.cpp
         PARENT_SCOPE
         )

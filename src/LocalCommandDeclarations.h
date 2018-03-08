@@ -3,6 +3,6 @@
 
 #include "Command.h"
 
-extern int collectOptimalSet(int argc, const char** argv, const Command &command);
+extern int collectoptimalset(int argc, const char** argv, const Command &command);
 
 #endif
