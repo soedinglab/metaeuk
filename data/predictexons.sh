@@ -50,7 +50,7 @@ fi
 
 # search with each aa fragment against a target DB (result has queries as implicit keys)
 if notExists "${TMP_PATH}/search_res"; then
-    $MMSEQS search "${TMP_PATH}/aa_6f" "${INPUT_TARGET_PROTEINS}" "${TMP_PATH}/search_res" -a \
+    $MMSEQS search "${TMP_PATH}/aa_6f" "${INPUT_TARGET_PROTEINS}" "${TMP_PATH}/search_res" "${TMP_PATH}/tmp_search" -a \
         || fail "search step died"
 fi
 
@@ -81,4 +81,5 @@ if [ -n "$REMOVE_TMP" ]; then
     rm -f "${TMP_PATH}/nucl_*"
     rm -f "${TMP_PATH}/aa_*"
     rm -f "${TMP_PATH}/search*"
+    rm -r "${TMP_PATH}/tmp_search/"
 fi
