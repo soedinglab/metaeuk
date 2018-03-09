@@ -30,18 +30,23 @@ int const GAP_OPEN_PENALTY = -2;
 int const GAP_EXTEND_PENALTY = -1;
 
 struct potentialExon {
-	// constructor:
+	// constructor
 	potentialExon(size_t alnScore, int contigStart, int contigEnd, int strand, size_t proteinMatchStart, size_t proteinMatchEnd) :
 		_alnScore(alnScore), _contigStart(contigStart), _contigEnd(contigEnd), _strand(strand), _proteinMatchStart(proteinMatchStart), _proteinMatchEnd(proteinMatchEnd) {
 	}
 	
-	// information extracted from MMSeqs2 local alignment:
+	// information extracted from MMSeqs2 local alignment
 	size_t _alnScore;
 	int _contigStart; // the first nucleotide to participate in the alignment times the strand
 	int _contigEnd; // the last nucleotide to participate in the alignment times the strand
 	int _strand;
     size_t _proteinMatchStart;
 	size_t _proteinMatchEnd;
+
+    // define operator to allow sorting a vector of potentialExon by their start on the contig
+    bool operator < (const potentialExon& anotherPotentialExon) const {
+        return (_contigStart < anotherPotentialExon._contigStart);
+    }
 };
 
 
@@ -129,10 +134,13 @@ int collectoptimalset(int argn, const char **argv, const Command& command) {
             }
 
             if (potentialExonContigId != currContigId) {
-                // sort and then DP on vectors!
-                // ...
-                size_t numOnPlus = plusStrandPotentialExons.size();
-                size_t numOnMinus = minusStrandPotentialExons.size();
+                if (potentialExonContigId < currContigId) {
+                    Debug(Debug::ERROR) << "ERROR: the contigs are assumed to be sorted in increasing order. This doesn't seem to be the case.\n";
+                    EXIT(EXIT_FAILURE);
+                }
+                // sort vectors by start on contig:
+                std::sort(plusStrandPotentialExons.begin(), plusStrandPotentialExons.end());
+                std::sort(minusStrandPotentialExons.begin(), minusStrandPotentialExons.end());
 
                 // empty vectors:
                 plusStrandPotentialExons.clear();
@@ -150,33 +158,13 @@ int collectoptimalset(int argn, const char **argv, const Command& command) {
             results = Util::skipLine(results);
         }
 
-        // sort and then DP on vectors - required for the matches of the last contig against the protein
-        // ...
-        size_t numOnPlus = plusStrandPotentialExons.size();
-        size_t numOnMinus = minusStrandPotentialExons.size();
-
+        // one last time - required for the matches of the last contig against the protein
+        // sort vectors by start on contig:
+        std::sort(plusStrandPotentialExons.begin(), plusStrandPotentialExons.end());
+        std::sort(minusStrandPotentialExons.begin(), minusStrandPotentialExons.end());
+        
         bool stam = false;
 
-        // int stopMCount = 0;
-        // int mCount = 0;
-        // for (size_t seqIdx = 0; seqIdx < stopPositions.size(); seqIdx++){
-        //     stopMCount += stopPositions[seqIdx].hasStopM;
-        //     mCount += stopPositions[seqIdx].hasM;
-        // }
-        // if (stopPositions.size() > 1){
-        //     const float frequency = static_cast<float>(stopMCount) / static_cast<float>(stopPositions.size());
-        //     if (frequency >= threshold){
-        //         for (size_t seqIdx = 0; seqIdx < stopPositions.size(); seqIdx++){
-        //             int target;
-
-        //             int curVal = stopPositions[seqIdx].mPos;
-        //             __atomic_load(&addStopAtPosition[stopPositions[seqIdx].id], &target ,__ATOMIC_RELAXED);
-        //             do {
-        //                 if (target >= curVal) break;
-        //             } while (!__atomic_compare_exchange(&addStopAtPosition[stopPositions[seqIdx].id],  &target,  &curVal , false,  __ATOMIC_RELAXED, __ATOMIC_RELAXED));
-        //         }
-        //     }
-        // }
     }
 
     // cleanup
