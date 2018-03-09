@@ -78,14 +78,14 @@ fi
 #         || fail "collectoptimalset step died"
 # fi
 
-# post processing (WILL BE CHANGED AFTER WORKFLOW IS COMPLETE)
-mv -f "${TMP_PATH}/search_res_swap_w_contig_info_sorted" "$3" || fail "Could not move result to $3"
-mv -f "${TMP_PATH}/search_res_swap_w_contig_info_sorted.index" "$3.index" || fail "Could not move result to $3.index"
+# # post processing (WILL BE CHANGED AFTER WORKFLOW IS COMPLETE)
+# mv -f "${TMP_PATH}/search_res_swap_w_contig_info_sorted" "$3" || fail "Could not move result to $3"
+# mv -f "${TMP_PATH}/search_res_swap_w_contig_info_sorted.index" "$3.index" || fail "Could not move result to $3.index"
 
-if [ -n "$REMOVE_TMP" ]; then
-    echo "Removing temporary files"
-    rm -f "${TMP_PATH}/nucl_*"
-    rm -f "${TMP_PATH}/aa_*"
-    rm -f "${TMP_PATH}/search*"
-    rm -r "${TMP_PATH}/tmp_search/"
-fi
+# if [ -n "$REMOVE_TMP" ]; then
+#     echo "Removing temporary files"
+#     rm -f "${TMP_PATH}/nucl_*"
+#     rm -f "${TMP_PATH}/aa_*"
+#     rm -f "${TMP_PATH}/search*"
+#     rm -r "${TMP_PATH}/tmp_search/"
+# fi

@@ -21,6 +21,29 @@
 static const int PLUS = 1;
 static const int MINUS = -1;
 
+const size_t MINIMAL_INTRON_LENGTH = 15;
+int const MAX_AA_OVERLAP = 10;
+
+// simple consts, to be changed in the future:
+int const CONST_LEGAL_OVERLAP_PENALTY = -5;
+int const GAP_OPEN_PENALTY = -2;
+int const GAP_EXTEND_PENALTY = -1;
+
+struct potentialExon {
+	// constructor:
+	potentialExon(size_t alnScore, int contigStart, int contigEnd, int strand, size_t proteinMatchStart, size_t proteinMatchEnd) :
+		_alnScore(alnScore), _contigStart(contigStart), _contigEnd(contigEnd), _strand(strand), _proteinMatchStart(proteinMatchStart), _proteinMatchEnd(proteinMatchEnd) {
+	}
+	
+	// information extracted from MMSeqs2 local alignment:
+	size_t _alnScore;
+	int _contigStart; // the first nucleotide to participate in the alignment times the strand
+	int _contigEnd; // the last nucleotide to participate in the alignment times the strand
+	int _strand;
+    size_t _proteinMatchStart;
+	size_t _proteinMatchEnd;
+};
+
 
 int collectoptimalset(int argn, const char **argv, const Command& command) {
     LocalParameters& par = LocalParameters::getLocalInstance();
@@ -36,13 +59,21 @@ int collectoptimalset(int argn, const char **argv, const Command& command) {
 // analyze each entry of the result DB, this is a swapped DB
 // so the original targets play the role of queries...
 // i.e., the results are from protein --> potentialExon
-#pragma omp parallel for schedule(dynamic, 100)
+#pragma omp for schedule(dynamic, 100)
     for (size_t id = 0; id < resultReader.getSize(); id++) {
         Debug::printProgress(id);
 
         // unsigned int proteinID = resultReader.getDbKey(id);
 
         char *results = resultReader.getData(id);
+        
+        std::vector<potentialExon> plusStrandPotentialExons;
+        plusStrandPotentialExons.reserve(10000);
+        std::vector<potentialExon> minusStrandPotentialExons;
+        minusStrandPotentialExons.reserve(10000);
+        int currContigId = -1;
+        bool isFirstIteration = true;
+        
         while (*results != '\0') {
             char potentialExonKeyStr[255 + 1];
             Util::parseKey(results, potentialExonKeyStr);
@@ -59,43 +90,73 @@ int collectoptimalset(int argn, const char **argv, const Command& command) {
                 firstColumnOfSecondAlignemnt = 11;
             }
 
-            // 0	1	2	3	4	5	6	7	8	9	10	11	12	13	14	15	16	17	18	19	20	21
-            // q_ID	alnScore	seqID	eval	tStart	tEnd	tLen	qStart	qEnd	qLen	alignemnt	contigID	*	*	*	*	*	*	fragStart	fragEnd	*	*
-            // alnScore	tStart	tEnd	qStart	qEnd	contigID	fragStart	fragEnd
-
             // take relavant info from protein<-->potentialExon alignment:
-            int alnScorePotentialExonToProtein = Util::fast_atoi<int>(entry[1]);
+            int potentialExonToProteinAlnScore = Util::fast_atoi<int>(entry[1]);
             int proteinMatchStart =  Util::fast_atoi<int>(entry[4]);
             int proteinMatchEnd = Util::fast_atoi<int>(entry[5]);
             int potentialExonMatchStart = Util::fast_atoi<int>(entry[7]);
             int potentialExonMatchEnd = Util::fast_atoi<int>(entry[8]);
 
             // take relavant info from potentialExon<-->contig alignment:
+            int potentialExonContigId = Util::fast_atoi<int>(entry[firstColumnOfSecondAlignemnt]);
             int potentialExonContigStartBeforeTrim = Util::fast_atoi<int>(entry[firstColumnOfSecondAlignemnt + 7]);
             int potentialExonContigEndBeforeTrim = Util::fast_atoi<int>(entry[firstColumnOfSecondAlignemnt + 8]);
 
             // "trim" the potentialExon, i.e., adjust start and end on the contig
             int potentialExonContigStart;
             int potentialExonContigEnd;
-            int strand;
+            int potentialExonStrand;
 
             // plus strand:
             if (potentialExonContigStartBeforeTrim < potentialExonContigEndBeforeTrim) {
                 potentialExonContigStart = potentialExonContigStartBeforeTrim + (potentialExonMatchStart * 3);
                 potentialExonContigEnd = potentialExonContigStartBeforeTrim + (potentialExonMatchEnd * 3) + 2;
-                strand = PLUS;
+                potentialExonStrand = PLUS;
             }
             // mimus strand:
             else {
                 // multiplying by minus allows carrying out same logic as with plus strand
                 potentialExonContigStart = -1 * (potentialExonContigStartBeforeTrim - (potentialExonMatchStart * 3));
                 potentialExonContigEnd = -1 * (potentialExonContigStartBeforeTrim - (potentialExonMatchEnd * 3) - 2);
-                strand = MINUS;
+                potentialExonStrand = MINUS;
             }
 
+            potentialExon currPotentialExon(potentialExonToProteinAlnScore, potentialExonContigStart, potentialExonContigEnd, potentialExonStrand, proteinMatchStart, proteinMatchEnd);
+
+            if (isFirstIteration) {
+                currContigId = potentialExonContigId;
+                isFirstIteration = false;
+            }
+
+            if (potentialExonContigId != currContigId) {
+                // sort and then DP on vectors!
+                // ...
+                size_t numOnPlus = plusStrandPotentialExons.size();
+                size_t numOnMinus = minusStrandPotentialExons.size();
+
+                // empty vectors:
+                plusStrandPotentialExons.clear();
+                minusStrandPotentialExons.clear();
+                currContigId = potentialExonContigId;
+            }
+            
+            // push current potentialExon struct to vector:
+            if (potentialExonStrand == PLUS) {
+                plusStrandPotentialExons.emplace_back(currPotentialExon);
+            } else {
+                minusStrandPotentialExons.emplace_back(currPotentialExon);
+            }
 
             results = Util::skipLine(results);
         }
+
+        // sort and then DP on vectors - required for the matches of the last contig against the protein
+        // ...
+        size_t numOnPlus = plusStrandPotentialExons.size();
+        size_t numOnMinus = minusStrandPotentialExons.size();
+
+        bool stam = false;
+
         // int stopMCount = 0;
         // int mCount = 0;
         // for (size_t seqIdx = 0; seqIdx < stopPositions.size(); seqIdx++){
@@ -117,6 +178,7 @@ int collectoptimalset(int argn, const char **argv, const Command& command) {
         //     }
         // }
     }
+
     // cleanup
     //resultWriter.close(DBReader<unsigned int>::DBTYPE_AA);
     resultReader.close();
