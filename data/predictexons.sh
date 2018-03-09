@@ -72,6 +72,12 @@ if notExists "${TMP_PATH}/search_res_swap_w_contig_info_sorted"; then
         || fail "filterdb (to sort by contig) step died"
 fi
 
+# # for each target, with respect to each contig and each strand, find the optimal set of exons
+# if notExists "${TMP_PATH}/optimal_set_for_each_target"; then
+#     $MMSEQS collectoptimalset "${TMP_PATH}/search_res_swap_w_contig_info_sorted" "${TMP_PATH}/optimal_set_for_each_target" \
+#         || fail "collectoptimalset step died"
+# fi
+
 # post processing (WILL BE CHANGED AFTER WORKFLOW IS COMPLETE)
 mv -f "${TMP_PATH}/search_res_swap_w_contig_info_sorted" "$3" || fail "Could not move result to $3"
 mv -f "${TMP_PATH}/search_res_swap_w_contig_info_sorted.index" "$3.index" || fail "Could not move result to $3.index"

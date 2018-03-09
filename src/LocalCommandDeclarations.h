@@ -4,5 +4,6 @@
 #include "Command.h"
 
 extern int predictexons(int argc, const char **argv, const Command& command);
+extern int collectoptimalset(int argn, const char **argv, const Command& command);
 
 #endif
