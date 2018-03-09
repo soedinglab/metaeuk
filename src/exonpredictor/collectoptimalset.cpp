@@ -31,12 +31,13 @@ int const GAP_EXTEND_PENALTY = -1;
 
 struct potentialExon {
 	// constructor
-	potentialExon(size_t alnScore, int contigStart, int contigEnd, int strand, size_t proteinMatchStart, size_t proteinMatchEnd) :
-		_alnScore(alnScore), _contigStart(contigStart), _contigEnd(contigEnd), _strand(strand), _proteinMatchStart(proteinMatchStart), _proteinMatchEnd(proteinMatchEnd) {
+	potentialExon(int MMSeqs2Key, size_t alnScore, int contigStart, int contigEnd, int strand, size_t proteinMatchStart, size_t proteinMatchEnd) :
+		_MMSeqs2Key(MMSeqs2Key), _alnScore(alnScore), _contigStart(contigStart), _contigEnd(contigEnd), _strand(strand), _proteinMatchStart(proteinMatchStart), _proteinMatchEnd(proteinMatchEnd) {
 	}
 	
 	// information extracted from MMSeqs2 local alignment
-	size_t _alnScore;
+	int _MMSeqs2Key;
+    size_t _alnScore;
 	int _contigStart; // the first nucleotide to participate in the alignment times the strand
 	int _contigEnd; // the last nucleotide to participate in the alignment times the strand
 	int _strand;
@@ -49,6 +50,13 @@ struct potentialExon {
     }
 };
 
+void findoptimalsetbydp (const std::vector<potentialExon> & potentialExonCandidates, std::vector<potentialExon> & optimalExonSet) {
+    if (potentialExonCandidates.size() > 0) {
+        // DO SOMETHING SILLY:
+        optimalExonSet.push_back(potentialExonCandidates[0]);
+    }
+
+}
 
 int collectoptimalset(int argn, const char **argv, const Command& command) {
     LocalParameters& par = LocalParameters::getLocalInstance();
@@ -76,13 +84,17 @@ int collectoptimalset(int argn, const char **argv, const Command& command) {
         plusStrandPotentialExons.reserve(10000);
         std::vector<potentialExon> minusStrandPotentialExons;
         minusStrandPotentialExons.reserve(10000);
+        std::vector<potentialExon> plusStrandOptimalExonSet;
+        plusStrandOptimalExonSet.reserve(100);
+        std::vector<potentialExon> minusStrandOptimalExonSet;
+        minusStrandOptimalExonSet.reserve(100);
         int currContigId = -1;
         bool isFirstIteration = true;
         
         while (*results != '\0') {
-            char potentialExonKeyStr[255 + 1];
-            Util::parseKey(results, potentialExonKeyStr);
-            const unsigned int potentialExonKey = (unsigned int) strtoul(potentialExonKeyStr, NULL, 10);
+            char potentialExonMMSeqs2KeyStr[255 + 1];
+            Util::parseKey(results, potentialExonMMSeqs2KeyStr);
+            const unsigned int potentialExonMMSeqs2Key = (unsigned int) strtoul(potentialExonMMSeqs2KeyStr, NULL, 10);
             char *entry[255];
             const size_t columns = Util::getWordsOfLine(results, entry, 255);
 
@@ -126,7 +138,7 @@ int collectoptimalset(int argn, const char **argv, const Command& command) {
                 potentialExonStrand = MINUS;
             }
 
-            potentialExon currPotentialExon(potentialExonToProteinAlnScore, potentialExonContigStart, potentialExonContigEnd, potentialExonStrand, proteinMatchStart, proteinMatchEnd);
+            potentialExon currPotentialExon(potentialExonMMSeqs2Key, potentialExonToProteinAlnScore, potentialExonContigStart, potentialExonContigEnd, potentialExonStrand, proteinMatchStart, proteinMatchEnd);
 
             if (isFirstIteration) {
                 currContigId = potentialExonContigId;
@@ -142,9 +154,18 @@ int collectoptimalset(int argn, const char **argv, const Command& command) {
                 std::sort(plusStrandPotentialExons.begin(), plusStrandPotentialExons.end());
                 std::sort(minusStrandPotentialExons.begin(), minusStrandPotentialExons.end());
 
+                // dynamic programming to find the optimals set:
+                findoptimalsetbydp(plusStrandPotentialExons, plusStrandOptimalExonSet);
+                findoptimalsetbydp(minusStrandPotentialExons, minusStrandOptimalExonSet);
+                
+                // TO DO: write optimal sets to result file:
+                // ...
+
                 // empty vectors:
                 plusStrandPotentialExons.clear();
                 minusStrandPotentialExons.clear();
+                plusStrandOptimalExonSet.clear();
+                minusStrandOptimalExonSet.clear();
                 currContigId = potentialExonContigId;
             }
             
@@ -162,6 +183,13 @@ int collectoptimalset(int argn, const char **argv, const Command& command) {
         // sort vectors by start on contig:
         std::sort(plusStrandPotentialExons.begin(), plusStrandPotentialExons.end());
         std::sort(minusStrandPotentialExons.begin(), minusStrandPotentialExons.end());
+
+        // dynamic programming to find the optimals set:
+        findoptimalsetbydp(plusStrandPotentialExons, plusStrandOptimalExonSet);
+        findoptimalsetbydp(minusStrandPotentialExons, minusStrandOptimalExonSet);
+        
+        // TO DO: write optimal sets to result file:
+        // ...
         
         bool stam = false;
 
