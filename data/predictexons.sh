@@ -32,9 +32,9 @@ abspath() {
 [   -f "$3" ] &&  echo "$3 exists already!" && exit 1;
 [ ! -d "$4" ] &&  echo "tmp directory $4 not found!" && mkdir -p $4;
 
-INPUT_CONTIGS="$(abspath $1)"
-INPUT_TARGET_PROTEINS="$(abspath $2)"
-TMP_PATH="$(abspath $4)"
+INPUT_CONTIGS="$(abspath "$1")"
+INPUT_TARGET_PROTEINS="$(abspath "$2")"
+TMP_PATH="$(abspath "$4")"
 
 # extract coding fragments from input contigs (result in DNA)
 if notExists "${TMP_PATH}/nucl_6f"; then

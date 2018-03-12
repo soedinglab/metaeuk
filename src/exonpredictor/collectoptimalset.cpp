@@ -102,7 +102,7 @@ int getPenaltyForProtCoords(const potentialExon & prevPotentialExon, const poten
 	return 1;
 }
 
-void findoptimalsetbydp (std::vector<potentialExon> & potentialExonCandidates, std::vector<potentialExon> & optimalExonSet) {   
+void findoptimalsetbydp(std::vector<potentialExon> & potentialExonCandidates, std::vector<potentialExon> & optimalExonSet) {   
     size_t numPotentialExonCandidates = potentialExonCandidates.size();
     if (numPotentialExonCandidates == 0) {
         return;
@@ -182,21 +182,18 @@ int collectoptimalset(int argn, const char **argv, const Command& command) {
     DBReader<unsigned int> resultReader(par.db1.c_str(), par.db1Index.c_str());
     resultReader.open(DBReader<unsigned int>::LINEAR_ACCCESS);
 
-    // TO DO: write results
-    //DBWriter resultWriter(par.db2.c_str(), par.db2Index.c_str(), par.threads);
-    //resultWriter.open();
+    DBWriter resultWriter(par.db2.c_str(), par.db2Index.c_str(), par.threads);
+    resultWriter.open();
 
     // analyze each entry of the result DB, this is a swapped DB
     // so the original targets play the role of queries...
     // i.e., the results are from protein --> potentialExon
-#pragma omp for schedule(dynamic, 100)
-    for (size_t id = 0; id < resultReader.getSize(); id++) {
-        Debug::printProgress(id);
-
-        // unsigned int proteinID = resultReader.getDbKey(id);
-
-        char *results = resultReader.getData(id);
-        
+#pragma omp parallel
+    {
+        unsigned int thread_idx = 0;
+#ifdef OPENMP
+        thread_idx = static_cast<unsigned int>(omp_get_thread_num());
+#endif
         std::vector<potentialExon> plusStrandPotentialExons;
         plusStrandPotentialExons.reserve(10000);
         std::vector<potentialExon> minusStrandPotentialExons;
@@ -205,107 +202,123 @@ int collectoptimalset(int argn, const char **argv, const Command& command) {
         plusStrandOptimalExonSet.reserve(100);
         std::vector<potentialExon> minusStrandOptimalExonSet;
         minusStrandOptimalExonSet.reserve(100);
-        int currContigId = -1;
-        bool isFirstIteration = true;
+
+        char potentialExonMMSeqs2KeyStr[255 + 1];
+        char *entry[255];           
         
-        while (*results != '\0') {
-            char potentialExonMMSeqs2KeyStr[255 + 1];
-            Util::parseKey(results, potentialExonMMSeqs2KeyStr);
-            const unsigned int potentialExonMMSeqs2Key = (unsigned int) strtoul(potentialExonMMSeqs2KeyStr, NULL, 10);
-            char *entry[255];
-            const size_t columns = Util::getWordsOfLine(results, entry, 255);
+#pragma omp for schedule(dynamic, 100)
+        for (size_t id = 0; id < resultReader.getSize(); id++) {
+            Debug::printProgress(id);
 
-            // the structure of entry is a concatentaion of two alignemnts
-            // the first alignemnt is with respect to protein<-->potentialExon
-            // the second alignemnt is with respect to potentialExon<-->contig
-            // the number of columns can be 20 or 22 (depending on the "-a" option)
-            size_t firstColumnOfSecondAlignemnt = 10;
-            if (columns == 22) {
-                firstColumnOfSecondAlignemnt = 11;
-            }
+            // unsigned int proteinID = resultReader.getDbKey(id);
 
-            // take relavant info from protein<-->potentialExon alignment:
-            int potentialExonToProteinAlnScore = Util::fast_atoi<int>(entry[1]);
-            int proteinMatchStart =  Util::fast_atoi<int>(entry[4]);
-            int proteinMatchEnd = Util::fast_atoi<int>(entry[5]);
-            int potentialExonMatchStart = Util::fast_atoi<int>(entry[7]);
-            int potentialExonMatchEnd = Util::fast_atoi<int>(entry[8]);
-
-            // take relavant info from potentialExon<-->contig alignment:
-            int potentialExonContigId = Util::fast_atoi<int>(entry[firstColumnOfSecondAlignemnt]);
-            int potentialExonContigStartBeforeTrim = Util::fast_atoi<int>(entry[firstColumnOfSecondAlignemnt + 7]);
-            int potentialExonContigEndBeforeTrim = Util::fast_atoi<int>(entry[firstColumnOfSecondAlignemnt + 8]);
-
-            // "trim" the potentialExon, i.e., adjust start and end on the contig
-            int potentialExonContigStart;
-            int potentialExonContigEnd;
-            int potentialExonStrand;
-
-            // plus strand:
-            if (potentialExonContigStartBeforeTrim < potentialExonContigEndBeforeTrim) {
-                potentialExonContigStart = potentialExonContigStartBeforeTrim + (potentialExonMatchStart * 3);
-                potentialExonContigEnd = potentialExonContigStartBeforeTrim + (potentialExonMatchEnd * 3) + 2;
-                potentialExonStrand = PLUS;
-            }
-            // mimus strand:
-            else {
-                // multiplying by minus allows carrying out same logic as with plus strand
-                potentialExonContigStart = -1 * (potentialExonContigStartBeforeTrim - (potentialExonMatchStart * 3));
-                potentialExonContigEnd = -1 * (potentialExonContigStartBeforeTrim - (potentialExonMatchEnd * 3) - 2);
-                potentialExonStrand = MINUS;
-            }
-
-            potentialExon currPotentialExon(potentialExonMMSeqs2Key, potentialExonToProteinAlnScore, potentialExonContigStart, potentialExonContigEnd, potentialExonStrand, proteinMatchStart, proteinMatchEnd);
-
-            if (isFirstIteration) {
-                currContigId = potentialExonContigId;
-                isFirstIteration = false;
-            }
-
-            if (potentialExonContigId != currContigId) {
-                if (potentialExonContigId < currContigId) {
-                    Debug(Debug::ERROR) << "ERROR: the contigs are assumed to be sorted in increasing order. This doesn't seem to be the case.\n";
-                    EXIT(EXIT_FAILURE);
-                }
-                // sort + dynamic programming to find the optimals set:
-                findoptimalsetbydp(plusStrandPotentialExons, plusStrandOptimalExonSet);
-                findoptimalsetbydp(minusStrandPotentialExons, minusStrandOptimalExonSet);
-                
-                // TO DO: write optimal sets to result file:
-                // ...
-
-                // empty vectors:
-                plusStrandPotentialExons.clear();
-                minusStrandPotentialExons.clear();
-                plusStrandOptimalExonSet.clear();
-                minusStrandOptimalExonSet.clear();
-                currContigId = potentialExonContigId;
-            }
+            char *results = resultReader.getData(id);
             
-            // push current potentialExon struct to vector:
-            if (potentialExonStrand == PLUS) {
-                plusStrandPotentialExons.emplace_back(currPotentialExon);
-            } else {
-                minusStrandPotentialExons.emplace_back(currPotentialExon);
+            int currContigId = -1;
+            bool isFirstIteration = true;
+            
+            while (*results != '\0') {
+                Util::parseKey(results, potentialExonMMSeqs2KeyStr);
+                const unsigned int potentialExonMMSeqs2Key = (unsigned int) strtoul(potentialExonMMSeqs2KeyStr, NULL, 10);
+                const size_t columns = Util::getWordsOfLine(results, entry, 255);
+
+                // the structure of entry is a concatentaion of two alignemnts
+                // the first alignemnt is with respect to protein<-->potentialExon
+                // the second alignemnt is with respect to potentialExon<-->contig
+                // the number of columns can be 20 or 22 (depending on the "-a" option)
+                size_t firstColumnOfSecondAlignemnt = 10;
+                if (columns == 22) {
+                    firstColumnOfSecondAlignemnt = 11;
+                }
+
+                // take relavant info from protein<-->potentialExon alignment:
+                int potentialExonToProteinAlnScore = Util::fast_atoi<int>(entry[1]);
+                int proteinMatchStart =  Util::fast_atoi<int>(entry[4]);
+                int proteinMatchEnd = Util::fast_atoi<int>(entry[5]);
+                int potentialExonMatchStart = Util::fast_atoi<int>(entry[7]);
+                int potentialExonMatchEnd = Util::fast_atoi<int>(entry[8]);
+
+                // take relavant info from potentialExon<-->contig alignment:
+                int potentialExonContigId = Util::fast_atoi<int>(entry[firstColumnOfSecondAlignemnt]);
+                int potentialExonContigStartBeforeTrim = Util::fast_atoi<int>(entry[firstColumnOfSecondAlignemnt + 7]);
+                int potentialExonContigEndBeforeTrim = Util::fast_atoi<int>(entry[firstColumnOfSecondAlignemnt + 8]);
+
+                // "trim" the potentialExon, i.e., adjust start and end on the contig
+                int potentialExonContigStart;
+                int potentialExonContigEnd;
+                int potentialExonStrand;
+
+                // plus strand:
+                if (potentialExonContigStartBeforeTrim < potentialExonContigEndBeforeTrim) {
+                    potentialExonContigStart = potentialExonContigStartBeforeTrim + (potentialExonMatchStart * 3);
+                    potentialExonContigEnd = potentialExonContigStartBeforeTrim + (potentialExonMatchEnd * 3) + 2;
+                    potentialExonStrand = PLUS;
+                }
+                // mimus strand:
+                else {
+                    // multiplying by minus allows carrying out same logic as with plus strand
+                    potentialExonContigStart = -1 * (potentialExonContigStartBeforeTrim - (potentialExonMatchStart * 3));
+                    potentialExonContigEnd = -1 * (potentialExonContigStartBeforeTrim - (potentialExonMatchEnd * 3) - 2);
+                    potentialExonStrand = MINUS;
+                }
+
+
+                if (isFirstIteration) {
+                    currContigId = potentialExonContigId;
+                    isFirstIteration = false;
+                }
+
+                if (potentialExonContigId != currContigId) {
+                    if (potentialExonContigId < currContigId) {
+                        Debug(Debug::ERROR) << "ERROR: the contigs are assumed to be sorted in increasing order. This doesn't seem to be the case.\n";
+                        EXIT(EXIT_FAILURE);
+                    }
+                    // sort + dynamic programming to find the optimals set:
+                    findoptimalsetbydp(plusStrandPotentialExons, plusStrandOptimalExonSet);
+                    findoptimalsetbydp(minusStrandPotentialExons, minusStrandOptimalExonSet);
+                    
+                    // TO DO: write optimal sets to result file:
+                    // ...
+
+                    // empty vectors:
+                    plusStrandPotentialExons.clear();
+                    minusStrandPotentialExons.clear();
+                    plusStrandOptimalExonSet.clear();
+                    minusStrandOptimalExonSet.clear();
+                    currContigId = potentialExonContigId;
+                }
+                
+                // push current potentialExon struct to vector:
+                if (potentialExonStrand == PLUS) {
+                    plusStrandPotentialExons.emplace_back(potentialExonMMSeqs2Key, potentialExonToProteinAlnScore, potentialExonContigStart, potentialExonContigEnd, potentialExonStrand, proteinMatchStart, proteinMatchEnd);
+                } else {
+                    minusStrandPotentialExons.emplace_back(potentialExonMMSeqs2Key, potentialExonToProteinAlnScore, potentialExonContigStart, potentialExonContigEnd, potentialExonStrand, proteinMatchStart, proteinMatchEnd);
+                }
+
+                results = Util::skipLine(results);
             }
 
-            results = Util::skipLine(results);
+            // one last time - required for the matches of the last contig against the protein
+            // sort + dynamic programming to find the optimals set:
+            findoptimalsetbydp(plusStrandPotentialExons, plusStrandOptimalExonSet);
+            findoptimalsetbydp(minusStrandPotentialExons, minusStrandOptimalExonSet);
+            
+            // TO DO: write optimal sets to result file:
+            // ...
+
+            // empty vectors:
+            plusStrandPotentialExons.clear();
+            minusStrandPotentialExons.clear();
+            plusStrandOptimalExonSet.clear();
+            minusStrandOptimalExonSet.clear();
+            
+            bool stam = false;
+
         }
-
-        // one last time - required for the matches of the last contig against the protein
-        // sort + dynamic programming to find the optimals set:
-        findoptimalsetbydp(plusStrandPotentialExons, plusStrandOptimalExonSet);
-        findoptimalsetbydp(minusStrandPotentialExons, minusStrandOptimalExonSet);
-        
-        // TO DO: write optimal sets to result file:
-        // ...
-        
-        bool stam = false;
-
     }
 
     // cleanup
-    //resultWriter.close(DBReader<unsigned int>::DBTYPE_AA);
+    resultWriter.close();
     resultReader.close();
     
     Debug(Debug::INFO) << "\nDone.\n";
