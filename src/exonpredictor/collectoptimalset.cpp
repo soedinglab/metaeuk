@@ -56,6 +56,16 @@ struct potentialExon {
     }
 };
 
+struct dpMatrixRow {
+    // constructor
+    dpMatrixRow(size_t iPrevPotentialExonId, int iPathScore) : prevPotentialExonId(iPrevPotentialExonId), pathScore(iPathScore) {
+
+    }
+
+    size_t prevPotentialExonId;
+    int pathScore;
+};
+
 bool isPairCompatible(const potentialExon & firstPotentialExonOnContig, const potentialExon & secondPotentialExonOnContig) {
 	// check same strand:
 	if (firstPotentialExonOnContig.strand != secondPotentialExonOnContig.strand) {
@@ -112,19 +122,16 @@ void findoptimalsetbydp(std::vector<potentialExon> & potentialExonCandidates, st
     std::sort(potentialExonCandidates.begin(), potentialExonCandidates.end());
 
     // prevIdsAndScoresBestPath will hold the DP computation results
-	// the first column will be used for backtracing and works as follows:
-	// for entry i it keeps the id j such that j is the previous potentialExon
-	// on the best path ending with the potentialExon i
-	// the second column contains the score itself
-    // "id" below refers to the order of the start on the contig. It will allow for the trace back.
-    std::vector<std::vector<int>> prevIdsAndScoresBestPath;
+    // Each row i represents a potentialExon. They are sorted according to the start on the contig.
+    // Each row i is of the struct dpMatrixRow, which works as follows:
+	// prevPotentialExonId keeps the id j such that j is the previous potentialExon
+	// on the best path ending with the potentialExon i. It will allow for the trace back.
+	// pathScore contains the score itself
+    std::vector<dpMatrixRow> prevIdsAndScoresBestPath;
     prevIdsAndScoresBestPath.reserve(numPotentialExonCandidates);
 	// initialize:
 	for (size_t id = 0; id < numPotentialExonCandidates; ++id) {
-        std::vector<int> rowOfId;
-        rowOfId.emplace_back(id);
-        rowOfId.emplace_back(potentialExonCandidates[id].alnScore);
-		prevIdsAndScoresBestPath.emplace_back(rowOfId);
+		prevIdsAndScoresBestPath.emplace_back(dpMatrixRow(id, potentialExonCandidates[id].alnScore));
 	}
 
     int bestPathScore = 0;
@@ -136,15 +143,15 @@ void findoptimalsetbydp(std::vector<potentialExon> & potentialExonCandidates, st
 		int currBestScore = currPotentialExonAlnScore;
         for (size_t prevPotentialExonId = 0; prevPotentialExonId < currPotentialExonId; ++prevPotentialExonId) {
             if (isPairCompatible(potentialExonCandidates[prevPotentialExonId], potentialExonCandidates[currPotentialExonId])) {
-                int bestScorePathPrevIsLast = prevIdsAndScoresBestPath[prevPotentialExonId][1];
+                int bestScorePathPrevIsLast = prevIdsAndScoresBestPath[prevPotentialExonId].pathScore;
 				int costOfPrevToCurrTransition = getPenaltyForProtCoords(potentialExonCandidates[prevPotentialExonId], potentialExonCandidates[currPotentialExonId]);
 				int currScoreWithPrev = bestScorePathPrevIsLast + costOfPrevToCurrTransition + currPotentialExonAlnScore;
 
                 // update row of current potentialExon in case of improvement:
 				if (currScoreWithPrev > currBestScore) {
 					currBestScore = currScoreWithPrev;
-					prevIdsAndScoresBestPath[currPotentialExonId][0] = prevPotentialExonId;
-					prevIdsAndScoresBestPath[currPotentialExonId][1] = currScoreWithPrev;
+					prevIdsAndScoresBestPath[currPotentialExonId].prevPotentialExonId = prevPotentialExonId;
+					prevIdsAndScoresBestPath[currPotentialExonId].pathScore = currScoreWithPrev;
 				}
             }
         }
@@ -159,10 +166,10 @@ void findoptimalsetbydp(std::vector<potentialExon> & potentialExonCandidates, st
     // trace back (for now, just with print):
     std::cout << "--- best path (last to first) with score: " << bestPathScore << " ---" << std::endl;
 	int currExonId = lastPotentialExonInBestPath;
-	while (prevIdsAndScoresBestPath[currExonId][0] != currExonId) {
+	while (prevIdsAndScoresBestPath[currExonId].prevPotentialExonId != currExonId) {
 		std::string currExonStr = potentialExonCandidates[currExonId].potentialExonToStr();
         std::cout << currExonStr << std::endl << "is after:" << std::endl;
-		currExonId = prevIdsAndScoresBestPath[currExonId][0];
+		currExonId = prevIdsAndScoresBestPath[currExonId].prevPotentialExonId;
 
         // include in the optimal set
         optimalExonSet.emplace_back(potentialExonCandidates[currExonId]);
