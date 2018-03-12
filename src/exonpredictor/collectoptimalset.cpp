@@ -82,7 +82,7 @@ bool isPairCompatible(const potentialExon & firstPotentialExonOnContig, const po
 	return true;
 }
 
-int getPenaltyForProtCoords(const potentialExon & currPotentialExon, const potentialExon & prevPotentialExon) {
+int getPenaltyForProtCoords(const potentialExon & prevPotentialExon, const potentialExon & currPotentialExon) {
 	int numAAsInGap = currPotentialExon._proteinMatchStart - prevPotentialExon._proteinMatchEnd - 1;
 	if (numAAsInGap < 0) {
 		// legal overlap that should be penalized:
@@ -138,7 +138,7 @@ void findoptimalsetbydp (std::vector<potentialExon> & potentialExonCandidates, s
         for (size_t prevPotentialExonId = 0; prevPotentialExonId < currPotentialExonId; ++prevPotentialExonId) {
             if (isPairCompatible(potentialExonCandidates[prevPotentialExonId], potentialExonCandidates[currPotentialExonId])) {
                 int bestScorePathPrevIsLast = prevIdsAndScoresBestPath[prevPotentialExonId][1];
-				int costOfPrevToCurrTransition = getPenaltyForProtCoords(potentialExonCandidates[currPotentialExonId], potentialExonCandidates[prevPotentialExonId]);
+				int costOfPrevToCurrTransition = getPenaltyForProtCoords(potentialExonCandidates[prevPotentialExonId], potentialExonCandidates[currPotentialExonId]);
 				int currScoreWithPrev = bestScorePathPrevIsLast + costOfPrevToCurrTransition + currPotentialExonAlnScore;
 
                 // update row of current potentialExon in case of improvement:
@@ -158,7 +158,6 @@ void findoptimalsetbydp (std::vector<potentialExon> & potentialExonCandidates, s
     }
 
     // trace back (for now, just with print):
-    // traceback from the last exon in best path
     std::cout << "--- best path (last to first) with score: " << bestPathScore << " ---" << std::endl;
 	int currExonId = lastPotentialExonInBestPath;
 	while (prevIdsAndScoresBestPath[currExonId][0] != currExonId) {
