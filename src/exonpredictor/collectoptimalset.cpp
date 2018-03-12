@@ -38,8 +38,11 @@ struct potentialExon {
 	// information extracted from MMSeqs2 local alignment
     int MMSeqs2Key;
     int alnScore;
-	int contigStart; // the first nucleotide to participate in the alignment times the strand
-	int contigEnd; // the last nucleotide to participate in the alignment times the strand
+    // contig start and end refer to the first (and last) nucleotides to participate in the alignment
+    // the coordinates are with respect to the contig start (5', plus strand) and are negative
+    // in case of the minus strand. This way, in both strands, start < end.
+	int contigStart;
+	int contigEnd;
 	int strand;
     int proteinMatchStart;
 	int proteinMatchEnd;
@@ -55,7 +58,7 @@ struct potentialExon {
             return true;
         if(aPotentialExon.contigEnd > anotherPotentialExon.contigEnd)
             return false;
-        // if we reached this line it is the same potentialExon (same start & same end)...
+        // if this line is reached, it is the same potentialExon (same start & same end)...
         return false;
     }
 
