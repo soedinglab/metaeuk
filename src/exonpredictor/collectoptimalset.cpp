@@ -18,10 +18,10 @@
 #include <omp.h>
 #endif
 
-static const int PLUS = 1;
-static const int MINUS = -1;
+const int PLUS = 1;
+const int MINUS = -1;
 
-const size_t MINIMAL_INTRON_LENGTH = 15;
+const int MINIMAL_INTRON_LENGTH = 15;
 int const MAX_AA_OVERLAP = 10;
 
 // simple consts, to be changed in the future:
@@ -31,30 +31,145 @@ int const GAP_EXTEND_PENALTY = -1;
 
 struct potentialExon {
 	// constructor
-	potentialExon(int MMSeqs2Key, size_t alnScore, int contigStart, int contigEnd, int strand, size_t proteinMatchStart, size_t proteinMatchEnd) :
+	potentialExon(int MMSeqs2Key, int alnScore, int contigStart, int contigEnd, int strand, int proteinMatchStart, int proteinMatchEnd) :
 		_MMSeqs2Key(MMSeqs2Key), _alnScore(alnScore), _contigStart(contigStart), _contigEnd(contigEnd), _strand(strand), _proteinMatchStart(proteinMatchStart), _proteinMatchEnd(proteinMatchEnd) {
 	}
 	
 	// information extracted from MMSeqs2 local alignment
-	int _MMSeqs2Key;
-    size_t _alnScore;
+    int _MMSeqs2Key;
+    int _alnScore;
 	int _contigStart; // the first nucleotide to participate in the alignment times the strand
 	int _contigEnd; // the last nucleotide to participate in the alignment times the strand
 	int _strand;
-    size_t _proteinMatchStart;
-	size_t _proteinMatchEnd;
+    int _proteinMatchStart;
+	int _proteinMatchEnd;
 
     // define operator to allow sorting a vector of potentialExon by their start on the contig
-    bool operator < (const potentialExon& anotherPotentialExon) const {
+    bool operator < (const potentialExon & anotherPotentialExon) const {
         return (_contigStart < anotherPotentialExon._contigStart);
+    }
+
+    std::string potentialExonToStr() {
+        std::stringstream ss;
+        ss << "MMSeqs2Key: " << _MMSeqs2Key << ", alnScore: " << _alnScore << ", contigStart: " << _contigStart << ", contigEnd: " << _contigEnd << ", proteinMatchStart: " << _proteinMatchStart << ", proteinMatchEnd: " << _proteinMatchEnd;
+        return (ss.str());
     }
 };
 
-void findoptimalsetbydp (const std::vector<potentialExon> & potentialExonCandidates, std::vector<potentialExon> & optimalExonSet) {
-    if (potentialExonCandidates.size() > 0) {
-        // DO SOMETHING SILLY:
-        optimalExonSet.push_back(potentialExonCandidates[0]);
+bool isPairCompatible(const potentialExon & firstPotentialExonOnContig, const potentialExon & secondPotentialExonOnContig) {
+	// check same strand:
+	if (firstPotentialExonOnContig._strand != secondPotentialExonOnContig._strand) {
+		return false;
+	}
+    
+    // check one does not contain the other:
+	if (secondPotentialExonOnContig._contigEnd < firstPotentialExonOnContig._contigEnd) {
+		return false;
+	}
+
+	// check gap/overlap on contig:
+	int diffOnContig = secondPotentialExonOnContig._contigStart - firstPotentialExonOnContig._contigEnd - 1;
+	if (diffOnContig < MINIMAL_INTRON_LENGTH) {
+		return false;
+	}
+
+	// check gap/overlap on target (also that contig order is as target order):
+	int numAAsInGap = secondPotentialExonOnContig._proteinMatchStart - firstPotentialExonOnContig._proteinMatchEnd - 1;
+	if (numAAsInGap < -(MAX_AA_OVERLAP)) {
+		return false;
+	}
+
+	return true;
+}
+
+int getPenaltyForProtCoords(const potentialExon & currPotentialExon, const potentialExon & prevPotentialExon) {
+	int numAAsInGap = currPotentialExon._proteinMatchStart - prevPotentialExon._proteinMatchEnd - 1;
+	if (numAAsInGap < 0) {
+		// legal overlap that should be penalized:
+		return CONST_LEGAL_OVERLAP_PENALTY;
+	}
+	else if (numAAsInGap <= 1) {
+		// no penalty for missing up to one AA in between fragments:
+		return 0;
+	}
+	else {
+        // penalize for missing protein fragment:
+		int penalty = GAP_OPEN_PENALTY + GAP_EXTEND_PENALTY * (numAAsInGap - 1);
+		return penalty;
+	}
+
+	// never reached:
+	return 1;
+}
+
+void findoptimalsetbydp (std::vector<potentialExon> & potentialExonCandidates, std::vector<potentialExon> & optimalExonSet) {  
+    
+    size_t numPotentialExonCandidates = potentialExonCandidates.size();
+    if (numPotentialExonCandidates == 0) {
+        return;
     }
+
+    // sort vectors by start on contig:
+    std::sort(potentialExonCandidates.begin(), potentialExonCandidates.end());
+
+    // prevIdsAndScoresBestPath will hold the DP computation results
+	// the first column will be used for backtracing and works as follows:
+	// for entry i it keeps the id j such that j is the previous potentialExon
+	// on the best path ending with the potentialExon i
+	// the second column contains the score itself
+    // "id" below refers to the order of the start on the contig. It will allow for the trace back.
+    std::vector<std::vector<int>> prevIdsAndScoresBestPath;
+    prevIdsAndScoresBestPath.reserve(numPotentialExonCandidates);
+	// initialize:
+	for (size_t id = 0; id < numPotentialExonCandidates; ++id) {
+        std::vector<int> rowOfId;
+        rowOfId.emplace_back(id);
+        rowOfId.emplace_back(potentialExonCandidates[id]._alnScore);
+		prevIdsAndScoresBestPath.emplace_back(rowOfId);
+	}
+
+    int bestPathScore = 0;
+	int lastPotentialExonInBestPath = 0;
+	// dynamic programming to fill in the matrix, go over all rows - previous values have been computed:
+    for (size_t currPotentialExonId = 0; currPotentialExonId < numPotentialExonCandidates; ++currPotentialExonId) {
+        int currPotentialExonAlnScore = potentialExonCandidates[currPotentialExonId]._alnScore;
+        // initialize:
+		int currBestScore = currPotentialExonAlnScore;
+        for (size_t prevPotentialExonId = 0; prevPotentialExonId < currPotentialExonId; ++prevPotentialExonId) {
+            if (isPairCompatible(potentialExonCandidates[prevPotentialExonId], potentialExonCandidates[currPotentialExonId])) {
+                int bestScorePathPrevIsLast = prevIdsAndScoresBestPath[prevPotentialExonId][1];
+				int costOfPrevToCurrTransition = getPenaltyForProtCoords(potentialExonCandidates[currPotentialExonId], potentialExonCandidates[prevPotentialExonId]);
+				int currScoreWithPrev = bestScorePathPrevIsLast + costOfPrevToCurrTransition + currPotentialExonAlnScore;
+
+                // update row of current potentialExon in case of improvement:
+				if (currScoreWithPrev > currBestScore) {
+					currBestScore = currScoreWithPrev;
+					prevIdsAndScoresBestPath[currPotentialExonId][0] = prevPotentialExonId;
+					prevIdsAndScoresBestPath[currPotentialExonId][1] = currScoreWithPrev;
+				}
+            }
+        }
+
+        // update the global max in case of improvement:
+		if (currBestScore > bestPathScore) {
+			lastPotentialExonInBestPath = currPotentialExonId;
+			bestPathScore = currBestScore;
+		}
+    }
+
+    // trace back (for now, just with print):
+    // traceback from the last exon in best path
+    std::cout << "--- best path (last to first) with score: " << bestPathScore << " ---" << std::endl;
+	int currExonId = lastPotentialExonInBestPath;
+	while (prevIdsAndScoresBestPath[currExonId][0] != currExonId) {
+		std::string currExonStr = potentialExonCandidates[currExonId].potentialExonToStr();
+        std::cout << currExonStr << std::endl << "is after:" << std::endl;
+		currExonId = prevIdsAndScoresBestPath[currExonId][0];
+
+	}
+	std::string currExonStr = potentialExonCandidates[currExonId].potentialExonToStr();
+    std::cout << currExonStr << std::endl;
+    std::cout << "-------" << std::endl;
 
 }
 
@@ -150,11 +265,7 @@ int collectoptimalset(int argn, const char **argv, const Command& command) {
                     Debug(Debug::ERROR) << "ERROR: the contigs are assumed to be sorted in increasing order. This doesn't seem to be the case.\n";
                     EXIT(EXIT_FAILURE);
                 }
-                // sort vectors by start on contig:
-                std::sort(plusStrandPotentialExons.begin(), plusStrandPotentialExons.end());
-                std::sort(minusStrandPotentialExons.begin(), minusStrandPotentialExons.end());
-
-                // dynamic programming to find the optimals set:
+                // sort + dynamic programming to find the optimals set:
                 findoptimalsetbydp(plusStrandPotentialExons, plusStrandOptimalExonSet);
                 findoptimalsetbydp(minusStrandPotentialExons, minusStrandOptimalExonSet);
                 
@@ -180,11 +291,7 @@ int collectoptimalset(int argn, const char **argv, const Command& command) {
         }
 
         // one last time - required for the matches of the last contig against the protein
-        // sort vectors by start on contig:
-        std::sort(plusStrandPotentialExons.begin(), plusStrandPotentialExons.end());
-        std::sort(minusStrandPotentialExons.begin(), minusStrandPotentialExons.end());
-
-        // dynamic programming to find the optimals set:
+        // sort + dynamic programming to find the optimals set:
         findoptimalsetbydp(plusStrandPotentialExons, plusStrandOptimalExonSet);
         findoptimalsetbydp(minusStrandPotentialExons, minusStrandOptimalExonSet);
         
