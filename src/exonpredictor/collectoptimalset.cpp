@@ -44,9 +44,19 @@ struct potentialExon {
     int proteinMatchStart;
 	int proteinMatchEnd;
 
-    // define operator to allow sorting a vector of potentialExon by their start on the contig
-    bool operator < (const potentialExon & anotherPotentialExon) const {
-        return (contigStart < anotherPotentialExon.contigStart);
+    // to allow sorting a vector of potentialExon by their start on the contig
+    static bool comparePotentialExons (const potentialExon & aPotentialExon, const potentialExon & anotherPotentialExon){
+        if(aPotentialExon.contigStart < anotherPotentialExon.contigStart)
+            return true;
+        if(aPotentialExon.contigStart > anotherPotentialExon.contigStart)
+            return false;
+        // the following lines will break even cases in a consistent way
+        if(aPotentialExon.contigEnd < anotherPotentialExon.contigEnd)
+            return true;
+        if(aPotentialExon.contigEnd > anotherPotentialExon.contigEnd)
+            return false;
+        // if we reached this line it is the same potentialExon (same start & same end)...
+        return false;
     }
 
     std::string potentialExonToStr() {
@@ -119,7 +129,7 @@ void findoptimalsetbydp(std::vector<potentialExon> & potentialExonCandidates, st
     }
 
     // sort vectors by start on contig:
-    std::sort(potentialExonCandidates.begin(), potentialExonCandidates.end());
+    std::stable_sort(potentialExonCandidates.begin(), potentialExonCandidates.end(), potentialExon::comparePotentialExons);
 
     // prevIdsAndScoresBestPath will hold the DP computation results
     // Each row i represents a potentialExon. They are sorted according to the start on the contig.
@@ -179,7 +189,6 @@ void findoptimalsetbydp(std::vector<potentialExon> & potentialExonCandidates, st
     std::cout << "-------" << std::endl;
     // include in the optimal set
     optimalExonSet.emplace_back(potentialExonCandidates[currExonId]);
-
 }
 
 int collectoptimalset(int argn, const char **argv, const Command& command) {
@@ -313,7 +322,7 @@ int collectoptimalset(int argn, const char **argv, const Command& command) {
             // TO DO: write optimal sets to result file:
             // ...
 
-            // empty vectors:
+            // empty vectors (between protein records):
             plusStrandPotentialExons.clear();
             minusStrandPotentialExons.clear();
             plusStrandOptimalExonSet.clear();
