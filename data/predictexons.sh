@@ -50,7 +50,7 @@ fi
 
 # search with each aa fragment against a target DB (result has queries as implicit keys)
 if notExists "${TMP_PATH}/search_res"; then
-    $MMSEQS search "${TMP_PATH}/aa_6f" "${INPUT_TARGET_PROTEINS}" "${TMP_PATH}/search_res" "${TMP_PATH}/tmp_search" -a \
+    $MMSEQS search "${TMP_PATH}/aa_6f" "${INPUT_TARGET_PROTEINS}" "${TMP_PATH}/search_res" "${TMP_PATH}/tmp_search" --alignment-mode 2 \
         || fail "search step died"
 fi
 
@@ -68,7 +68,7 @@ fi
 
 # sort joined swapped results by contig id
 if notExists "${TMP_PATH}/search_res_swap_w_contig_info_sorted"; then
-    $MMSEQS filterdb "${TMP_PATH}/search_res_swap_w_contig_info" "${TMP_PATH}/search_res_swap_w_contig_info_sorted" --sort-entries 1 --filter-column 12 \
+    $MMSEQS filterdb "${TMP_PATH}/search_res_swap_w_contig_info" "${TMP_PATH}/search_res_swap_w_contig_info_sorted" --sort-entries 1 --filter-column 11 \
         || fail "filterdb (to sort by contig) step died"
 fi
 
