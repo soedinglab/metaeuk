@@ -31,50 +31,50 @@ int const GAP_EXTEND_PENALTY = -1;
 
 struct potentialExon {
 	// constructor
-	potentialExon(int MMSeqs2Key, int alnScore, int contigStart, int contigEnd, int strand, int proteinMatchStart, int proteinMatchEnd) :
-		_MMSeqs2Key(MMSeqs2Key), _alnScore(alnScore), _contigStart(contigStart), _contigEnd(contigEnd), _strand(strand), _proteinMatchStart(proteinMatchStart), _proteinMatchEnd(proteinMatchEnd) {
+	potentialExon(int iMMSeqs2Key, int iAlnScore, int iContigStart, int iContigEnd, int iStrand, int iProteinMatchStart, int iProteinMatchEnd) :
+		MMSeqs2Key(iMMSeqs2Key), alnScore(iAlnScore), contigStart(iContigStart), contigEnd(iContigEnd), strand(iStrand), proteinMatchStart(iProteinMatchStart), proteinMatchEnd(iProteinMatchEnd) {
 	}
 	
 	// information extracted from MMSeqs2 local alignment
-    int _MMSeqs2Key;
-    int _alnScore;
-	int _contigStart; // the first nucleotide to participate in the alignment times the strand
-	int _contigEnd; // the last nucleotide to participate in the alignment times the strand
-	int _strand;
-    int _proteinMatchStart;
-	int _proteinMatchEnd;
+    int MMSeqs2Key;
+    int alnScore;
+	int contigStart; // the first nucleotide to participate in the alignment times the strand
+	int contigEnd; // the last nucleotide to participate in the alignment times the strand
+	int strand;
+    int proteinMatchStart;
+	int proteinMatchEnd;
 
     // define operator to allow sorting a vector of potentialExon by their start on the contig
     bool operator < (const potentialExon & anotherPotentialExon) const {
-        return (_contigStart < anotherPotentialExon._contigStart);
+        return (contigStart < anotherPotentialExon.contigStart);
     }
 
     std::string potentialExonToStr() {
         std::stringstream ss;
-        ss << "MMSeqs2Key: " << _MMSeqs2Key << ", alnScore: " << _alnScore << ", contigStart: " << _contigStart << ", contigEnd: " << _contigEnd << ", proteinMatchStart: " << _proteinMatchStart << ", proteinMatchEnd: " << _proteinMatchEnd;
+        ss << "MMSeqs2Key: " << MMSeqs2Key << ", alnScore: " << alnScore << ", contigStart: " << contigStart << ", contigEnd: " << contigEnd << ", proteinMatchStart: " << proteinMatchStart << ", proteinMatchEnd: " << proteinMatchEnd;
         return (ss.str());
     }
 };
 
 bool isPairCompatible(const potentialExon & firstPotentialExonOnContig, const potentialExon & secondPotentialExonOnContig) {
 	// check same strand:
-	if (firstPotentialExonOnContig._strand != secondPotentialExonOnContig._strand) {
+	if (firstPotentialExonOnContig.strand != secondPotentialExonOnContig.strand) {
 		return false;
 	}
     
     // check one does not contain the other:
-	if (secondPotentialExonOnContig._contigEnd < firstPotentialExonOnContig._contigEnd) {
+	if (secondPotentialExonOnContig.contigEnd < firstPotentialExonOnContig.contigEnd) {
 		return false;
 	}
 
 	// check gap/overlap on contig:
-	int diffOnContig = secondPotentialExonOnContig._contigStart - firstPotentialExonOnContig._contigEnd - 1;
+	int diffOnContig = secondPotentialExonOnContig.contigStart - firstPotentialExonOnContig.contigEnd - 1;
 	if (diffOnContig < MINIMAL_INTRON_LENGTH) {
 		return false;
 	}
 
 	// check gap/overlap on target (also that contig order is as target order):
-	int numAAsInGap = secondPotentialExonOnContig._proteinMatchStart - firstPotentialExonOnContig._proteinMatchEnd - 1;
+	int numAAsInGap = secondPotentialExonOnContig.proteinMatchStart - firstPotentialExonOnContig.proteinMatchEnd - 1;
 	if (numAAsInGap < -(MAX_AA_OVERLAP)) {
 		return false;
 	}
@@ -83,7 +83,7 @@ bool isPairCompatible(const potentialExon & firstPotentialExonOnContig, const po
 }
 
 int getPenaltyForProtCoords(const potentialExon & prevPotentialExon, const potentialExon & currPotentialExon) {
-	int numAAsInGap = currPotentialExon._proteinMatchStart - prevPotentialExon._proteinMatchEnd - 1;
+	int numAAsInGap = currPotentialExon.proteinMatchStart - prevPotentialExon.proteinMatchEnd - 1;
 	if (numAAsInGap < 0) {
 		// legal overlap that should be penalized:
 		return CONST_LEGAL_OVERLAP_PENALTY;
@@ -123,7 +123,7 @@ void findoptimalsetbydp(std::vector<potentialExon> & potentialExonCandidates, st
 	for (size_t id = 0; id < numPotentialExonCandidates; ++id) {
         std::vector<int> rowOfId;
         rowOfId.emplace_back(id);
-        rowOfId.emplace_back(potentialExonCandidates[id]._alnScore);
+        rowOfId.emplace_back(potentialExonCandidates[id].alnScore);
 		prevIdsAndScoresBestPath.emplace_back(rowOfId);
 	}
 
@@ -131,7 +131,7 @@ void findoptimalsetbydp(std::vector<potentialExon> & potentialExonCandidates, st
 	int lastPotentialExonInBestPath = 0;
 	// dynamic programming to fill in the matrix, go over all rows - previous values have been computed:
     for (size_t currPotentialExonId = 0; currPotentialExonId < numPotentialExonCandidates; ++currPotentialExonId) {
-        int currPotentialExonAlnScore = potentialExonCandidates[currPotentialExonId]._alnScore;
+        int currPotentialExonAlnScore = potentialExonCandidates[currPotentialExonId].alnScore;
         // initialize:
 		int currBestScore = currPotentialExonAlnScore;
         for (size_t prevPotentialExonId = 0; prevPotentialExonId < currPotentialExonId; ++prevPotentialExonId) {
