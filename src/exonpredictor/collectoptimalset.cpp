@@ -102,8 +102,7 @@ int getPenaltyForProtCoords(const potentialExon & prevPotentialExon, const poten
 	return 1;
 }
 
-void findoptimalsetbydp (std::vector<potentialExon> & potentialExonCandidates, std::vector<potentialExon> & optimalExonSet) {  
-    
+void findoptimalsetbydp (std::vector<potentialExon> & potentialExonCandidates, std::vector<potentialExon> & optimalExonSet) {   
     size_t numPotentialExonCandidates = potentialExonCandidates.size();
     if (numPotentialExonCandidates == 0) {
         return;
@@ -165,10 +164,14 @@ void findoptimalsetbydp (std::vector<potentialExon> & potentialExonCandidates, s
         std::cout << currExonStr << std::endl << "is after:" << std::endl;
 		currExonId = prevIdsAndScoresBestPath[currExonId][0];
 
+        // include in the optimal set
+        optimalExonSet.emplace_back(potentialExonCandidates[currExonId]);
 	}
 	std::string currExonStr = potentialExonCandidates[currExonId].potentialExonToStr();
     std::cout << currExonStr << std::endl;
     std::cout << "-------" << std::endl;
+    // include in the optimal set
+    optimalExonSet.emplace_back(potentialExonCandidates[currExonId]);
 
 }
 
@@ -183,9 +186,9 @@ int collectoptimalset(int argn, const char **argv, const Command& command) {
     //DBWriter resultWriter(par.db2.c_str(), par.db2Index.c_str(), par.threads);
     //resultWriter.open();
 
-// analyze each entry of the result DB, this is a swapped DB
-// so the original targets play the role of queries...
-// i.e., the results are from protein --> potentialExon
+    // analyze each entry of the result DB, this is a swapped DB
+    // so the original targets play the role of queries...
+    // i.e., the results are from protein --> potentialExon
 #pragma omp for schedule(dynamic, 100)
     for (size_t id = 0; id < resultReader.getSize(); id++) {
         Debug::printProgress(id);
