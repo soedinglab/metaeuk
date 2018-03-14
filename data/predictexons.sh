@@ -54,7 +54,7 @@ if notExists "${TMP_PATH}/search_res"; then
         || fail "search step died"
 fi
 
-# swap results (result has target as implicit keys)
+# swap results (result has targets as implicit keys)
 if notExists "${TMP_PATH}/search_res_swap"; then
     $MMSEQS swapresults "${TMP_PATH}/aa_6f" "${INPUT_TARGET_PROTEINS}" "${TMP_PATH}/search_res" "${TMP_PATH}/search_res_swap" \
         || fail "swap step died"

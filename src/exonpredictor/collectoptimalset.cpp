@@ -289,7 +289,6 @@ int collectoptimalset(int argn, const char **argv, const Command& command) {
                     potentialExonStrand = MINUS;
                 }
 
-
                 if (isFirstIteration) {
                     currContigId = potentialExonContigId;
                     isFirstIteration = false;
