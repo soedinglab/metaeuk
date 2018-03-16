@@ -317,12 +317,7 @@ int collectoptimalset(int argn, const char **argv, const Command& command) {
             optimalExonsBuffer.reserve(10000);
 
             char exonsResultsBuffer[10000];
-            
-            //char mapLittleBuffer[100];
             char mapBuffer[1000]; 
-            //std::string mapBuffer;
-            //mapBuffer.reserve(10000);
-
             
             while (*results != '\0') {
                 const size_t columns = Util::getWordsOfLine(results, entry, 255);
