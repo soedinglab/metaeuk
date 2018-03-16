@@ -13,6 +13,7 @@
 #include <limits>
 #include <cstdint>
 #include <queue>
+#include "itoa.h"
 
 #ifdef OPENMP
 #include <omp.h>
@@ -221,11 +222,10 @@ void findoptimalsetbydp(std::vector<potentialExon> & potentialExonCandidates, st
 	int currExonId = lastPotentialExonInBestPath;
 	while (prevIdsAndScoresBestPath[currExonId].prevPotentialExonId != currExonId) {
 		std::string currExonStr = potentialExonCandidates[currExonId].potentialExonToStr();
-        std::cout << currExonStr << std::endl << "is after:" << std::endl;
+        //std::cout << currExonStr << std::endl << "is after:" << std::endl;
         optimalExonSet.emplace_back(potentialExonCandidates[currExonId]);
 
 		currExonId = prevIdsAndScoresBestPath[currExonId].prevPotentialExonId;
-
 	}
 	std::string currExonStr = potentialExonCandidates[currExonId].potentialExonToStr();
     std::cout << currExonStr << std::endl;
@@ -246,6 +246,22 @@ size_t fillBufferWithExonsResults (std::vector<potentialExon> & optimalExonSet, 
     return (numCharsWritten);
 }
 
+size_t fillBufferWithMapInfo (char * mapBuffer, int proteinID, int contigID, int strand, double evalue) {
+    char * basePos = mapBuffer;
+    char * tmpBuff = Itoa::u32toa_sse2(static_cast<uint32_t>(proteinID), mapBuffer);
+    *(tmpBuff-1) = '\t';
+    tmpBuff = Itoa::u32toa_sse2(static_cast<uint32_t>(contigID), tmpBuff);
+    *(tmpBuff-1) = '\t';
+    tmpBuff = Itoa::i32toa_sse2(static_cast<uint32_t>(strand), tmpBuff);
+    *(tmpBuff-1) = '\t';
+    tmpBuff += sprintf(tmpBuff,"%.3E",evalue);
+    tmpBuff++;
+    *(tmpBuff-1) = '\n';
+    *(tmpBuff) = '\0';
+
+    return (tmpBuff - basePos);
+}
+
 int collectoptimalset(int argn, const char **argv, const Command& command) {
     LocalParameters& par = LocalParameters::getLocalInstance();
     par.parseParameters(argn, argv, command, 2, true, true);
@@ -253,15 +269,18 @@ int collectoptimalset(int argn, const char **argv, const Command& command) {
     DBReader<unsigned int> resultReader(par.db1.c_str(), par.db1Index.c_str());
     resultReader.open(DBReader<unsigned int>::LINEAR_ACCCESS);
 
-    std::string dbOptimalExons = par.db2 + "_optimal_exon_sets";
-    std::string dbOptimalExonsIndex = par.db2 + "_optimal_exon_sets.index";
-    DBWriter optimalExonsWriter(dbOptimalExons.c_str(), dbOptimalExonsIndex.c_str(), par.threads);
-    optimalExonsWriter.open();
-
+    // this key is joint to several threads so will be increamented in crtical:
+    size_t globalMapKey = 0; 
+    
     std::string dbProteinContigStrandMap = par.db2 + "_protein_contig_strand_map";
     std::string dbProteinContigStrandMapIndex = par.db2 + "_protein_contig_strand_map.index";
     DBWriter mapWriter(dbProteinContigStrandMap.c_str(), dbProteinContigStrandMapIndex.c_str(), par.threads);
     mapWriter.open();
+
+    std::string dbOptimalExons = par.db2 + "_optimal_exon_sets";
+    std::string dbOptimalExonsIndex = par.db2 + "_optimal_exon_sets.index";
+    DBWriter optimalExonsWriter(dbOptimalExons.c_str(), dbOptimalExonsIndex.c_str(), par.threads);
+    optimalExonsWriter.open();
 
     // analyze each entry of the result DB, this is a swapped DB
     // so the original targets play the role of queries...
@@ -281,13 +300,13 @@ int collectoptimalset(int argn, const char **argv, const Command& command) {
         std::vector<potentialExon> minusStrandOptimalExonSet;
         minusStrandOptimalExonSet.reserve(100);
 
-        char *entry[255];           
+        char *entry[255];          
         
 #pragma omp for schedule(dynamic, 100)
         for (size_t id = 0; id < resultReader.getSize(); id++) {
             Debug::printProgress(id);
 
-            // unsigned int proteinID = resultReader.getDbKey(id);
+            unsigned int proteinID = resultReader.getDbKey(id);
 
             char *results = resultReader.getData(id);
             
@@ -297,10 +316,13 @@ int collectoptimalset(int argn, const char **argv, const Command& command) {
             std::string optimalExonsBuffer;
             optimalExonsBuffer.reserve(10000);
 
-            std::string mapBuffer;
-            mapBuffer.reserve(10000);
-
             char exonsResultsBuffer[10000];
+            
+            //char mapLittleBuffer[100];
+            char mapBuffer[1000]; 
+            //std::string mapBuffer;
+            //mapBuffer.reserve(10000);
+
             
             while (*results != '\0') {
                 const size_t columns = Util::getWordsOfLine(results, entry, 255);
@@ -362,8 +384,35 @@ int collectoptimalset(int argn, const char **argv, const Command& command) {
                     findoptimalsetbydp(plusStrandPotentialExons, plusStrandOptimalExonSet);
                     findoptimalsetbydp(minusStrandPotentialExons, minusStrandOptimalExonSet);
                     
-                    // TO DO: write optimal sets to result file:
-                    // ...
+                    // write optimal sets to result file:
+                    if (plusStrandOptimalExonSet.size() > 0) {
+                        size_t mapKey;
+                        // take the value from the global keys counter - only a single thread can access it at a given time:
+                        #pragma omp critical (getUniqueKeyForCombination)  
+                        {  
+                            mapKey = globalMapKey;
+                            globalMapKey++;
+                        }
+                        size_t mapCombinationLen = fillBufferWithMapInfo(mapBuffer, proteinID, currContigId, PLUS, 0.01);
+                        mapWriter.writeData(mapBuffer, mapCombinationLen, mapKey, thread_idx);
+
+                        size_t exonsResultsLen = fillBufferWithExonsResults (plusStrandOptimalExonSet, exonsResultsBuffer); 
+                        optimalExonsWriter.writeData(exonsResultsBuffer, exonsResultsLen, mapKey, thread_idx);
+                    }
+                    if (minusStrandOptimalExonSet.size() > 0) {
+                        size_t mapKey;
+                        // take the value from the global keys counter - only a single thread can access it at a given time:
+                        #pragma omp critical (getUniqueKeyForCombination)  
+                        {  
+                            mapKey = globalMapKey;
+                            globalMapKey++;
+                        }
+                        size_t mapCombinationLen = fillBufferWithMapInfo(mapBuffer, proteinID, currContigId, MINUS, 0.01);
+                        mapWriter.writeData(mapBuffer, mapCombinationLen, mapKey, thread_idx);
+
+                        size_t exonsResultsLen = fillBufferWithExonsResults (minusStrandOptimalExonSet, exonsResultsBuffer); 
+                        optimalExonsWriter.writeData(exonsResultsBuffer, exonsResultsLen, mapKey, thread_idx);
+                    }
 
                     // empty vectors:
                     plusStrandPotentialExons.clear();
@@ -388,10 +437,34 @@ int collectoptimalset(int argn, const char **argv, const Command& command) {
             findoptimalsetbydp(plusStrandPotentialExons, plusStrandOptimalExonSet);
             findoptimalsetbydp(minusStrandPotentialExons, minusStrandOptimalExonSet);
             
-            // TO DO: write optimal sets to result file:
+            // write optimal sets to result file:
+            if (plusStrandOptimalExonSet.size() > 0) {
+                size_t mapKey;
+                // take the value from the global keys counter - only a single thread can access it at a given time:
+                #pragma omp critical (getUniqueKeyForCombination)  
+                {  
+                    mapKey = globalMapKey;
+                    globalMapKey++;
+                }
+                size_t mapCombinationLen = fillBufferWithMapInfo(mapBuffer, proteinID, currContigId, PLUS, 0.01);
+                mapWriter.writeData(mapBuffer, mapCombinationLen, mapKey, thread_idx);
+
+                size_t exonsResultsLen = fillBufferWithExonsResults (plusStrandOptimalExonSet, exonsResultsBuffer); 
+                optimalExonsWriter.writeData(exonsResultsBuffer, exonsResultsLen, mapKey, thread_idx);
+            }
             if (minusStrandOptimalExonSet.size() > 0) {
+                size_t mapKey;
+                // take the value from the global keys counter - only a single thread can access it at a given time:
+                #pragma omp critical (getUniqueKeyForCombination)  
+                {  
+                    mapKey = globalMapKey;
+                    globalMapKey++;
+                }
+                size_t mapCombinationLen = fillBufferWithMapInfo(mapBuffer, proteinID, currContigId, MINUS, 0.01);
+                mapWriter.writeData(mapBuffer, mapCombinationLen, mapKey, thread_idx);
+
                 size_t exonsResultsLen = fillBufferWithExonsResults (minusStrandOptimalExonSet, exonsResultsBuffer); 
-                //writerOrfToSet.writeData(exonsResultsBuffer, exonsResultsLen, id, thread_idx);
+                optimalExonsWriter.writeData(exonsResultsBuffer, exonsResultsLen, mapKey, thread_idx);
             }
 
             // empty vectors (between protein records):
@@ -403,10 +476,10 @@ int collectoptimalset(int argn, const char **argv, const Command& command) {
     }
 
     // cleanup
-    optimalExonsWriter.close();
-    mapWriter.close();
-
     resultReader.close();
+
+    mapWriter.close();
+    optimalExonsWriter.close();
     
     Debug(Debug::INFO) << "\nDone.\n";
 
