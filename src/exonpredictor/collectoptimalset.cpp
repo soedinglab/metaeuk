@@ -313,9 +313,6 @@ int collectoptimalset(int argn, const char **argv, const Command& command) {
             int currContigId = -1;
             bool isFirstIteration = true;
 
-            std::string optimalExonsBuffer;
-            optimalExonsBuffer.reserve(10000);
-
             char exonsResultsBuffer[10000];
             char mapBuffer[1000]; 
             
