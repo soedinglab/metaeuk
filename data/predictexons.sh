@@ -72,15 +72,28 @@ if notExists "${TMP_PATH}/search_res_swap_w_contig_info_sorted"; then
         || fail "filterdb (to sort by contig) step died"
 fi
 
-# # for each target, with respect to each contig and each strand, find the optimal set of exons
-# if notExists "${TMP_PATH}/optimal_set_for_each_target"; then
-#     $MMSEQS collectoptimalset "${TMP_PATH}/search_res_swap_w_contig_info_sorted" "${TMP_PATH}/optimal_set_for_each_target" \
-#         || fail "collectoptimalset step died"
-# fi
+# for each target, with respect to each contig and each strand, find the optimal set of exons
+if notExists "${TMP_PATH}/dp_protein_contig_strand_map"; then
+    $MMSEQS collectoptimalset "${TMP_PATH}/search_res_swap_w_contig_info_sorted" "${TMP_PATH}/dp" \
+        || fail "collectoptimalset step died"
+fi
 
-# # post processing (WILL BE CHANGED AFTER WORKFLOW IS COMPLETE)
-# mv -f "${TMP_PATH}/search_res_swap_w_contig_info_sorted" "$3" || fail "Could not move result to $3"
-# mv -f "${TMP_PATH}/search_res_swap_w_contig_info_sorted.index" "$3.index" || fail "Could not move result to $3.index"
+# create sequence DBs from the results, these contain the original identifiers
+if notExists "${TMP_PATH}/united_exons"; then
+    $MMSEQS unitesetstosequencedb "${INPUT_CONTIGS}" "${INPUT_TARGET_PROTEINS}" "${TMP_PATH}/dp" "${TMP_PATH}/united_exons" \
+        || fail "unitesetstosequencedb step died"
+fi
+
+# post processing (WILL BE CHANGED AFTER WORKFLOW IS COMPLETE)
+mv -f "${TMP_PATH}/dp_protein_contig_strand_map" "$3_dp_protein_contig_strand_map" || fail "Could not move result to $3_dp_protein_contig_strand_map"
+mv -f "${TMP_PATH}/dp_protein_contig_strand_map.index" "$3_dp_protein_contig_strand_map.index" || fail "Could not move result to $3_dp_protein_contig_strand_map.index"
+mv -f "${TMP_PATH}/dp_optimal_exon_sets" "$3_dp_optimal_exon_sets" || fail "Could not move result to $3_dp_optimal_exon_sets"
+mv -f "${TMP_PATH}/dp_optimal_exon_sets.index" "$3_dp_optimal_exon_sets.index" || fail "Could not move result to $3_dp_optimal_exon_sets.index"
+mv -f "${TMP_PATH}/united_exons" "$3_united_exons" || fail "Could not move result to $3_united_exons"
+mv -f "${TMP_PATH}/united_exons.index" "$3_united_exons.index" || fail "Could not move result to $3_united_exons.index"
+mv -f "${TMP_PATH}/united_exons_h" "$3_united_exons_h" || fail "Could not move result to $3_united_exons_h"
+mv -f "${TMP_PATH}/united_exons_h.index" "$3_united_exons_h.index" || fail "Could not move result to $3_united_exons_h.index"
+
 
 # if [ -n "$REMOVE_TMP" ]; then
 #     echo "Removing temporary files"
