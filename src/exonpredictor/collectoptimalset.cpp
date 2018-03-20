@@ -218,18 +218,11 @@ void findoptimalsetbydp(std::vector<potentialExon> & potentialExonCandidates, st
     }
 
     // trace back (for now, just with print):
-    std::cout << "--- best path (last to first) with score: " << bestPathScore << " ---" << std::endl;
-	int currExonId = lastPotentialExonInBestPath;
+    int currExonId = lastPotentialExonInBestPath;
 	while (prevIdsAndScoresBestPath[currExonId].prevPotentialExonId != currExonId) {
-		std::string currExonStr = potentialExonCandidates[currExonId].potentialExonToStr();
-        //std::cout << currExonStr << std::endl << "is after:" << std::endl;
         optimalExonSet.emplace_back(potentialExonCandidates[currExonId]);
-
 		currExonId = prevIdsAndScoresBestPath[currExonId].prevPotentialExonId;
 	}
-	std::string currExonStr = potentialExonCandidates[currExonId].potentialExonToStr();
-    std::cout << currExonStr << std::endl;
-    std::cout << "-------" << std::endl;
     // include in the optimal set
     optimalExonSet.emplace_back(potentialExonCandidates[currExonId]);
 }
