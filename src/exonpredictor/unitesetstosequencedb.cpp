@@ -137,7 +137,7 @@ int unitesetstosequencedb(int argn, const char **argv, const Command& command) {
             unsigned int proteinMMSeqs2Key = Util::fast_atoi<int>(entry[0]);
             unsigned int contigMMSeqs2Key = Util::fast_atoi<int>(entry[1]);
             int strand = Util::fast_atoi<int>(entry[2]);
-            double combinedEvalue = atof(entry[3]);
+            int combinedAlnBitScore = Util::fast_atoi<int>(entry[3]);
             setRecord = Util::skipLine(setRecord);
 
             // get non-MMSeqs2 identifiers from header files:
@@ -156,7 +156,7 @@ int unitesetstosequencedb(int argn, const char **argv, const Command& command) {
             joinedHeaderStream << littleStringBuffer << "|";
             littleStringBuffer.clear();
             (strand == PLUS) ? joinedHeaderStream << "plus" : joinedHeaderStream << "minus";
-            joinedHeaderStream << "|" << combinedEvalue;
+            joinedHeaderStream << "|" << combinedAlnBitScore;
             
             int lastTargetPosMatched = 0;
             while (*optimalExonRecord != '\0') {

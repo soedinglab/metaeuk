@@ -169,11 +169,11 @@ int getPenaltyForProtCoords(const potentialExon & prevPotentialExon, const poten
 	return 1;
 }
 
-void findoptimalsetbydp(std::vector<potentialExon> & potentialExonCandidates, std::vector<potentialExon> & optimalExonSet) {   
+int findoptimalsetbydp(std::vector<potentialExon> & potentialExonCandidates, std::vector<potentialExon> & optimalExonSet) {   
     size_t numPotentialExonCandidates = potentialExonCandidates.size();
     if (numPotentialExonCandidates == 0) {
         // nothing to do here!
-        return;
+        return (0);
     }
 
     // sort vector by start on contig:
@@ -225,6 +225,8 @@ void findoptimalsetbydp(std::vector<potentialExon> & potentialExonCandidates, st
 	}
     // include in the optimal set
     optimalExonSet.emplace_back(potentialExonCandidates[currExonId]);
+
+    return (bestPathScore);
 }
 
 size_t fillBufferWithExonsResults (std::vector<potentialExon> & optimalExonSet, char * allExonResultsBuffer) {
@@ -239,7 +241,7 @@ size_t fillBufferWithExonsResults (std::vector<potentialExon> & optimalExonSet, 
     return (numCharsWritten);
 }
 
-size_t fillBufferWithMapInfo (char * mapBuffer, int proteinID, int contigID, int strand, double evalue) {
+size_t fillBufferWithMapInfo (char * mapBuffer, int proteinID, int contigID, int strand, int totalBitScore) {
     char * basePos = mapBuffer;
     char * tmpBuff = Itoa::u32toa_sse2(static_cast<uint32_t>(proteinID), mapBuffer);
     *(tmpBuff-1) = '\t';
@@ -247,8 +249,7 @@ size_t fillBufferWithMapInfo (char * mapBuffer, int proteinID, int contigID, int
     *(tmpBuff-1) = '\t';
     tmpBuff = Itoa::i32toa_sse2(static_cast<uint32_t>(strand), tmpBuff);
     *(tmpBuff-1) = '\t';
-    tmpBuff += sprintf(tmpBuff,"%.3E",evalue);
-    tmpBuff++;
+    tmpBuff = Itoa::i32toa_sse2(static_cast<uint32_t>(totalBitScore), tmpBuff);
     *(tmpBuff-1) = '\n';
     *(tmpBuff) = '\0';
 
@@ -366,8 +367,8 @@ int collectoptimalset(int argn, const char **argv, const Command& command) {
                         EXIT(EXIT_FAILURE);
                     }
                     // sort + dynamic programming to find the optimals set:
-                    findoptimalsetbydp(plusStrandPotentialExons, plusStrandOptimalExonSet);
-                    findoptimalsetbydp(minusStrandPotentialExons, minusStrandOptimalExonSet);
+                    int totalBitScorePlus = findoptimalsetbydp(plusStrandPotentialExons, plusStrandOptimalExonSet);
+                    int totalBitScoreMinus = findoptimalsetbydp(minusStrandPotentialExons, minusStrandOptimalExonSet);
                     
                     // write optimal sets to result file:
                     if (plusStrandOptimalExonSet.size() > 0) {
@@ -378,7 +379,7 @@ int collectoptimalset(int argn, const char **argv, const Command& command) {
                             mapKey = globalMapKey;
                             globalMapKey++;
                         }
-                        size_t mapCombinationLen = fillBufferWithMapInfo(mapBuffer, proteinID, currContigId, PLUS, 0.01);
+                        size_t mapCombinationLen = fillBufferWithMapInfo(mapBuffer, proteinID, currContigId, PLUS, totalBitScorePlus);
                         mapWriter.writeData(mapBuffer, mapCombinationLen, mapKey, thread_idx);
 
                         size_t exonsResultsLen = fillBufferWithExonsResults (plusStrandOptimalExonSet, exonsResultsBuffer); 
@@ -392,7 +393,7 @@ int collectoptimalset(int argn, const char **argv, const Command& command) {
                             mapKey = globalMapKey;
                             globalMapKey++;
                         }
-                        size_t mapCombinationLen = fillBufferWithMapInfo(mapBuffer, proteinID, currContigId, MINUS, 0.01);
+                        size_t mapCombinationLen = fillBufferWithMapInfo(mapBuffer, proteinID, currContigId, MINUS, totalBitScoreMinus);
                         mapWriter.writeData(mapBuffer, mapCombinationLen, mapKey, thread_idx);
 
                         size_t exonsResultsLen = fillBufferWithExonsResults (minusStrandOptimalExonSet, exonsResultsBuffer); 
@@ -419,8 +420,8 @@ int collectoptimalset(int argn, const char **argv, const Command& command) {
 
             // one last time - required for the matches of the last contig against the protein
             // sort + dynamic programming to find the optimals set:
-            findoptimalsetbydp(plusStrandPotentialExons, plusStrandOptimalExonSet);
-            findoptimalsetbydp(minusStrandPotentialExons, minusStrandOptimalExonSet);
+            int totalBitScorePlus = findoptimalsetbydp(plusStrandPotentialExons, plusStrandOptimalExonSet);
+            int totalBitScoreMinus = findoptimalsetbydp(minusStrandPotentialExons, minusStrandOptimalExonSet);
             
             // write optimal sets to result file:
             if (plusStrandOptimalExonSet.size() > 0) {
@@ -431,7 +432,7 @@ int collectoptimalset(int argn, const char **argv, const Command& command) {
                     mapKey = globalMapKey;
                     globalMapKey++;
                 }
-                size_t mapCombinationLen = fillBufferWithMapInfo(mapBuffer, proteinID, currContigId, PLUS, 0.01);
+                size_t mapCombinationLen = fillBufferWithMapInfo(mapBuffer, proteinID, currContigId, PLUS, totalBitScorePlus);
                 mapWriter.writeData(mapBuffer, mapCombinationLen, mapKey, thread_idx);
 
                 size_t exonsResultsLen = fillBufferWithExonsResults (plusStrandOptimalExonSet, exonsResultsBuffer); 
@@ -445,7 +446,7 @@ int collectoptimalset(int argn, const char **argv, const Command& command) {
                     mapKey = globalMapKey;
                     globalMapKey++;
                 }
-                size_t mapCombinationLen = fillBufferWithMapInfo(mapBuffer, proteinID, currContigId, MINUS, 0.01);
+                size_t mapCombinationLen = fillBufferWithMapInfo(mapBuffer, proteinID, currContigId, MINUS, totalBitScoreMinus);
                 mapWriter.writeData(mapBuffer, mapCombinationLen, mapKey, thread_idx);
 
                 size_t exonsResultsLen = fillBufferWithExonsResults (minusStrandOptimalExonSet, exonsResultsBuffer); 
