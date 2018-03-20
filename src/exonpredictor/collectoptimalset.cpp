@@ -217,7 +217,7 @@ void findoptimalsetbydp(std::vector<potentialExon> & potentialExonCandidates, st
 		}
     }
 
-    // trace back (for now, just with print):
+    // trace back:
     int currExonId = lastPotentialExonInBestPath;
 	while (prevIdsAndScoresBestPath[currExonId].prevPotentialExonId != currExonId) {
         optimalExonSet.emplace_back(potentialExonCandidates[currExonId]);
