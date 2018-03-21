@@ -236,12 +236,12 @@ int unitesetstosequencedb(int argn, const char **argv, const Command& command) {
             // finished collecting all exons for the current combination, write streams:
             joinedHeaderStream << "\n";
             std::string headerToWrite = joinedHeaderStream.str();
-            concatenatedSetsHeaders.writeData(headerToWrite.c_str(), headerToWrite.length(), setCombinationKey);
+            concatenatedSetsHeaders.writeData(headerToWrite.c_str(), headerToWrite.length(), setCombinationKey, thread_idx);
             joinedHeaderStream.str("");
 
             joinedExonsStream << "\n";
             std::string dataToWrite = joinedExonsStream.str();
-            concatenatedSetsData.writeData(dataToWrite.c_str(), dataToWrite.length(), setCombinationKey);
+            concatenatedSetsData.writeData(dataToWrite.c_str(), dataToWrite.length(), setCombinationKey, thread_idx);
             joinedExonsStream.str("");
 
         }
