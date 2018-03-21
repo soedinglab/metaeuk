@@ -60,7 +60,7 @@ int unitesetstosequencedb(int argn, const char **argv, const Command& command) {
     DBReader<unsigned int> contigsHeaders(contigsDBHeaderFilename.c_str(), contigsDBHeaderIndexFilename.c_str());
     contigsHeaders.open(DBReader<unsigned int>::NOSORT);
 
-    // db2 = proteinsDB (only the header)
+    // db2 = proteinsDB (the header is used while the data is needed for size computation)
     std::string proteinsDBFilename = par.db2;
     std::string proteinsDBHeaderFilename(proteinsDBFilename);
     proteinsDBHeaderFilename.append("_h");
@@ -69,6 +69,15 @@ int unitesetstosequencedb(int argn, const char **argv, const Command& command) {
 
     DBReader<unsigned int> proteinsHeaders(proteinsDBHeaderFilename.c_str(), proteinsDBHeaderIndexFilename.c_str());
     proteinsHeaders.open(DBReader<unsigned int>::NOSORT);
+
+    std::string proteinsDBIndexFilename(par.db2);
+    proteinsDBIndexFilename.append(".index");
+    DBReader<unsigned int> proteinsData(par.db2.c_str(), proteinsDBIndexFilename.c_str());
+    proteinsData.open(DBReader<unsigned int>::NOSORT);
+    size_t numRecordsInDb = proteinsData.getSize();
+    size_t numCharactersInDb = proteinsData.getAminoAcidDBSize(); // method name is confusing...
+    size_t totNumOfAAsInProteinsDb = numCharactersInDb - (numRecordsInDb * 2); // \n and \0 for each record
+    proteinsData.close();
     
     // db3 = optimalExonsResuls (exons + map)
     std::string combinedResultBasename = par.db3;
@@ -137,7 +146,7 @@ int unitesetstosequencedb(int argn, const char **argv, const Command& command) {
             unsigned int proteinMMSeqs2Key = Util::fast_atoi<int>(entry[0]);
             unsigned int contigMMSeqs2Key = Util::fast_atoi<int>(entry[1]);
             int strand = Util::fast_atoi<int>(entry[2]);
-            int combinedAlnBitScore = Util::fast_atoi<int>(entry[3]);
+            int combinedNormalizedAlnBitScore = Util::fast_atoi<int>(entry[3]);
             setRecord = Util::skipLine(setRecord);
 
             // get non-MMSeqs2 identifiers from header files:
@@ -146,6 +155,15 @@ int unitesetstosequencedb(int argn, const char **argv, const Command& command) {
             
             // get contig data:
             const char* contigData = contigsData.getDataByDBKey(contigMMSeqs2Key);
+            size_t totNumNucleotidesInContig = strlen(contigData);
+            // approximate the length of the query in AAs:
+            // totNumAAsInContig = [(3 frames) X totNumNucleotidesInContig / (3 nucleotides per codon) ] X (2 strands)
+            size_t totNumAAsInContig = 2 * totNumNucleotidesInContig;
+            
+            // approximate the total Evalue:
+            // Evalue = m X n * 2^(-S), where m = totNumOfAAsInProteinsDb, n = totNumAAsInContig, S = combinedNormalizedAlnBitScore
+            double log2Evalue = log2(totNumOfAAsInProteinsDb) + log2(totNumAAsInContig) - combinedNormalizedAlnBitScore;
+            double combinedEvalue = pow(2, log2Evalue);
             
             // initialize header:
             size_t numWhiteCharsToTrim = 2; // a single space and a \n
@@ -156,7 +174,7 @@ int unitesetstosequencedb(int argn, const char **argv, const Command& command) {
             joinedHeaderStream << littleStringBuffer << "|";
             littleStringBuffer.clear();
             (strand == PLUS) ? joinedHeaderStream << "plus" : joinedHeaderStream << "minus";
-            joinedHeaderStream << "|" << combinedAlnBitScore;
+            joinedHeaderStream << "|" << combinedNormalizedAlnBitScore << "|" << combinedEvalue;
             
             int lastTargetPosMatched = 0;
             while (*optimalExonRecord != '\0') {
