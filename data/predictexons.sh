@@ -95,6 +95,18 @@ mv -f "${TMP_PATH}/united_exons_h" "$3_united_exons_h" || fail "Could not move r
 mv -f "${TMP_PATH}/united_exons_h.index" "$3_united_exons_h.index" || fail "Could not move result to $3_united_exons_h.index"
 
 
+# translate sequence DBs to AAs
+if notExists "$3_united_exons_aa"; then
+    $MMSEQS translatenucs "$3_united_exons" "$3_united_exons_aa" \
+        || fail "translatenucs step died"
+fi
+
+# mv -f "${TMP_PATH}/united_exons_aa" "$3_united_exons_aa" || fail "Could not move result to $3_united_exons_aa"
+# mv -f "${TMP_PATH}/united_exons_aa.index" "$3_united_exons_aa.index" || fail "Could not move result to $3_united_exons_aa.index"
+# mv -f "${TMP_PATH}/united_exons_aa_h" "$3_united_exons_aa_h" || fail "Could not move result to $3_united_exons_aa_h"
+# mv -f "${TMP_PATH}/united_exons_aa_h.index" "$3_united_exons_aa_h.index" || fail "Could not move result to $3_united_exons_aa_h.index"
+
+
 # if [ -n "$REMOVE_TMP" ]; then
 #     echo "Removing temporary files"
 #     rm -f "${TMP_PATH}/nucl_*"
