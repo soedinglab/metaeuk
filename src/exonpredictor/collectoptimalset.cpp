@@ -22,6 +22,7 @@
 const int PLUS = 1;
 const int MINUS = -1;
 
+const int MAXIMAL_INTRON_LENGTH = 10000;
 const int MINIMAL_INTRON_LENGTH = 15;
 int const MAX_AA_OVERLAP = 10;
 
@@ -129,7 +130,7 @@ bool isPairCompatible(const potentialExon & firstPotentialExonOnContig, const po
 
 	// check gap/overlap on contig:
 	int diffOnContig = secondPotentialExonOnContig.contigStart - firstPotentialExonOnContig.contigEnd - 1;
-	if (diffOnContig < MINIMAL_INTRON_LENGTH) {
+	if ((diffOnContig < MINIMAL_INTRON_LENGTH) || (diffOnContig > MAXIMAL_INTRON_LENGTH)) {
 		return false;
 	}
 
