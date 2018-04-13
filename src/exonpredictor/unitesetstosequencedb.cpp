@@ -155,14 +155,11 @@ int unitesetstosequencedb(int argn, const char **argv, const Command& command) {
             
             // get contig data:
             const char* contigData = contigsData.getDataByDBKey(contigMMSeqs2Key);
-            size_t totNumNucleotidesInContig = strlen(contigData);
-            // approximate the length of the query in AAs:
-            // totNumAAsInContig = [(3 frames) X totNumNucleotidesInContig / (3 nucleotides per codon) ] X (2 strands)
-            size_t totNumAAsInContig = 2 * totNumNucleotidesInContig;
+            //size_t totNumNucleotidesInContig = strlen(contigData);
             
             // approximate the total Evalue:
-            // Evalue = m X n * 2^(-S), where m = totNumOfAAsInProteinsDb, n = totNumAAsInContig, S = combinedNormalizedAlnBitScore
-            double log2Evalue = log2(totNumOfAAsInProteinsDb) + log2(totNumAAsInContig) - combinedNormalizedAlnBitScore;
+            // Evalue = m X n * 2^(-S), where m = totNumOfAAsInProteinsDb, n = twoStrands, S = combinedNormalizedAlnBitScore
+            double log2Evalue = log2(totNumOfAAsInProteinsDb) + log2(2) - combinedNormalizedAlnBitScore;
             double combinedEvalue = pow(2, log2Evalue);
             
             // initialize header:
