@@ -322,6 +322,10 @@ int collectoptimalset(int argn, const char **argv, const Command& command) {
                 if (columns == 22) {
                     firstColumnOfSecondAlignemnt = 11;
                 }
+                if (columns < 20) {
+                    Debug(Debug::ERROR) << "ERROR: there should be at least 20 columns in the input file. This doesn't seem to be the case.\n";
+                    EXIT(EXIT_FAILURE);
+                }
 
                 unsigned int potentialExonMMSeqs2Key = Util::fast_atoi<int>(entry[0]);
                 int potentialExonToProteinAlnScore = Util::fast_atoi<int>(entry[1]);
