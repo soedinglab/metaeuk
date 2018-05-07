@@ -194,7 +194,7 @@ int findoptimalsetbydp(std::vector<potentialExon> & potentialExonCandidates, std
 	}
 
     int bestPathScore = 0;
-	int lastPotentialExonInBestPath = 0;
+	size_t lastPotentialExonInBestPath = 0;
 	// dynamic programming to fill in the matrix, go over all rows - previous values have been computed:
     for (size_t currPotentialExonId = 0; currPotentialExonId < numPotentialExonCandidates; ++currPotentialExonId) {
         for (size_t prevPotentialExonId = 0; prevPotentialExonId < currPotentialExonId; ++prevPotentialExonId) {
@@ -219,7 +219,7 @@ int findoptimalsetbydp(std::vector<potentialExon> & potentialExonCandidates, std
     }
 
     // trace back:
-    int currExonId = lastPotentialExonInBestPath;
+    size_t currExonId = lastPotentialExonInBestPath;
 	while (prevIdsAndScoresBestPath[currExonId].prevPotentialExonId != currExonId) {
         optimalExonSet.emplace_back(potentialExonCandidates[currExonId]);
 		currExonId = prevIdsAndScoresBestPath[currExonId].prevPotentialExonId;
