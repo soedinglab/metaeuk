@@ -264,7 +264,7 @@ int collectoptimalset(int argn, const char **argv, const Command& command) {
     DBReader<unsigned int> resultReader(par.db1.c_str(), par.db1Index.c_str());
     resultReader.open(DBReader<unsigned int>::LINEAR_ACCCESS);
 
-    // this key is joint to several threads so will be increamented in crtical:
+    // this key is joint to several threads so will be increamented by the __sync_fetch_and_add atomic instruction:
     size_t globalMapKey = 0; 
     
     std::string dbProteinContigStrandMap = par.db2 + "_protein_contig_strand_map";
@@ -377,13 +377,7 @@ int collectoptimalset(int argn, const char **argv, const Command& command) {
                     
                     // write optimal sets to result file:
                     if (plusStrandOptimalExonSet.size() > 0) {
-                        size_t mapKey;
-                        // take the value from the global keys counter - only a single thread can access it at a given time:
-                        #pragma omp critical (getUniqueKeyForCombination)  
-                        {  
-                            mapKey = globalMapKey;
-                            globalMapKey++;
-                        }
+                        size_t mapKey = __sync_fetch_and_add(&globalMapKey, 1);
                         size_t mapCombinationLen = fillBufferWithMapInfo(mapBuffer, proteinID, currContigId, PLUS, totalBitScorePlus);
                         mapWriter.writeData(mapBuffer, mapCombinationLen, mapKey, thread_idx);
 
@@ -391,13 +385,7 @@ int collectoptimalset(int argn, const char **argv, const Command& command) {
                         optimalExonsWriter.writeData(exonsResultsBuffer, exonsResultsLen, mapKey, thread_idx);
                     }
                     if (minusStrandOptimalExonSet.size() > 0) {
-                        size_t mapKey;
-                        // take the value from the global keys counter - only a single thread can access it at a given time:
-                        #pragma omp critical (getUniqueKeyForCombination)  
-                        {  
-                            mapKey = globalMapKey;
-                            globalMapKey++;
-                        }
+                        size_t mapKey = __sync_fetch_and_add(&globalMapKey, 1);
                         size_t mapCombinationLen = fillBufferWithMapInfo(mapBuffer, proteinID, currContigId, MINUS, totalBitScoreMinus);
                         mapWriter.writeData(mapBuffer, mapCombinationLen, mapKey, thread_idx);
 
@@ -430,13 +418,7 @@ int collectoptimalset(int argn, const char **argv, const Command& command) {
             
             // write optimal sets to result file:
             if (plusStrandOptimalExonSet.size() > 0) {
-                size_t mapKey;
-                // take the value from the global keys counter - only a single thread can access it at a given time:
-                #pragma omp critical (getUniqueKeyForCombination)  
-                {  
-                    mapKey = globalMapKey;
-                    globalMapKey++;
-                }
+                size_t mapKey = __sync_fetch_and_add(&globalMapKey, 1);
                 size_t mapCombinationLen = fillBufferWithMapInfo(mapBuffer, proteinID, currContigId, PLUS, totalBitScorePlus);
                 mapWriter.writeData(mapBuffer, mapCombinationLen, mapKey, thread_idx);
 
@@ -444,13 +426,7 @@ int collectoptimalset(int argn, const char **argv, const Command& command) {
                 optimalExonsWriter.writeData(exonsResultsBuffer, exonsResultsLen, mapKey, thread_idx);
             }
             if (minusStrandOptimalExonSet.size() > 0) {
-                size_t mapKey;
-                // take the value from the global keys counter - only a single thread can access it at a given time:
-                #pragma omp critical (getUniqueKeyForCombination)  
-                {  
-                    mapKey = globalMapKey;
-                    globalMapKey++;
-                }
+                size_t mapKey = __sync_fetch_and_add(&globalMapKey, 1);
                 size_t mapCombinationLen = fillBufferWithMapInfo(mapBuffer, proteinID, currContigId, MINUS, totalBitScoreMinus);
                 mapWriter.writeData(mapBuffer, mapCombinationLen, mapKey, thread_idx);
 
@@ -467,10 +443,9 @@ int collectoptimalset(int argn, const char **argv, const Command& command) {
     }
 
     // cleanup
-    resultReader.close();
-
     mapWriter.close();
     optimalExonsWriter.close();
+    resultReader.close();
     
     Debug(Debug::INFO) << "\nDone.\n";
 
