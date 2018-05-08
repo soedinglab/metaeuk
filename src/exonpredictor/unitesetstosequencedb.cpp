@@ -245,13 +245,13 @@ int unitesetstosequencedb(int argn, const char **argv, const Command& command) {
     }
 
     // cleanup
+    concatenatedSetsHeaders.close();
+    concatenatedSetsData.close();
     contigsData.close();
     contigsHeaders.close();
     proteinsHeaders.close();
     optimalSetsExonRecords.close();
     setMap.close();
-    concatenatedSetsHeaders.close();
-    concatenatedSetsData.close();
     
     Debug(Debug::INFO) << "\nDone.\n";
 
