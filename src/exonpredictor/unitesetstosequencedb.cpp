@@ -139,14 +139,17 @@ int unitesetstosequencedb(int argn, const char **argv, const Command& command) {
             
             // parse setRecord (a single line)
             const size_t setColumns = Util::getWordsOfLine(setRecord, entry, 255);
-            if (setColumns != 4) {
-                Debug(Debug::ERROR) << "ERROR: the map record should contain 4 columns: proteinMMSeqs2Key, contigMMSeqs2Key, strand, combinedEvalue. This doesn't seem to be the case.\n";
+            if (setColumns != 8) {
+                Debug(Debug::ERROR) << "ERROR: the map record should contain 8 columns: proteinMMSeqs2Key, contigMMSeqs2Key, strand, combinedBitScore, contigStrandId, numExons, lowContigCoord, HighContigCoord. This doesn't seem to be the case.\n";
                 EXIT(EXIT_FAILURE);
             }
             unsigned int proteinMMSeqs2Key = Util::fast_atoi<int>(entry[0]);
             unsigned int contigMMSeqs2Key = Util::fast_atoi<int>(entry[1]);
             int strand = Util::fast_atoi<int>(entry[2]);
             int combinedNormalizedAlnBitScore = Util::fast_atoi<int>(entry[3]);
+            unsigned int numExons = Util::fast_atoi<int>(entry[5]);
+            unsigned int lowContigCoord = Util::fast_atoi<int>(entry[6]);
+            unsigned int highContigCoord = Util::fast_atoi<int>(entry[7]);
             setRecord = Util::skipLine(setRecord);
 
             // get non-MMSeqs2 identifiers from header files:
@@ -170,8 +173,8 @@ int unitesetstosequencedb(int argn, const char **argv, const Command& command) {
             littleStringBuffer.append(contigHeader, std::strlen(contigHeader) - numWhiteCharsToTrim);
             joinedHeaderStream << littleStringBuffer << "|";
             littleStringBuffer.clear();
-            (strand == PLUS) ? joinedHeaderStream << "plus" : joinedHeaderStream << "minus";
-            joinedHeaderStream << "|" << combinedNormalizedAlnBitScore << "|" << combinedEvalue;
+            (strand == PLUS) ? joinedHeaderStream << "+" : joinedHeaderStream << "-";
+            joinedHeaderStream << "|" << combinedNormalizedAlnBitScore << "|" << combinedEvalue << "|" << numExons << "|" << lowContigCoord << "|" << highContigCoord;
             
             int lastTargetPosMatched = 0;
             while (*optimalExonRecord != '\0') {
