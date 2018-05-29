@@ -252,7 +252,13 @@ void getOptimalSetContigCoords (std::vector<potentialExon> & optimalExonSet, int
     highContigCoord = (firstExon.strand == PLUS) ? lastExon.contigEnd : (-1 * firstExon.contigStart);
 }
 
-size_t fillBufferWithMapInfo (char * mapBuffer, int proteinID, int contigID, int strand, int totalBitScore, int contigAndStrandId, size_t numExons, int lowContigCoord, int highContigCoord) {
+size_t fillBufferWithMapInfo (char * mapBuffer, int proteinID, int contigID, int strand, int totalBitScore, std::vector<potentialExon> & optimalExonSet) {
+    int contigAndStrandId = 10 * contigID + strand + 1;
+    int lowContigCoord;
+    int highContigCoord;
+    getOptimalSetContigCoords (optimalExonSet, lowContigCoord, highContigCoord);
+    size_t numExons = optimalExonSet.size();
+
     char * basePos = mapBuffer;
     char * tmpBuff = Itoa::u32toa_sse2(static_cast<uint32_t>(proteinID), mapBuffer);
     *(tmpBuff-1) = '\t';
@@ -269,6 +275,19 @@ size_t fillBufferWithMapInfo (char * mapBuffer, int proteinID, int contigID, int
     tmpBuff = Itoa::i32toa_sse2(static_cast<uint32_t>(lowContigCoord), tmpBuff);
     *(tmpBuff-1) = '\t';
     tmpBuff = Itoa::i32toa_sse2(static_cast<uint32_t>(highContigCoord), tmpBuff);
+    *(tmpBuff-1) = '\t';
+
+    // go over vector in reverse order (the last exon is in place 0 in the vector)
+    for (int i = (numExons - 1); i >= 0; --i) {
+        int mmseqs2ExonId = optimalExonSet[i].MMSeqs2Key;
+        tmpBuff = Itoa::i32toa_sse2(static_cast<uint32_t>(mmseqs2ExonId), tmpBuff);
+        // write the exon separator char after each exon except for the last one:
+        if (i != 0)
+        {
+            *(tmpBuff-1) = '*';
+        }
+    }
+
     *(tmpBuff-1) = '\n';
     *(tmpBuff) = '\0';
 
@@ -327,7 +346,7 @@ int collectoptimalset(int argn, const char **argv, const Command& command) {
             bool isFirstIteration = true;
 
             char exonsResultsBuffer[10000];
-            char mapBuffer[1000]; 
+            char mapBuffer[10000]; 
             
             while (*results != '\0') {
                 const size_t columns = Util::getWordsOfLine(results, entry, 255);
@@ -395,28 +414,16 @@ int collectoptimalset(int argn, const char **argv, const Command& command) {
                     
                     // write optimal sets to result file:
                     if (plusStrandOptimalExonSet.size() > 0) {
-                        int currContigAndStrandId = 10 * currContigId + PLUS;
-                        int lowContigCoord;
-                        int highContigCoord;
-                        getOptimalSetContigCoords (plusStrandOptimalExonSet, lowContigCoord, highContigCoord);
-                        size_t numExons = plusStrandOptimalExonSet.size();
-
                         size_t mapKey = __sync_fetch_and_add(&globalMapKey, 1);
-                        size_t mapCombinationLen = fillBufferWithMapInfo(mapBuffer, proteinID, currContigId, PLUS, totalBitScorePlus, currContigAndStrandId, numExons, lowContigCoord, highContigCoord);
+                        size_t mapCombinationLen = fillBufferWithMapInfo(mapBuffer, proteinID, currContigId, PLUS, totalBitScorePlus, plusStrandOptimalExonSet);
                         mapWriter.writeData(mapBuffer, mapCombinationLen, mapKey, thread_idx);
 
                         size_t exonsResultsLen = fillBufferWithExonsResults (plusStrandOptimalExonSet, exonsResultsBuffer); 
                         optimalExonsWriter.writeData(exonsResultsBuffer, exonsResultsLen, mapKey, thread_idx);
                     }
                     if (minusStrandOptimalExonSet.size() > 0) {
-                        int currContigAndStrandId = 10 * currContigId + 1 + MINUS;
-                        int lowContigCoord; 
-                        int highContigCoord;
-                        getOptimalSetContigCoords (minusStrandOptimalExonSet, lowContigCoord, highContigCoord);
-                        size_t numExons = minusStrandOptimalExonSet.size();
-
                         size_t mapKey = __sync_fetch_and_add(&globalMapKey, 1);
-                        size_t mapCombinationLen = fillBufferWithMapInfo(mapBuffer, proteinID, currContigId, MINUS, totalBitScoreMinus, currContigAndStrandId, numExons, lowContigCoord, highContigCoord);
+                        size_t mapCombinationLen = fillBufferWithMapInfo(mapBuffer, proteinID, currContigId, MINUS, totalBitScoreMinus, minusStrandOptimalExonSet);
                         mapWriter.writeData(mapBuffer, mapCombinationLen, mapKey, thread_idx);
 
                         size_t exonsResultsLen = fillBufferWithExonsResults (minusStrandOptimalExonSet, exonsResultsBuffer); 
@@ -448,28 +455,16 @@ int collectoptimalset(int argn, const char **argv, const Command& command) {
             
             // write optimal sets to result file:
             if (plusStrandOptimalExonSet.size() > 0) {
-                int currContigAndStrandId = 10 * currContigId + PLUS;
-                int lowContigCoord; 
-                int highContigCoord;
-                getOptimalSetContigCoords (plusStrandOptimalExonSet, lowContigCoord, highContigCoord);
-                size_t numExons = plusStrandOptimalExonSet.size();
-
                 size_t mapKey = __sync_fetch_and_add(&globalMapKey, 1);
-                size_t mapCombinationLen = fillBufferWithMapInfo(mapBuffer, proteinID, currContigId, PLUS, totalBitScorePlus, currContigAndStrandId, numExons, lowContigCoord, highContigCoord);
+                size_t mapCombinationLen = fillBufferWithMapInfo(mapBuffer, proteinID, currContigId, PLUS, totalBitScorePlus, plusStrandOptimalExonSet);
                 mapWriter.writeData(mapBuffer, mapCombinationLen, mapKey, thread_idx);
 
                 size_t exonsResultsLen = fillBufferWithExonsResults (plusStrandOptimalExonSet, exonsResultsBuffer); 
                 optimalExonsWriter.writeData(exonsResultsBuffer, exonsResultsLen, mapKey, thread_idx);
             }
             if (minusStrandOptimalExonSet.size() > 0) {
-                int currContigAndStrandId = 10 * currContigId + 1 + MINUS;
-                int lowContigCoord; 
-                int highContigCoord;
-                getOptimalSetContigCoords (minusStrandOptimalExonSet, lowContigCoord, highContigCoord);
-                size_t numExons = minusStrandOptimalExonSet.size();
-
                 size_t mapKey = __sync_fetch_and_add(&globalMapKey, 1);
-                size_t mapCombinationLen = fillBufferWithMapInfo(mapBuffer, proteinID, currContigId, MINUS, totalBitScoreMinus, currContigAndStrandId, numExons, lowContigCoord, highContigCoord);
+                size_t mapCombinationLen = fillBufferWithMapInfo(mapBuffer, proteinID, currContigId, MINUS, totalBitScoreMinus, minusStrandOptimalExonSet);
                 mapWriter.writeData(mapBuffer, mapCombinationLen, mapKey, thread_idx);
 
                 size_t exonsResultsLen = fillBufferWithExonsResults (minusStrandOptimalExonSet, exonsResultsBuffer); 

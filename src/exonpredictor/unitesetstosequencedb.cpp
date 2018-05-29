@@ -139,8 +139,8 @@ int unitesetstosequencedb(int argn, const char **argv, const Command& command) {
             
             // parse setRecord (a single line)
             const size_t setColumns = Util::getWordsOfLine(setRecord, entry, 255);
-            if (setColumns != 8) {
-                Debug(Debug::ERROR) << "ERROR: the map record should contain 8 columns: proteinMMSeqs2Key, contigMMSeqs2Key, strand, combinedBitScore, contigStrandId, numExons, lowContigCoord, HighContigCoord. This doesn't seem to be the case.\n";
+            if (setColumns != 9) {
+                Debug(Debug::ERROR) << "ERROR: the map record should contain 9 columns: proteinMMSeqs2Key, contigMMSeqs2Key, strand, combinedBitScore, contigStrandId, numExons, lowContigCoord, highContigCoord, exonIDsStr. This doesn't seem to be the case.\n";
                 EXIT(EXIT_FAILURE);
             }
             unsigned int proteinMMSeqs2Key = Util::fast_atoi<int>(entry[0]);
