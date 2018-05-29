@@ -140,13 +140,14 @@ int unitesetstosequencedb(int argn, const char **argv, const Command& command) {
             // parse setRecord (a single line)
             const size_t setColumns = Util::getWordsOfLine(setRecord, entry, 255);
             if (setColumns != 9) {
-                Debug(Debug::ERROR) << "ERROR: the map record should contain 9 columns: proteinMMSeqs2Key, contigMMSeqs2Key, strand, combinedBitScore, contigStrandId, numExons, lowContigCoord, highContigCoord, exonIDsStr. This doesn't seem to be the case.\n";
+                Debug(Debug::ERROR) << "ERROR: the map record should contain 9 columns: contigStrandId, proteinMMSeqs2Key, contigMMSeqs2Key, strand, combinedBitScore, numExons, lowContigCoord, highContigCoord, exonIDsStr. This doesn't seem to be the case.\n";
                 EXIT(EXIT_FAILURE);
             }
-            unsigned int proteinMMSeqs2Key = Util::fast_atoi<int>(entry[0]);
-            unsigned int contigMMSeqs2Key = Util::fast_atoi<int>(entry[1]);
-            int strand = Util::fast_atoi<int>(entry[2]);
-            int combinedNormalizedAlnBitScore = Util::fast_atoi<int>(entry[3]);
+            //unsigned int contigAndStrandId = Util::fast_atoi<int>(entry[0]);
+            unsigned int proteinMMSeqs2Key = Util::fast_atoi<int>(entry[1]);
+            unsigned int contigMMSeqs2Key = Util::fast_atoi<int>(entry[2]);
+            int strand = Util::fast_atoi<int>(entry[3]);
+            int combinedNormalizedAlnBitScore = Util::fast_atoi<int>(entry[4]);
             unsigned int numExons = Util::fast_atoi<int>(entry[5]);
             unsigned int lowContigCoord = Util::fast_atoi<int>(entry[6]);
             unsigned int highContigCoord = Util::fast_atoi<int>(entry[7]);

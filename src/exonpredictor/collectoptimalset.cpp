@@ -253,22 +253,22 @@ void getOptimalSetContigCoords (std::vector<potentialExon> & optimalExonSet, int
 }
 
 size_t fillBufferWithMapInfo (char * mapBuffer, int proteinID, int contigID, int strand, int totalBitScore, std::vector<potentialExon> & optimalExonSet) {
-    int contigAndStrandId = 10 * contigID + strand + 1;
+    int contigAndStrandId = 2 * contigID + strand;
     int lowContigCoord;
     int highContigCoord;
     getOptimalSetContigCoords (optimalExonSet, lowContigCoord, highContigCoord);
     size_t numExons = optimalExonSet.size();
 
     char * basePos = mapBuffer;
-    char * tmpBuff = Itoa::u32toa_sse2(static_cast<uint32_t>(proteinID), mapBuffer);
+    char * tmpBuff = Itoa::i32toa_sse2(static_cast<uint32_t>(contigAndStrandId), mapBuffer);
+    *(tmpBuff-1) = '\t';
+    tmpBuff = Itoa::u32toa_sse2(static_cast<uint32_t>(proteinID), tmpBuff);
     *(tmpBuff-1) = '\t';
     tmpBuff = Itoa::u32toa_sse2(static_cast<uint32_t>(contigID), tmpBuff);
     *(tmpBuff-1) = '\t';
     tmpBuff = Itoa::i32toa_sse2(static_cast<uint32_t>(strand), tmpBuff);
     *(tmpBuff-1) = '\t';
     tmpBuff = Itoa::i32toa_sse2(static_cast<uint32_t>(totalBitScore), tmpBuff);
-    *(tmpBuff-1) = '\t';
-    tmpBuff = Itoa::i32toa_sse2(static_cast<uint32_t>(contigAndStrandId), tmpBuff);
     *(tmpBuff-1) = '\t';
     tmpBuff = Itoa::i32toa_sse2(static_cast<uint32_t>(numExons), tmpBuff);
     *(tmpBuff-1) = '\t';
