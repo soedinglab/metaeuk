@@ -131,12 +131,20 @@ int grouppredictions(int argn, const char **argv, const Command& command) {
             }
 
             // by this stage we have collected all TCS predictions into a vector
-            for (size_t i = 0; i < predictionToCluster.size(); ++i) {
+            char clusterBuffer[10000];
+            size_t i = 0;
+            size_t next_i = 0;
+            while (i < predictionToCluster.size()) {
+                next_i = 0;
                 for (size_t j = (i + 1); j < predictionToCluster.size(); ++j) {
                     if (predictionToCluster[j].lowContigCoord >= predictionToCluster[i].highContigCoord) {
                         // overlap is over - no need to compare to any more j - moving to the next i
+                        if (next_i == 0) {
+                            next_i = j;
+                        }
                         break;
                     }
+                    
 
                     bool doIandJshareAnExon = false;
                     for (size_t exon_id_i = 0; exon_id_i < predictionToCluster[i].exonIds.size(); ++exon_id_i) {
@@ -152,6 +160,10 @@ int grouppredictions(int argn, const char **argv, const Command& command) {
                     endExonComparison:
                     if (doIandJshareAnExon && (predictionToCluster[j].proteinContigStrandId == predictionToCluster[j].clusterProteinContigStrandId)) {
                         predictionToCluster[j].clusterProteinContigStrandId = predictionToCluster[i].proteinContigStrandId;
+                    }
+
+                    if ((! doIandJshareAnExon) && (next_i == 0)) {
+                        next_i = j;
                     }
                 }
             }
