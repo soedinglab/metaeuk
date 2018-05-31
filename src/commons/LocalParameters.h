@@ -17,6 +17,7 @@ public:
     }
 
 std::vector<MMseqsParameter> predictexonsworkflow;
+std::vector<MMseqsParameter> reduceredundancyworkflow;
 
 private:
     LocalParameters() : Parameters() {

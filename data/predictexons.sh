@@ -25,7 +25,7 @@ abspath() {
 }
 
 # check amount of input variables
-[ "$#" -ne 4 ] && echo "Please provide <sequenceDB> <proteinTargetsDB> <outDB> <tmpDir>" && exit 1;
+[ "$#" -ne 4 ] && echo "Please provide <sequenceDB> <proteinTargetsDB> <outMetaeukBaseName> <tmpDir>" && exit 1;
 # check if files exist
 [ ! -f "$1" ] &&  echo "$1 not found!" && exit 1;
 [ ! -f "$2" ] &&  echo "$2 not found!" && exit 1;

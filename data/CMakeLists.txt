@@ -2,6 +2,7 @@ include(MMseqsResourceCompiler)
 
 set(COMPILED_RESOURCES
         predictexons.sh
+        reduceredundancy.sh
         )
 
 set(GENERATED_OUTPUT_HEADERS "")
