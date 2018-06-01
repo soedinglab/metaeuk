@@ -143,9 +143,7 @@ int grouppredictions(int argn, const char **argv, const Command& command) {
             }
 
             // by this stage we have collected all TCS predictions into a vector
-            // the index i iterates over cluster representatives:
-            size_t numClusters = 0;
-            size_t numPreds = 0; 
+            // the index i iterates over cluster representatives: 
             for (size_t i = 0; i < predictionToCluster.size(); ++i) {
                 // if i is already assigned - skip it, it is not a cluster representative
                 if (predictionToCluster[i].proteinContigStrandId != predictionToCluster[i].clusterProteinContigStrandId) {
@@ -156,7 +154,6 @@ int grouppredictions(int argn, const char **argv, const Command& command) {
                 char * basePos = clusterBuffer;
                 char * tmpBuff = Itoa::i32toa_sse2(static_cast<uint32_t>(predictionToCluster[i].proteinContigStrandId), clusterBuffer);
                 *(tmpBuff-1) = '\n';
-                numPreds++;
 
                 // collect cluster members:
                 for (size_t j = (i + 1); j < predictionToCluster.size(); ++j) {
@@ -181,7 +178,6 @@ int grouppredictions(int argn, const char **argv, const Command& command) {
                         predictionToCluster[j].clusterProteinContigStrandId = predictionToCluster[i].proteinContigStrandId;
                         tmpBuff = Itoa::u32toa_sse2(static_cast<uint32_t>(predictionToCluster[j].proteinContigStrandId), tmpBuff);
                         *(tmpBuff-1) = '\n';
-                        numPreds++;
                     }
                 }
 
@@ -189,10 +185,7 @@ int grouppredictions(int argn, const char **argv, const Command& command) {
                 *(tmpBuff) = '\0';
                 size_t clusterLen = (tmpBuff - basePos);
                 writerGroupedPredictions.writeData(clusterBuffer, clusterLen, predictionToCluster[i].proteinContigStrandId, thread_idx);
-                numClusters++;
             }
-
-            std::cout << "Finished this CS combination. " << numPreds << " predictions were grouped into " << numClusters << " clusters." << std::endl;
 
             // empty the predictions vector so the same thread can process another CS combination:
             predictionToCluster.clear();
