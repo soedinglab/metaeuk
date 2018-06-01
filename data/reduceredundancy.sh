@@ -56,12 +56,14 @@ if notExists "${TMP_PATH}/$1_dp_contig_strand_map_sorted_by_start_subsorted_by_n
         || fail "filterdb (to sort by start position on the contig in increasing order) step died"
 fi
 
+# greedy grouping of predictions based on the sorted map
+if notExists "${TMP_PATH}/$1_grouped_predictions"; then
+    $MMSEQS grouppredictions "${TMP_PATH}/$1_dp_contig_strand_map_sorted_by_start_subsorted_by_num_exons" "${TMP_PATH}/$1_grouped_predictions" \
+        || fail "grouppredictions step died"
+fi
 
-# mv -f "${TMP_PATH}/united_exons_aa" "$3_united_exons_aa" || fail "Could not move result to $3_united_exons_aa"
-# mv -f "${TMP_PATH}/united_exons_aa.index" "$3_united_exons_aa.index" || fail "Could not move result to $3_united_exons_aa.index"
-# mv -f "${TMP_PATH}/united_exons_aa_h" "$3_united_exons_aa_h" || fail "Could not move result to $3_united_exons_aa_h"
-# mv -f "${TMP_PATH}/united_exons_aa_h.index" "$3_united_exons_aa_h.index" || fail "Could not move result to $3_united_exons_aa_h.index"
 
+mv -f "${TMP_PATH}/$1_grouped_predictions" "$1_grouped_predictions" || fail "Could not move result to $1_grouped_predictions"
 
 # if [ -n "$REMOVE_TMP" ]; then
 #     echo "Removing temporary files"
