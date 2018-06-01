@@ -50,7 +50,6 @@ struct prediction {
         for (size_t i = 0; i < exonIdsSepStrs.size(); ++i) {
             exonIds.push_back(Util::fast_atoi<int>(exonIdsSepStrs[i].c_str()));
         }
-
         // initialize the cluster assignment as self (will change later):
         clusterProteinContigStrandId = proteinContigStrandId;
     }
@@ -90,7 +89,6 @@ int grouppredictions(int argn, const char **argv, const Command& command) {
         // per thread variables
         std::vector<prediction> predictionToCluster;
         predictionToCluster.reserve(EXPECTED_NUM_PREDICTIONS);
-
         char *entry[255];       
         
 #pragma omp for schedule(dynamic, 100)
@@ -140,26 +138,30 @@ int grouppredictions(int argn, const char **argv, const Command& command) {
                 }
 
                 predictionToCluster.emplace_back(proteinContigStrandId, proteinMMSeqs2Key, contigMMSeqs2Key, strand, combinedNormalizedAlnBitScore, numExons, lowContigCoord, highContigCoord, exonCharptr);
-
                 contigStrandSortedRecord = Util::skipLine(contigStrandSortedRecord);
             }
 
             // by this stage we have collected all TCS predictions into a vector
             char clusterBuffer[10000];
-            size_t i = 0;
-            size_t next_i = 0;
-            while (i < predictionToCluster.size()) {
-                next_i = 0;
+            // the index i iterates over cluster representatives:
+            for (size_t i = 0; i < predictionToCluster.size(); ++i) {
+                // if i is already assigned - skip it, it is not a cluster representative
+                if (predictionToCluster[i].proteinContigStrandId != predictionToCluster[i].clusterProteinContigStrandId) {
+                    continue;
+                }
+                
+                // initialize the new cluster:
+                char * basePos = clusterBuffer;
+                char * tmpBuff = Itoa::i32toa_sse2(static_cast<uint32_t>(predictionToCluster[i].proteinContigStrandId), clusterBuffer);
+                *(tmpBuff-1) = '\n';
+
+                // collect cluster members:
                 for (size_t j = (i + 1); j < predictionToCluster.size(); ++j) {
                     if (predictionToCluster[j].lowContigCoord >= predictionToCluster[i].highContigCoord) {
-                        // overlap is over - no need to compare to any more j - moving to the next i
-                        if (next_i == 0) {
-                            next_i = j;
-                        }
-                        break;
+                        // overlap is over - no need to compare to other j - write and move to the next i
+                        goto writeClusterTCSi;
                     }
                     
-
                     bool doIandJshareAnExon = false;
                     for (size_t exon_id_i = 0; exon_id_i < predictionToCluster[i].exonIds.size(); ++exon_id_i) {
                         for (size_t exon_id_j = 0; exon_id_j < predictionToCluster[j].exonIds.size(); ++exon_id_j) {
@@ -174,26 +176,24 @@ int grouppredictions(int argn, const char **argv, const Command& command) {
                     endExonComparison:
                     if (doIandJshareAnExon && (predictionToCluster[j].proteinContigStrandId == predictionToCluster[j].clusterProteinContigStrandId)) {
                         predictionToCluster[j].clusterProteinContigStrandId = predictionToCluster[i].proteinContigStrandId;
-                    }
-
-                    if ((! doIandJshareAnExon) && (next_i == 0)) {
-                        next_i = j;
+                        tmpBuff = Itoa::u32toa_sse2(static_cast<uint32_t>(predictionToCluster[j].proteinContigStrandId), tmpBuff);
+                        *(tmpBuff-1) = '\n';
                     }
                 }
+
+                writeClusterTCSi:
+                *(tmpBuff) = '\0';
+                size_t clusterLen = (tmpBuff - basePos);
+                writerGroupedPredictions.writeData(clusterBuffer, clusterLen, predictionToCluster[i].proteinContigStrandId, thread_idx);
             }
         }
     }
-
-    
+   
     // cleanup
     writerGroupedPredictions.close();
     contigStrandSortedMap.close();
     
     Debug(Debug::INFO) << "\nDone.\n";
 
-
     return EXIT_SUCCESS;
 }
-
-
-
