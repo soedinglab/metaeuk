@@ -30,9 +30,23 @@ struct prediction {
                 contigMMSeqs2Key(iContigMMSeqs2Key), strand(iStrand),
                 combinedNormalizedAlnBitScore(iCombinedNormalizedAlnBitScore), numExons(iNumExons),
                 lowContigCoord(iLowContigCoord), highContigCoord(iHighContigCoord) {
+        
         // parsing exon info: 20317*20995*21701*21720*21753*21795\n
-        std::vector<std::string> exonIdsStr = Util::split(iExonCharptr, "\n");
-        std::vector<std::string> exonIdsSepStrs = Util::split(exonIdsStr[0].c_str(), "*");
+        // first replace the "\n" with "\0" to avoid potentially super long strings in split
+        char exonIdsCharArr[2001];
+        size_t indExonIdsCharArr = 0;
+        while (*iExonCharptr != '\n') {
+            if (indExonIdsCharArr == 2000) {
+                Debug(Debug::ERROR) << "ERROR: exonIdsCharArr is too small to hold the exons.\n";
+                EXIT(EXIT_FAILURE);
+            }
+            exonIdsCharArr[indExonIdsCharArr] = *iExonCharptr;
+            iExonCharptr++;
+            indExonIdsCharArr++;
+        }
+        exonIdsCharArr[indExonIdsCharArr] = '\0';
+
+        std::vector<std::string> exonIdsSepStrs = Util::split(exonIdsCharArr, "*");
         for (size_t i = 0; i < exonIdsSepStrs.size(); ++i) {
             exonIds.push_back(Util::fast_atoi<int>(exonIdsSepStrs[i].c_str()));
         }
