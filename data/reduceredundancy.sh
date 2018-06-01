@@ -64,6 +64,8 @@ fi
 
 
 mv -f "${TMP_PATH}/$1_grouped_predictions" "$1_grouped_predictions" || fail "Could not move result to $1_grouped_predictions"
+mv -f "${TMP_PATH}/$1_grouped_predictions.index" "$1_grouped_predictions.index" || fail "Could not move result to $1_grouped_predictions.index"
+
 
 # if [ -n "$REMOVE_TMP" ]; then
 #     echo "Removing temporary files"
