@@ -99,7 +99,7 @@ int grouppredictions(int argn, const char **argv, const Command& command) {
             // these will serve to verify sorted order:
             unsigned int prevLowCoord = 0;
             unsigned int prevNumExons = 0;
-            unsigned int prevBitScore = 0;
+            int prevBitScore = 0;
 
             char *contigStrandSortedRecord = contigStrandSortedMap.getData(id);
             while (*contigStrandSortedRecord != '\0') {
