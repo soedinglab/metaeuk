@@ -24,7 +24,7 @@ abspath() {
     fi
 }
 
-# check amount of input variables
+# check number of input variables
 [ "$#" -ne 3 ] && echo "Please provide <metaeukBaseName> <outDB> <tmpDir>" && exit 1;
 # check if file exists
 INPUT_MAP="$(abspath "$1_dp_protein_contig_strand_map")"
