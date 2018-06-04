@@ -90,7 +90,9 @@ int grouppredictions(int argn, const char **argv, const Command& command) {
         std::vector<prediction> predictionToCluster;
         predictionToCluster.reserve(EXPECTED_NUM_PREDICTIONS);
         char *entry[255];
-        char clusterBuffer[10000]; 
+        char clusterKey[128];
+        std::vector<char> clusterBuffer;
+        clusterBuffer.reserve(10000);  
         
 #pragma omp for schedule(dynamic, 100)
         for (size_t id = 0; id < contigStrandSortedMap.getSize(); id++) {
@@ -158,9 +160,9 @@ int grouppredictions(int argn, const char **argv, const Command& command) {
                 }
                 
                 // initialize the new cluster:
-                char * basePos = clusterBuffer;
-                char * tmpBuff = Itoa::i32toa_sse2(static_cast<uint32_t>(predictionToCluster[i].proteinContigStrandId), clusterBuffer);
-                *(tmpBuff-1) = '\n';
+                char *tmpBuff = Itoa::i32toa_sse2(static_cast<uint32_t>(predictionToCluster[i].proteinContigStrandId), clusterKey);
+                std::copy(clusterKey, tmpBuff, std::back_inserter(clusterBuffer));
+                clusterBuffer.emplace_back('\n');
 
                 // collect cluster members:
                 for (size_t j = (i + 1); j < predictionToCluster.size(); ++j) {
@@ -183,21 +185,22 @@ int grouppredictions(int argn, const char **argv, const Command& command) {
                     endExonComparison:
                     if (doIandJshareAnExon && (predictionToCluster[j].proteinContigStrandId == predictionToCluster[j].clusterProteinContigStrandId)) {
                         predictionToCluster[j].clusterProteinContigStrandId = predictionToCluster[i].proteinContigStrandId;
-                        tmpBuff = Itoa::u32toa_sse2(static_cast<uint32_t>(predictionToCluster[j].proteinContigStrandId), tmpBuff);
-                        *(tmpBuff-1) = '\n';
+
+                        tmpBuff = Itoa::i32toa_sse2(static_cast<uint32_t>(predictionToCluster[j].proteinContigStrandId), clusterKey);
+                        std::copy(clusterKey, tmpBuff, std::back_inserter(clusterBuffer));
+                        clusterBuffer.emplace_back('\n');
                     }
                 }
 
                 writeClusterTCSi:
-                *(tmpBuff) = '\0';
-                size_t clusterLen = (tmpBuff - basePos);
-                writerGroupedPredictions.writeData(clusterBuffer, clusterLen, predictionToCluster[i].proteinContigStrandId, thread_idx);
+                clusterBuffer.emplace_back('\0');
+                writerGroupedPredictions.writeData(&clusterBuffer[0], clusterBuffer.size(), predictionToCluster[i].proteinContigStrandId, thread_idx);
+                clusterBuffer.clear();
             }
 
             // empty the predictions vector so the same thread can process another CS combination:
             predictionToCluster.clear();
-            
-        }
+        }        
     }
    
     // cleanup
