@@ -81,7 +81,7 @@ struct potentialExon {
     Matcher::result_t potentialExonAlignemntRes;
 
     // to allow sorting a vector of potentialExon by their start on the contig
-    static bool comparePotentialExons (const potentialExon & aPotentialExon, const potentialExon & anotherPotentialExon){
+    static bool comparePotentialExons (const potentialExon & aPotentialExon, const potentialExon & anotherPotentialExon) {
         if(aPotentialExon.contigStart < anotherPotentialExon.contigStart)
             return true;
         if(aPotentialExon.contigStart > anotherPotentialExon.contigStart)
@@ -169,7 +169,7 @@ int getPenaltyForProtCoords(const potentialExon & prevPotentialExon, const poten
     return 1;
 }
 
-int findoptimalsetbydp(std::vector<potentialExon> & potentialExonCandidates, std::vector<potentialExon> & optimalExonSet) {   
+int findoptimalsetbydp(std::vector<potentialExon> & potentialExonCandidates, std::vector<potentialExon> & optimalExonSet) {
     size_t numPotentialExonCandidates = potentialExonCandidates.size();
     if (numPotentialExonCandidates == 0) {
         // nothing to do here!
@@ -281,8 +281,7 @@ size_t fillBufferWithMapInfo (char * mapBuffer, int proteinID, int contigID, int
         int mmseqs2ExonId = optimalExonSet[i].MMSeqs2Key;
         tmpBuff = Itoa::i32toa_sse2(static_cast<uint32_t>(mmseqs2ExonId), tmpBuff);
         // write the exon separator char after each exon except for the last one:
-        if (i != 0)
-        {
+        if (i != 0) {
             *(tmpBuff-1) = '*';
         }
     }
