@@ -7,7 +7,7 @@ fail() {
 }
 
 notExists() {
-	[ ! -f "$1" ]
+    [ ! -f "$1" ]
 }
 
 abspath() {

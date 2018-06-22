@@ -32,9 +32,9 @@ int const GAP_OPEN_PENALTY = -1;
 int const GAP_EXTEND_PENALTY = -1;
 
 struct potentialExon {
-	// constructor
-	potentialExon(int iMMSeqs2Key, int iAlnScore, int iContigStart, int iContigEnd, int iStrand, int iProteinMatchStart, int iProteinMatchEnd, int iProteinLen, float iPotentialExonSequenceIdentity, double iPotentialExonEval) :
-		MMSeqs2Key(iMMSeqs2Key), alnScore(iAlnScore), contigStart(iContigStart), contigEnd(iContigEnd), strand(iStrand), proteinMatchStart(iProteinMatchStart), proteinMatchEnd(iProteinMatchEnd) {
+    // constructor
+    potentialExon(int iMMSeqs2Key, int iAlnScore, int iContigStart, int iContigEnd, int iStrand, int iProteinMatchStart, int iProteinMatchEnd, int iProteinLen, float iPotentialExonSequenceIdentity, double iPotentialExonEval) :
+        MMSeqs2Key(iMMSeqs2Key), alnScore(iAlnScore), contigStart(iContigStart), contigEnd(iContigEnd), strand(iStrand), proteinMatchStart(iProteinMatchStart), proteinMatchEnd(iProteinMatchEnd) {
             // update the result_t object:
             float proteinCover = float(proteinMatchEnd - proteinMatchStart + 1) / iProteinLen;
             int potentialExonLengthInNucleotides = iContigEnd - iContigStart + 1;
@@ -63,19 +63,19 @@ struct potentialExon {
             potentialExonAlignemntRes.dbLen      = potentialExonLengthInNucleotides;
             
             potentialExonAlignemntRes.backtrace  = "";
-	}
-	
-	// information extracted from MMSeqs2 local alignment
+    }
+
+    // information extracted from MMSeqs2 local alignment
     int MMSeqs2Key;
     int alnScore;
     // contig start and end refer to the first (and last) nucleotides to participate in the alignment
     // the coordinates are with respect to the contig start (5', plus strand) and are negative
     // in case of the minus strand. This way, in both strands, start < end.
-	int contigStart;
-	int contigEnd;
-	int strand;
+    int contigStart;
+    int contigEnd;
+    int strand;
     int proteinMatchStart;
-	int proteinMatchEnd;
+    int proteinMatchEnd;
 
     // will assist in printing to result file:
     Matcher::result_t potentialExonAlignemntRes;
@@ -107,7 +107,6 @@ struct dpMatrixRow {
     dpMatrixRow(size_t iPrevPotentialExonId, int iPathScore) : prevPotentialExonId(iPrevPotentialExonId), pathScore(iPathScore) {
 
     }
-
     // the prevPotentialExonId refers to the row Id (i.e., the sorted order)
     size_t prevPotentialExonId;
     int pathScore;
@@ -119,55 +118,55 @@ bool isPairCompatible(const potentialExon & firstPotentialExonOnContig, const po
     // because negative coordinates are used for the minus strand, the logic works
 
     // check same strand:
-	if (firstPotentialExonOnContig.strand != secondPotentialExonOnContig.strand) {
-		return false;
-	}
+    if (firstPotentialExonOnContig.strand != secondPotentialExonOnContig.strand) {
+        return false;
+    }
     
     // check the first one does not contain the second one:
-	if (secondPotentialExonOnContig.contigEnd < firstPotentialExonOnContig.contigEnd) {
-		return false;
-	}
+    if (secondPotentialExonOnContig.contigEnd < firstPotentialExonOnContig.contigEnd) {
+        return false;
+    }
 
-	// check gap/overlap on contig:
-	int diffOnContig = secondPotentialExonOnContig.contigStart - firstPotentialExonOnContig.contigEnd - 1;
-	if ((diffOnContig < MINIMAL_INTRON_LENGTH) || (diffOnContig > MAXIMAL_INTRON_LENGTH)) {
-		return false;
-	}
+    // check gap/overlap on contig:
+    int diffOnContig = secondPotentialExonOnContig.contigStart - firstPotentialExonOnContig.contigEnd - 1;
+    if ((diffOnContig < MINIMAL_INTRON_LENGTH) || (diffOnContig > MAXIMAL_INTRON_LENGTH)) {
+        return false;
+    }
 
-	// check gap/overlap on target:
-	int diffAAs = secondPotentialExonOnContig.proteinMatchStart - firstPotentialExonOnContig.proteinMatchEnd - 1;
-	if (diffAAs < -(MAX_AA_OVERLAP)) {
-		return false;
-	}
+    // check gap/overlap on target:
+    int diffAAs = secondPotentialExonOnContig.proteinMatchStart - firstPotentialExonOnContig.proteinMatchEnd - 1;
+    if (diffAAs < -(MAX_AA_OVERLAP)) {
+        return false;
+    }
 
     // check contig order is as target order:
     if (secondPotentialExonOnContig.proteinMatchStart < firstPotentialExonOnContig.proteinMatchStart) {
         return false;
     }
 
-	return true;
+    return true;
 }
 
 int getPenaltyForProtCoords(const potentialExon & prevPotentialExon, const potentialExon & currPotentialExon) {
-	// this function is called on a compatible pair
+    // this function is called on a compatible pair
     int diffAAs = currPotentialExon.proteinMatchStart - prevPotentialExon.proteinMatchEnd - 1;
-	if (diffAAs < 0) {
-		// legal overlap that should be penalized:
-		return CONST_LEGAL_OVERLAP_PENALTY;
-	}
-	else if (diffAAs <= 1) {
-		// no penalty for missing up to one AA in between exons:
-		return 0;
-	}
-	else {
+    if (diffAAs < 0) {
+        // legal overlap that should be penalized:
+        return CONST_LEGAL_OVERLAP_PENALTY;
+    }
+    else if (diffAAs <= 1) {
+        // no penalty for missing up to one AA in between exons:
+        return 0;
+    }
+    else {
         // penalize for missing protein fragment:
         // currently GAP_OPEN_PENALTY = GAP_EXTEND_PENALTY so this is linear penalty
-		int penalty = GAP_OPEN_PENALTY + GAP_EXTEND_PENALTY * (diffAAs - 1);
-		return penalty;
-	}
+        int penalty = GAP_OPEN_PENALTY + GAP_EXTEND_PENALTY * (diffAAs - 1);
+        return penalty;
+    }
 
-	// never reached:
-	return 1;
+    // never reached:
+    return 1;
 }
 
 int findoptimalsetbydp(std::vector<potentialExon> & potentialExonCandidates, std::vector<potentialExon> & optimalExonSet) {   
@@ -183,47 +182,47 @@ int findoptimalsetbydp(std::vector<potentialExon> & potentialExonCandidates, std
     // prevIdsAndScoresBestPath will hold the DP computation results
     // Each row i represents a potentialExon. They are sorted according to the start on the contig.
     // Each row i is of the struct dpMatrixRow, which works as follows:
-	// prevPotentialExonId keeps the id j such that j is the previous potentialExon
-	// on the best path ending with the potentialExon i. It will allow for the trace back.
-	// pathScore contains the score itself
+    // prevPotentialExonId keeps the id j such that j is the previous potentialExon
+    // on the best path ending with the potentialExon i. It will allow for the trace back.
+    // pathScore contains the score itself
     std::vector<dpMatrixRow> prevIdsAndScoresBestPath;
     prevIdsAndScoresBestPath.reserve(numPotentialExonCandidates);
-	// initialize:
-	for (size_t id = 0; id < numPotentialExonCandidates; ++id) {
-		prevIdsAndScoresBestPath.emplace_back(dpMatrixRow(id, potentialExonCandidates[id].alnScore));
-	}
+    // initialize:
+    for (size_t id = 0; id < numPotentialExonCandidates; ++id) {
+        prevIdsAndScoresBestPath.emplace_back(dpMatrixRow(id, potentialExonCandidates[id].alnScore));
+    }
 
     int bestPathScore = 0;
-	size_t lastPotentialExonInBestPath = 0;
-	// dynamic programming to fill in the matrix, go over all rows - previous values have been computed:
+    size_t lastPotentialExonInBestPath = 0;
+    // dynamic programming to fill in the matrix, go over all rows - previous values have been computed:
     for (size_t currPotentialExonId = 0; currPotentialExonId < numPotentialExonCandidates; ++currPotentialExonId) {
         for (size_t prevPotentialExonId = 0; prevPotentialExonId < currPotentialExonId; ++prevPotentialExonId) {
             if (isPairCompatible(potentialExonCandidates[prevPotentialExonId], potentialExonCandidates[currPotentialExonId])) {
                 int bestScorePathPrevIsLast = prevIdsAndScoresBestPath[prevPotentialExonId].pathScore;
-				int costOfPrevToCurrTransition = getPenaltyForProtCoords(potentialExonCandidates[prevPotentialExonId], potentialExonCandidates[currPotentialExonId]);
-				int currScoreWithPrev = bestScorePathPrevIsLast + costOfPrevToCurrTransition + potentialExonCandidates[currPotentialExonId].alnScore;
+                int costOfPrevToCurrTransition = getPenaltyForProtCoords(potentialExonCandidates[prevPotentialExonId], potentialExonCandidates[currPotentialExonId]);
+                int currScoreWithPrev = bestScorePathPrevIsLast + costOfPrevToCurrTransition + potentialExonCandidates[currPotentialExonId].alnScore;
 
                 // update row of currPotentialExon in case of improvement:
-				if (currScoreWithPrev > prevIdsAndScoresBestPath[currPotentialExonId].pathScore) {
-					prevIdsAndScoresBestPath[currPotentialExonId].prevPotentialExonId = prevPotentialExonId;
-					prevIdsAndScoresBestPath[currPotentialExonId].pathScore = currScoreWithPrev;
-				}
+                if (currScoreWithPrev > prevIdsAndScoresBestPath[currPotentialExonId].pathScore) {
+                    prevIdsAndScoresBestPath[currPotentialExonId].prevPotentialExonId = prevPotentialExonId;
+                    prevIdsAndScoresBestPath[currPotentialExonId].pathScore = currScoreWithPrev;
+                }
             }
         }
 
         // update the global max in case of improvement:
-		if (prevIdsAndScoresBestPath[currPotentialExonId].pathScore > bestPathScore) {
-			lastPotentialExonInBestPath = currPotentialExonId;
-			bestPathScore = prevIdsAndScoresBestPath[currPotentialExonId].pathScore;
-		}
+        if (prevIdsAndScoresBestPath[currPotentialExonId].pathScore > bestPathScore) {
+            lastPotentialExonInBestPath = currPotentialExonId;
+            bestPathScore = prevIdsAndScoresBestPath[currPotentialExonId].pathScore;
+        }
     }
 
     // trace back:
     size_t currExonId = lastPotentialExonInBestPath;
-	while (prevIdsAndScoresBestPath[currExonId].prevPotentialExonId != currExonId) {
+    while (prevIdsAndScoresBestPath[currExonId].prevPotentialExonId != currExonId) {
         optimalExonSet.emplace_back(potentialExonCandidates[currExonId]);
-		currExonId = prevIdsAndScoresBestPath[currExonId].prevPotentialExonId;
-	}
+        currExonId = prevIdsAndScoresBestPath[currExonId].prevPotentialExonId;
+    }
     // include in the optimal set
     optimalExonSet.emplace_back(potentialExonCandidates[currExonId]);
 
