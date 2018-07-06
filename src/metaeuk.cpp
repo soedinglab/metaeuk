@@ -31,7 +31,7 @@ std::vector<struct Command> commands = {
                 "<i:contigsDB> <i:proteinsDB> <i:optimalResultsBaseName> <o:outDB>",
                 CITATION_MMSEQS2},
         {"reduceredundancy",             reduceredundancy,            &par.reduceredundancyworkflow,    COMMAND_MAIN,
-                "A greedy approach to cluster metaeuk predictions which share an exaon",
+                "A greedy approach to cluster metaeuk predictions which share an exon",
                 "A protein coding gene can be predicted more than once due to target DB homologies. A cluster representative is selected. Predictions in a cluster share an exon with the representative.",
                 "Eli Levy Karin <eli.levy.karin@gmail.com> ",
                 "<i:optimalResultsBaseName> <o:reducedResultsBaseName> <tmpDir>",
