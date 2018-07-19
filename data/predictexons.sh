@@ -84,7 +84,7 @@ if notExists "${TMP_PATH}/united_exons"; then
         || fail "unitesetstosequencedb step died"
 fi
 
-# post processing (WILL BE CHANGED AFTER WORKFLOW IS COMPLETE)
+# post processing
 mv -f "${TMP_PATH}/dp_protein_contig_strand_map" "$3_dp_protein_contig_strand_map" || fail "Could not move result to $3_dp_protein_contig_strand_map"
 mv -f "${TMP_PATH}/dp_protein_contig_strand_map.index" "$3_dp_protein_contig_strand_map.index" || fail "Could not move result to $3_dp_protein_contig_strand_map.index"
 mv -f "${TMP_PATH}/dp_optimal_exon_sets" "$3_dp_optimal_exon_sets" || fail "Could not move result to $3_dp_optimal_exon_sets"
@@ -94,17 +94,15 @@ mv -f "${TMP_PATH}/united_exons.index" "$3_united_exons.index" || fail "Could no
 mv -f "${TMP_PATH}/united_exons_h" "$3_united_exons_h" || fail "Could not move result to $3_united_exons_h"
 mv -f "${TMP_PATH}/united_exons_h.index" "$3_united_exons_h.index" || fail "Could not move result to $3_united_exons_h.index"
 
-
 # translate sequence DBs to AAs
 if notExists "$3_united_exons_aa"; then
     $MMSEQS translatenucs "$3_united_exons" "$3_united_exons_aa" \
         || fail "translatenucs step died"
 fi
 
-# mv -f "${TMP_PATH}/united_exons_aa" "$3_united_exons_aa" || fail "Could not move result to $3_united_exons_aa"
-# mv -f "${TMP_PATH}/united_exons_aa.index" "$3_united_exons_aa.index" || fail "Could not move result to $3_united_exons_aa.index"
-# mv -f "${TMP_PATH}/united_exons_aa_h" "$3_united_exons_aa_h" || fail "Could not move result to $3_united_exons_aa_h"
-# mv -f "${TMP_PATH}/united_exons_aa_h.index" "$3_united_exons_aa_h.index" || fail "Could not move result to $3_united_exons_aa_h.index"
+# create a symbolic link for the map to the header and index file
+ln -sf "$3_united_exons_aa_h" "$3_dp_protein_contig_strand_map_h" || fail "Could not create symbolic link for map headers"
+ln -sf "$3_united_exons_aa_h.index" "$3_dp_protein_contig_strand_map_h.index" || fail "Could not create symbolic link for map headers index"
 
 
 # if [ -n "$REMOVE_TMP" ]; then

@@ -28,8 +28,10 @@ abspath() {
 [ "$#" -ne 3 ] && echo "Please provide <metaeukBaseName> <outDB> <tmpDir>" && exit 1;
 # check if file exists
 INPUT_MAP="$(abspath "$1_dp_protein_contig_strand_map")"
+INPUT_UNITED_EXONS="$(abspath "$1_united_exons_aa")"
 
 [ ! -f "${INPUT_MAP}" ] &&  echo "${INPUT_MAP} not found!" && exit 1;
+[ ! -f "${INPUT_UNITED_EXONS}" ] &&  echo "${INPUT_UNITED_EXONS} not found!" && exit 1;
 [   -f "$2" ] &&  echo "$2 exists already!" && exit 1;
 [ ! -d "$3" ] &&  echo "tmp directory $3 not found!" && mkdir -p $3;
 
@@ -68,9 +70,20 @@ if notExists "${TMP_PATH}/$1_grouped_predictions"; then
         || fail "grouppredictions step died"
 fi
 
-
 mv -f "${TMP_PATH}/$1_grouped_predictions" "$1_grouped_predictions" || fail "Could not move result to $1_grouped_predictions"
 mv -f "${TMP_PATH}/$1_grouped_predictions.index" "$1_grouped_predictions.index" || fail "Could not move result to $1_grouped_predictions.index"
+
+# extracting a representative sequence from each group
+if notExists "$1_grouped_predictions_rep"; then
+    $MMSEQS result2repseq "${INPUT_UNITED_EXONS}" "$1_grouped_predictions" "$1_grouped_predictions_rep" \
+        || fail "result2repseq step died"
+fi
+
+# create a symbolic link for the grouped predictions to the header and index file
+ln -sf "${INPUT_UNITED_EXONS}_h" "$1_grouped_predictions_h" || fail "Could not create symbolic link for grouped predictions headers"
+ln -sf "${INPUT_UNITED_EXONS}_h.index" "$1_grouped_predictions_h.index" || fail "Could not create symbolic link for grouped predictions headers index"
+ln -sf "${INPUT_UNITED_EXONS}_h" "$1_grouped_predictions_rep_h" || fail "Could not create symbolic link for rep grouped predictions headers"
+ln -sf "${INPUT_UNITED_EXONS}_h.index" "$1_grouped_predictions_rep_h.index" || fail "Could not create symbolic link for rep grouped predictions headers index"
 
 
 # if [ -n "$REMOVE_TMP" ]; then
