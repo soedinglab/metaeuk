@@ -177,7 +177,7 @@ int unitesetstosequencedb(int argn, const char **argv, const Command& command) {
             (strand == PLUS) ? joinedHeaderStream << "+" : joinedHeaderStream << "-";
             joinedHeaderStream << "|" << combinedNormalizedAlnBitScore << "|" << combinedEvalue << "|" << numExons << "|" << lowContigCoord << "|" << highContigCoord;
             
-            int lastTargetPosMatched = 0;
+            int lastTargetPosMatched = -1;
             while (*optimalExonRecord != '\0') {
                 const size_t exonRecordColumns = Util::getWordsOfLine(optimalExonRecord, entry, 255);
 
