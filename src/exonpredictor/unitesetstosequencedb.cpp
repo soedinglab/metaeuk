@@ -207,7 +207,7 @@ int unitesetstosequencedb(int argn, const char **argv, const Command& command) {
                 // in order to avoid target overlaps, we remove a few codons from the start of the current exon if needed:
                 int exonAdjustedContigStart = exonContigStart;
                 int exonAdjustedNucleotideLen = exonNucleotideLen;
-                if (lastTargetPosMatched > proteinMatchStart) {
+                if (lastTargetPosMatched >= proteinMatchStart) {
                     int diffInAAs = lastTargetPosMatched - proteinMatchStart + 1;
                     exonAdjustedContigStart += (3 * diffInAAs * strand);
                     exonAdjustedNucleotideLen -= (3 * diffInAAs);
