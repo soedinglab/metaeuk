@@ -7,6 +7,8 @@ const char* binary_name = "metaeuk";
 const char* tool_name = "metaeuk";
 const char* tool_introduction = "Metagenomic tool for Eukaryotic data.";
 const char* main_author = "Eli Levy Karin, eli.levy.karin@gmail.com";
+const char* show_extended_help = "1";
+const char* show_bash_info = "1";
 
 LocalParameters& par = LocalParameters::getLocalInstance();
 
