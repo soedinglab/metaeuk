@@ -21,6 +21,8 @@ std::vector<MMseqsParameter> reduceredundancyworkflow;
 
 private:
     LocalParameters() : Parameters() {
+        predictexonsworkflow = combineList(extractorfs, translatenucs);
+        predictexonsworkflow = combineList(predictexonsworkflow, searchworkflow);
     }
     LocalParameters(LocalParameters const&);
     ~LocalParameters() {};
