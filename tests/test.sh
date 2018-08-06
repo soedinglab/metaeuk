@@ -1,4 +1,4 @@
-#!/bin/bash -e
+#!/bin/bash -ex
 
 METAEUK="$1"
 DATAPATH="$2"
