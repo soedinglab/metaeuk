@@ -1,0 +1,17 @@
+#!/bin/bash -e
+
+METAEUK="$1"
+DATAPATH="$2"
+RESULTPATH="$3"
+
+mkdir -p "${RESULTPATH}"
+"${METAEUK}" createdb "${DATAPATH}/contigs.fna" "${RESULTPATH}/contigs" --dont-split-seq-by-len
+"${METAEUK}" createdb "${DATAPATH}/proteins.faa" "${RESULTPATH}/proteins"
+"${METAEUK}" predictexons "${RESULTPATH}/contigs" "${RESULTPATH}/proteins" "${RESULTPATH}/final" "${RESULTPATH}/tempFolder"
+"${METAEUK}" reduceredundancy "${RESULTPATH}/final" "${RESULTPATH}/final" "${RESULTPATH}/tempGroup"
+"${METAEUK}" convert2fasta "${RESULTPATH}/final_united_exons_aa" "${RESULTPATH}/final_united_exons_aa.fas"
+"${METAEUK}" convert2fasta "${RESULTPATH}/final_grouped_predictions_rep" "${RESULTPATH}/final_grouped_predictions_rep.fas"
+"${METAEUK}" createtsv "${RESULTPATH}/final_united_exons_aa" "${RESULTPATH}/final_united_exons_aa" "${RESULTPATH}/final_grouped_predictions" "${RESULTPATH}/final_grouped_predictions.tsv"
+
+# check output
+perl compare_fasta_results.pl "${RESULTPATH}/final_united_exons_aa.fas" "${RESULTPATH}/final_grouped_predictions_rep.fas" "${DATAPATH}/as_should_final_united_exons_aa.fas" "${DATAPATH}/as_should_final_grouped_predictions_rep.fas"
