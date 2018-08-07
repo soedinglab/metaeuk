@@ -23,6 +23,8 @@ private:
     LocalParameters() : Parameters() {
         predictexonsworkflow = combineList(extractorfs, translatenucs);
         predictexonsworkflow = combineList(predictexonsworkflow, searchworkflow);
+
+        reduceredundancyworkflow.push_back(PARAM_REMOVE_TMP_FILES);
     }
     LocalParameters(LocalParameters const&);
     ~LocalParameters() {};

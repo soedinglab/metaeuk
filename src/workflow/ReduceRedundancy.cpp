@@ -9,11 +9,6 @@ int reduceredundancy(int argc, const char **argv, const Command& command) {
     LocalParameters& par = LocalParameters::getLocalInstance();
     par.parseParameters(argc, argv, command, 2);
 
-    CommandCaller cmd;
-    if (par.removeTmpFiles) {
-        cmd.addVariable("REMOVE_TMP", "TRUE");
-    }
-
     // check if temp dir exists and if not, try to create it:
     if (FileUtil::directoryExists(par.db3.c_str()) == false){
         Debug(Debug::INFO) << "Temporary folder " << par.db3 << " does not exist or is not a directory.\n";
@@ -24,6 +19,10 @@ int reduceredundancy(int argc, const char **argv, const Command& command) {
             Debug(Debug::INFO) << "Created directory " << par.db3 << "\n";
         }
     }
+
+    CommandCaller cmd;
+    cmd.addVariable("REMOVE_TMP", par.removeTmpFiles ? "TRUE" : NULL);
+    cmd.addVariable("THREADS_PAR", par.createParameterString(par.onlythreads).c_str());
 
     FileUtil::writeFile(par.db3 + "/reduceredundancy.sh", reduceredundancy_sh, reduceredundancy_sh_len);
     std::string program(par.db3 + "/reduceredundancy.sh");

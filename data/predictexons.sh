@@ -92,9 +92,9 @@ ln -sf "$3_united_exons_aa_h.index" "$3_dp_protein_contig_strand_map_h.index" ||
 
 
 if [ -n "$REMOVE_TMP" ]; then
-    echo "Removing temporary files"
-    rm -f "${TMP_PATH}/nucl_*"
-    rm -f "${TMP_PATH}/aa_*"
-    rm -f "${TMP_PATH}/search*"
-    rm -r "${TMP_PATH}/tmp_search/"
+    echo "Removing temporary files from ${TMP_PATH}"
+    rm -f "${TMP_PATH}"/nucl_6f*
+    rm -f "${TMP_PATH}"/aa_6f*
+    rm -f "${TMP_PATH}"/search_res*
+    rm -r "${TMP_PATH}"/tmp_search/
 fi
