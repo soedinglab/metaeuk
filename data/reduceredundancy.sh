@@ -66,10 +66,10 @@ if notExists "$1_grouped_predictions_rep"; then
 fi
 
 # create a symbolic link for the grouped predictions to the header and index file
-ln -sf "${INPUT_MAP}_h" "$1_grouped_predictions_h" || fail "Could not create symbolic link for grouped predictions headers"
-ln -sf "${INPUT_MAP}_h.index" "$1_grouped_predictions_h.index" || fail "Could not create symbolic link for grouped predictions headers index"
-ln -sf "${INPUT_MAP}_h" "$1_grouped_predictions_rep_h" || fail "Could not create symbolic link for rep grouped predictions headers"
-ln -sf "${INPUT_MAP}_h.index" "$1_grouped_predictions_rep_h.index" || fail "Could not create symbolic link for rep grouped predictions headers index"
+ln -sf "$(realpath ${INPUT_MAP})"_h "$1_grouped_predictions_h" || fail "Could not create symbolic link for grouped predictions headers"
+ln -sf "$(realpath ${INPUT_MAP})"_h.index "$1_grouped_predictions_h.index" || fail "Could not create symbolic link for grouped predictions headers index"
+ln -sf "$(realpath ${INPUT_MAP})"_h "$1_grouped_predictions_rep_h" || fail "Could not create symbolic link for rep grouped predictions headers"
+ln -sf "$(realpath ${INPUT_MAP})"_h.index "$1_grouped_predictions_rep_h.index" || fail "Could not create symbolic link for rep grouped predictions headers index"
 
 
 if [ -n "$REMOVE_TMP" ]; then
