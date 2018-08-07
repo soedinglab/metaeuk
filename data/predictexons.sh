@@ -87,9 +87,9 @@ if notExists "$3_united_exons_aa"; then
 fi
 
 # create a symbolic link for the map to the header and index file
-echo "Creating symlink from: "$(realpath $3)"_united_exons_aa_h"
-ln -sf "$(realpath $3)"_united_exons_aa_h "$3_dp_protein_contig_strand_map_h" || fail "Could not create symbolic link for map headers"
-ln -sf "$(realpath $3)"_united_exons_aa_h.index "$3_dp_protein_contig_strand_map_h.index" || fail "Could not create symbolic link for map headers index"
+echo "Creating symlink from: " "$(pwd)"/"$basename$3"_united_exons_aa_h
+ln -sf "$(pwd)"/"$basename$3"_united_exons_aa_h "$3_dp_protein_contig_strand_map_h" || fail "Could not create symbolic link for map headers"
+ln -sf "$(pwd)"/"$basename$3"_united_exons_aa_h.index "$3_dp_protein_contig_strand_map_h.index" || fail "Could not create symbolic link for map headers index"
 
 
 if [ -n "$REMOVE_TMP" ]; then
