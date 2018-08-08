@@ -13,5 +13,8 @@ mkdir -p "${RESULTPATH}"
 "${METAEUK}" convert2fasta "${RESULTPATH}/final_grouped_predictions_rep" "${RESULTPATH}/final_grouped_predictions_rep.fas"
 "${METAEUK}" createtsv "${RESULTPATH}/final_united_exons_aa" "${RESULTPATH}/final_united_exons_aa" "${RESULTPATH}/final_grouped_predictions" "${RESULTPATH}/final_grouped_predictions.tsv"
 
+# check orf to contig alignment procedure #
+perl check_orf_to_contig.pl "${RESULTPATH}/tempFolder" "${DATAPATH}/as_should_nucl_6f_orf_aligned_to_contig"
+
 # check output
 perl compare_fasta_results.pl "${RESULTPATH}/final_united_exons_aa.fas" "${RESULTPATH}/final_grouped_predictions_rep.fas" "${DATAPATH}/as_should_final_united_exons_aa.fas" "${DATAPATH}/as_should_final_grouped_predictions_rep.fas"
