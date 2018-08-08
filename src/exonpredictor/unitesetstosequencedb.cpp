@@ -159,7 +159,6 @@ int unitesetstosequencedb(int argn, const char **argv, const Command& command) {
             
             // get contig data:
             const char* contigData = contigsData.getDataByDBKey(contigMMSeqs2Key);
-            //size_t totNumNucleotidesInContig = strlen(contigData);
             
             // approximate the total Evalue:
             // Evalue = m X n * 2^(-S), where m = totNumOfAAsInProteinsDb, n = twoStrands, S = combinedNormalizedAlnBitScore

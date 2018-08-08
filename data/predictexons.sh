@@ -28,6 +28,12 @@ if notExists "${TMP_PATH}/nucl_6f"; then
         || fail "extractorfs step died"
 fi
 
+# write extracted orfs locations on contig in alignment format
+if notExists "${TMP_PATH}/nucl_6f_orf_aligned_to_contig"; then
+    "$MMSEQS" alignorftocontig "${INPUT_CONTIGS}" "${TMP_PATH}/nucl_6f" "${TMP_PATH}/nucl_6f_orf_aligned_to_contig" \
+        || fail "alignorftocontig step died"
+fi
+
 # translate each coding fragment (result in AA)
 if notExists "${TMP_PATH}/aa_6f"; then
     "$MMSEQS" translatenucs "${TMP_PATH}/nucl_6f" "${TMP_PATH}/aa_6f" ${TRANSLATENUCS_PAR} \
@@ -48,7 +54,7 @@ fi
 
 # join contig information to swapped results (result has additional info about the origin of the AA fragments)
 if notExists "${TMP_PATH}/search_res_swap_w_contig_info"; then
-    "$MMSEQS" filterdb "${TMP_PATH}/search_res_swap" "${TMP_PATH}/search_res_swap_w_contig_info" --join-db "${TMP_PATH}/nucl_6f_orf_lookup" --filter-column 1 ${THREADS_PAR} \
+    "$MMSEQS" filterdb "${TMP_PATH}/search_res_swap" "${TMP_PATH}/search_res_swap_w_contig_info" --join-db "${TMP_PATH}/nucl_6f_orf_aligned_to_contig" --filter-column 1 ${THREADS_PAR} \
         || fail "filterdb (to join contig info) step died"
 fi
 
