@@ -10,6 +10,20 @@ notExists() {
     [ ! -f "$1" ]
 }
 
+abspath() {
+    if [ -d "$1" ]; then
+        (cd "$1"; pwd)
+    elif [ -f "$1" ]; then
+        if [[ $1 == */* ]]; then
+            echo "$(cd "${1%/*}"; pwd)/${1##*/}"
+        else
+            echo "$(pwd)/$1"
+        fi
+    elif [ -d $(dirname "$1") ]; then
+            echo "$(cd $(dirname "$1"); pwd)/$(basename "$1")"
+    fi
+}
+
 # check number of input variables
 [ "$#" -ne 4 ] && echo "Please provide <sequenceDB> <proteinTargetsDB> <outMetaeukBaseName> <tmpDir>" && exit 1;
 # check if files exist
@@ -18,9 +32,9 @@ notExists() {
 [   -f "$3" ] &&  echo "$3 exists already!" && exit 1;
 [ ! -d "$4" ] &&  echo "tmp directory $4 not found!" && mkdir -p $4;
 
-INPUT_CONTIGS="$1"
-INPUT_TARGET_PROTEINS="$2"
-TMP_PATH="$4"
+INPUT_CONTIGS="$(abspath "$1")"
+INPUT_TARGET_PROTEINS="$(abspath "$2")"
+TMP_PATH="$(abspath "$4")"
 
 # extract coding fragments from input contigs (result in DNA)
 if notExists "${TMP_PATH}/nucl_6f"; then
@@ -92,10 +106,13 @@ if notExists "$3_united_exons_aa"; then
         || fail "translatenucs step died"
 fi
 
+mv -f "${TMP_PATH}/dp_protein_contig_strand_map_h" "$3_dp_protein_contig_strand_map_h" || fail "Could not move result to $3_dp_protein_contig_strand_map_h"
+mv -f "${TMP_PATH}/dp_protein_contig_strand_map_h.index" "$3_dp_protein_contig_strand_map_h.index" || fail "Could not move result to $3_dp_protein_contig_strand_map_h.index"
+
+
 # create a symbolic link for the map to the header and index file
-echo "Creating symlink from: " "$(pwd)"/"$basename$3"_united_exons_aa_h
-ln -sf "$(pwd)"/"$basename$3"_united_exons_aa_h "$3_dp_protein_contig_strand_map_h" || fail "Could not create symbolic link for map headers"
-ln -sf "$(pwd)"/"$basename$3"_united_exons_aa_h.index "$3_dp_protein_contig_strand_map_h.index" || fail "Could not create symbolic link for map headers index"
+ln -sf "$3_united_exons_h" "$3_dp_protein_contig_strand_map_h" || fail "Could not create symbolic link for map headers"
+ln -sf "$3_united_exons_h.index" "$3_dp_protein_contig_strand_map_h.index" || fail "Could not create symbolic link for map headers index"
 
 
 if [ -n "$REMOVE_TMP" ]; then
