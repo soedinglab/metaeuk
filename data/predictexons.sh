@@ -111,8 +111,11 @@ mv -f "${TMP_PATH}/dp_protein_contig_strand_map_h.index" "$3_dp_protein_contig_s
 
 
 # create a symbolic link for the map to the header and index file
-ln -sf "$3_united_exons_h" "$3_dp_protein_contig_strand_map_h" || fail "Could not create symbolic link for map headers"
-ln -sf "$3_united_exons_h.index" "$3_dp_protein_contig_strand_map_h.index" || fail "Could not create symbolic link for map headers index"
+UNITED_EXONS_HEADER = "$(abspath "$3_united_exons_h")"
+UNITED_EXONS_HEADER_INDEX = "$(abspath "$3_united_exons_h.index")"
+echo "Creating symlink from: " "${UNITED_EXONS_HEADER}"
+ln -sf "${UNITED_EXONS_HEADER}" "$3_dp_protein_contig_strand_map_h" || fail "Could not create symbolic link for map headers"
+ln -sf "${UNITED_EXONS_HEADER_INDEX}" "$3_dp_protein_contig_strand_map_h.index" || fail "Could not create symbolic link for map headers index"
 
 
 if [ -n "$REMOVE_TMP" ]; then
