@@ -14,13 +14,13 @@ abspath() {
     if [ -d "$1" ]; then
         (cd "$1"; pwd)
     elif [ -f "$1" ]; then
-        if [[ $1 == */* ]]; then
+        if [[ "$1" == */* ]]; then
             echo "$(cd "${1%/*}"; pwd)/${1##*/}"
         else
             echo "$(pwd)/$1"
         fi
-    elif [ -d $(dirname "$1") ]; then
-            echo "$(cd $(dirname "$1"); pwd)/$(basename "$1")"
+    elif [ -d "$(dirname "$1")" ]; then
+            echo "$(cd "$(dirname "$1")"; pwd)/$(basename "$1")"
     fi
 }
 
@@ -33,7 +33,7 @@ INPUT_UNITED_EXONS="$(abspath "$1_united_exons_aa")"
 [ ! -f "${INPUT_MAP}" ] &&  echo "${INPUT_MAP} not found!" && exit 1;
 [ ! -f "${INPUT_UNITED_EXONS}" ] &&  echo "${INPUT_UNITED_EXONS} not found!" && exit 1;
 [   -f "$2" ] &&  echo "$2 exists already!" && exit 1;
-[ ! -d "$3" ] &&  echo "tmp directory $3 not found!" && mkdir -p $3;
+[ ! -d "$3" ] &&  echo "tmp directory $3 not found!" && mkdir -p "$3";
 
 
 TMP_PATH="$(abspath "$3")"

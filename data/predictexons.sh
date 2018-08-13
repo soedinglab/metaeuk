@@ -14,13 +14,13 @@ abspath() {
     if [ -d "$1" ]; then
         (cd "$1"; pwd)
     elif [ -f "$1" ]; then
-        if [[ $1 == */* ]]; then
+        if [[ "$1" == */* ]]; then
             echo "$(cd "${1%/*}"; pwd)/${1##*/}"
         else
             echo "$(pwd)/$1"
         fi
-    elif [ -d $(dirname "$1") ]; then
-            echo "$(cd $(dirname "$1"); pwd)/$(basename "$1")"
+    elif [ -d "$(dirname "$1")" ]; then
+            echo "$(cd "$(dirname "$1")"; pwd)/$(basename "$1")"
     fi
 }
 
@@ -30,7 +30,7 @@ abspath() {
 [ ! -f "$1" ] &&  echo "$1 not found!" && exit 1;
 [ ! -f "$2" ] &&  echo "$2 not found!" && exit 1;
 [   -f "$3" ] &&  echo "$3 exists already!" && exit 1;
-[ ! -d "$4" ] &&  echo "tmp directory $4 not found!" && mkdir -p $4;
+[ ! -d "$4" ] &&  echo "tmp directory $4 not found!" && mkdir -p "$4";
 
 INPUT_CONTIGS="$(abspath "$1")"
 INPUT_TARGET_PROTEINS="$(abspath "$2")"
@@ -38,6 +38,7 @@ TMP_PATH="$(abspath "$4")"
 
 # extract coding fragments from input contigs (result in DNA)
 if notExists "${TMP_PATH}/nucl_6f"; then
+    # shellcheck disable=SC2086
     "$MMSEQS" extractorfs "${INPUT_CONTIGS}" "${TMP_PATH}/nucl_6f" ${EXTRACTORFS_PAR} \
         || fail "extractorfs step died"
 fi
@@ -50,12 +51,14 @@ fi
 
 # translate each coding fragment (result in AA)
 if notExists "${TMP_PATH}/aa_6f"; then
+    # shellcheck disable=SC2086
     "$MMSEQS" translatenucs "${TMP_PATH}/nucl_6f" "${TMP_PATH}/aa_6f" ${TRANSLATENUCS_PAR} \
         || fail "translatenucs step died"
 fi
 
 # search with each aa fragment against a target DB (result has queries as implicit keys)
 if notExists "${TMP_PATH}/search_res"; then
+    # shellcheck disable=SC2086
     "$MMSEQS" search "${TMP_PATH}/aa_6f" "${INPUT_TARGET_PROTEINS}" "${TMP_PATH}/search_res" "${TMP_PATH}/tmp_search" ${SEARCH_PAR} \
         || fail "search step died"
 fi
@@ -68,12 +71,14 @@ fi
 
 # join contig information to swapped results (result has additional info about the origin of the AA fragments)
 if notExists "${TMP_PATH}/search_res_swap_w_contig_info"; then
+    # shellcheck disable=SC2086
     "$MMSEQS" filterdb "${TMP_PATH}/search_res_swap" "${TMP_PATH}/search_res_swap_w_contig_info" --join-db "${TMP_PATH}/nucl_6f_orf_aligned_to_contig" --filter-column 1 ${THREADS_PAR} \
         || fail "filterdb (to join contig info) step died"
 fi
 
 # sort joined swapped results by contig id
 if notExists "${TMP_PATH}/search_res_swap_w_contig_info_sorted"; then
+    # shellcheck disable=SC2086
     "$MMSEQS" filterdb "${TMP_PATH}/search_res_swap_w_contig_info" "${TMP_PATH}/search_res_swap_w_contig_info_sorted" --sort-entries 1 --filter-column 11 ${THREADS_PAR} \
         || fail "filterdb (to sort by contig) step died"
 fi
@@ -102,6 +107,7 @@ mv -f "${TMP_PATH}/united_exons_h.index" "$3_united_exons_h.index" || fail "Coul
 
 # translate sequence DBs to AAs
 if notExists "$3_united_exons_aa"; then
+    # shellcheck disable=SC2086
     "$MMSEQS" translatenucs "$3_united_exons" "$3_united_exons_aa" ${TRANSLATENUCS_PAR} \
         || fail "translatenucs step died"
 fi
