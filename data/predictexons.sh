@@ -45,8 +45,8 @@ fi
 
 # write extracted orfs locations on contig in alignment format
 if notExists "${TMP_PATH}/nucl_6f_orf_aligned_to_contig"; then
-    "$MMSEQS" alignorftocontig "${INPUT_CONTIGS}" "${TMP_PATH}/nucl_6f" "${TMP_PATH}/nucl_6f_orf_aligned_to_contig" \
-        || fail "alignorftocontig step died"
+    "$MMSEQS" orftocontig "${INPUT_CONTIGS}" "${TMP_PATH}/nucl_6f" "${TMP_PATH}/nucl_6f_orf_aligned_to_contig" \
+        || fail "orftocontig step died"
 fi
 
 # translate each coding fragment (result in AA)
