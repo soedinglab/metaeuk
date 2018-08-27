@@ -106,6 +106,12 @@ std::vector<struct Command> commands = {
                 "<i:resultDB> <o:resultDB>",
                 CITATION_MMSEQS2},
         // Special-purpose utilities
+        {"reversefragments",             reversefragments,            &par.predictexonsworkflow,    COMMAND_EXPERT,
+                "Reverse the amino acids of the 6-frame fragments",
+                "Reverseing the sequences allows calculating statistics under the null",
+                "Eli Levy Karin <eli.levy.karin@gmail.com> ",
+                "<i:aaFragmentsDB> <o:revAaFragmentsDB>",
+                CITATION_MMSEQS2},
         {"convert2fasta",        convert2fasta,        &par.convert2fasta,        COMMAND_FORMAT_CONVERSION,
                 "Convert sequence DB to FASTA format",
                 NULL,

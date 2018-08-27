@@ -5,6 +5,7 @@
 
 extern int predictexons(int argc, const char **argv, const Command& command);
 extern int collectoptimalset(int argn, const char **argv, const Command& command);
+extern int reversefragments(int argn, const char **argv, const Command& command);
 extern int unitesetstosequencedb(int argn, const char **argv, const Command& command);
 extern int reduceredundancy(int argc, const char **argv, const Command& command);
 extern int grouppredictions(int argn, const char **argv, const Command& command);

@@ -56,16 +56,25 @@ if notExists "${TMP_PATH}/aa_6f"; then
         || fail "translatenucs step died"
 fi
 
+# when running in null mode (to assess evalues), we reverse the AA fragments:
+AA_FRAGS="${TMP_PATH}/aa_6f"
+if [ -n "$REVERSE_FRAGMENTS" ]; then
+    "$MMSEQS" reversefragments "${AA_FRAGS}" "${AA_FRAGS}_reverse" \
+        || fail "reversefragments step died"
+    AA_FRAGS="${AA_FRAGS}_reverse"
+    echo "Will base search on ${AA_FRAGS}"
+fi
+
 # search with each aa fragment against a target DB (result has queries as implicit keys)
 if notExists "${TMP_PATH}/search_res"; then
     # shellcheck disable=SC2086
-    "$MMSEQS" search "${TMP_PATH}/aa_6f" "${INPUT_TARGET_PROTEINS}" "${TMP_PATH}/search_res" "${TMP_PATH}/tmp_search" ${SEARCH_PAR} \
+    "$MMSEQS" search "${AA_FRAGS}" "${INPUT_TARGET_PROTEINS}" "${TMP_PATH}/search_res" "${TMP_PATH}/tmp_search" ${SEARCH_PAR} \
         || fail "search step died"
 fi
 
 # swap results (result has targets as implicit keys)
 if notExists "${TMP_PATH}/search_res_swap"; then
-    "$MMSEQS" swapresults "${TMP_PATH}/aa_6f" "${INPUT_TARGET_PROTEINS}" "${TMP_PATH}/search_res" "${TMP_PATH}/search_res_swap" -e 0.1 \
+    "$MMSEQS" swapresults "${AA_FRAGS}" "${INPUT_TARGET_PROTEINS}" "${TMP_PATH}/search_res" "${TMP_PATH}/search_res_swap" -e 0.1 \
         || fail "swap step died"
 fi
 

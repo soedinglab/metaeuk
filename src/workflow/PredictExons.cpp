@@ -39,6 +39,7 @@ int predictexons(int argc, const char **argv, const Command& command) {
 
     CommandCaller cmd;
     cmd.addVariable("REMOVE_TMP", par.removeTmpFiles ? "TRUE" : NULL);
+    cmd.addVariable("REVERSE_FRAGMENTS", par.reverseFragments == 1 ? "TRUE" : NULL);
     cmd.addVariable("EXTRACTORFS_PAR", par.createParameterString(par.extractorfs).c_str());
     cmd.addVariable("TRANSLATENUCS_PAR", par.createParameterString(par.translatenucs).c_str());
     cmd.addVariable("SEARCH_PAR", par.createParameterString(par.searchworkflow).c_str());
