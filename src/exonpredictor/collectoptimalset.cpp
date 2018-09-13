@@ -251,7 +251,7 @@ void getOptimalSetContigCoords (std::vector<potentialExon> & optimalExonSet, int
     highContigCoord = (firstExon.strand == PLUS) ? lastExon.contigEnd : (-1 * firstExon.contigStart);
 }
 
-size_t fillBufferWithMapInfo (char * mapBuffer, int proteinID, int contigID, int strand, int totalBitScore, std::vector<potentialExon> & optimalExonSet) {
+size_t fillBufferWithMapInfo (char * mapBuffer, int proteinID, int contigID, int strand, int totalBitScore, double combinedEvalue, std::vector<potentialExon> & optimalExonSet) {
     int contigAndStrandId = (strand == PLUS) ? (2 * contigID + strand) : (2 * contigID);
     int lowContigCoord;
     int highContigCoord;
@@ -268,6 +268,9 @@ size_t fillBufferWithMapInfo (char * mapBuffer, int proteinID, int contigID, int
     tmpBuff = Itoa::i32toa_sse2(static_cast<uint32_t>(strand), tmpBuff);
     *(tmpBuff-1) = '\t';
     tmpBuff = Itoa::i32toa_sse2(static_cast<uint32_t>(totalBitScore), tmpBuff);
+    *(tmpBuff-1) = '\t';
+    tmpBuff += sprintf(tmpBuff,"%.5E",combinedEvalue);
+    tmpBuff++;
     *(tmpBuff-1) = '\t';
     tmpBuff = Itoa::i32toa_sse2(static_cast<uint32_t>(numExons), tmpBuff);
     *(tmpBuff-1) = '\t';
@@ -429,7 +432,7 @@ int collectoptimalset(int argn, const char **argv, const Command& command) {
                         double combinedEvaluePlus = pow(2, log2EvaluePlus);
                         if (combinedEvaluePlus <= metaEukEvalThr) {
                             size_t mapKey = __sync_fetch_and_add(&globalMapKey, 1);
-                            size_t mapCombinationLen = fillBufferWithMapInfo(mapBuffer, proteinID, currContigId, PLUS, totalBitScorePlus, plusStrandOptimalExonSet);
+                            size_t mapCombinationLen = fillBufferWithMapInfo(mapBuffer, proteinID, currContigId, PLUS, totalBitScorePlus, combinedEvaluePlus, plusStrandOptimalExonSet);
                             mapWriter.writeData(mapBuffer, mapCombinationLen, mapKey, thread_idx);
 
                             size_t exonsResultsLen = fillBufferWithExonsResults (plusStrandOptimalExonSet, exonsResultsBuffer); 
@@ -443,7 +446,7 @@ int collectoptimalset(int argn, const char **argv, const Command& command) {
                         double combinedEvalueMinus = pow(2, log2EvalueMinus);
                         if (combinedEvalueMinus <= metaEukEvalThr) {
                             size_t mapKey = __sync_fetch_and_add(&globalMapKey, 1);
-                            size_t mapCombinationLen = fillBufferWithMapInfo(mapBuffer, proteinID, currContigId, MINUS, totalBitScoreMinus, minusStrandOptimalExonSet);
+                            size_t mapCombinationLen = fillBufferWithMapInfo(mapBuffer, proteinID, currContigId, MINUS, totalBitScoreMinus, combinedEvalueMinus, minusStrandOptimalExonSet);
                             mapWriter.writeData(mapBuffer, mapCombinationLen, mapKey, thread_idx);
 
                             size_t exonsResultsLen = fillBufferWithExonsResults (minusStrandOptimalExonSet, exonsResultsBuffer); 
@@ -482,7 +485,7 @@ int collectoptimalset(int argn, const char **argv, const Command& command) {
                 double combinedEvaluePlus = pow(2, log2EvaluePlus);
                 if (combinedEvaluePlus <= metaEukEvalThr) {
                     size_t mapKey = __sync_fetch_and_add(&globalMapKey, 1);
-                    size_t mapCombinationLen = fillBufferWithMapInfo(mapBuffer, proteinID, currContigId, PLUS, totalBitScorePlus, plusStrandOptimalExonSet);
+                    size_t mapCombinationLen = fillBufferWithMapInfo(mapBuffer, proteinID, currContigId, PLUS, totalBitScorePlus, combinedEvaluePlus, plusStrandOptimalExonSet);
                     mapWriter.writeData(mapBuffer, mapCombinationLen, mapKey, thread_idx);
 
                     size_t exonsResultsLen = fillBufferWithExonsResults (plusStrandOptimalExonSet, exonsResultsBuffer); 
@@ -496,7 +499,7 @@ int collectoptimalset(int argn, const char **argv, const Command& command) {
                 double combinedEvalueMinus = pow(2, log2EvalueMinus);
                 if (combinedEvalueMinus <= metaEukEvalThr) {
                     size_t mapKey = __sync_fetch_and_add(&globalMapKey, 1);
-                    size_t mapCombinationLen = fillBufferWithMapInfo(mapBuffer, proteinID, currContigId, MINUS, totalBitScoreMinus, minusStrandOptimalExonSet);
+                    size_t mapCombinationLen = fillBufferWithMapInfo(mapBuffer, proteinID, currContigId, MINUS, totalBitScoreMinus, combinedEvalueMinus, minusStrandOptimalExonSet);
                     mapWriter.writeData(mapBuffer, mapCombinationLen, mapKey, thread_idx);
 
                     size_t exonsResultsLen = fillBufferWithExonsResults (minusStrandOptimalExonSet, exonsResultsBuffer); 

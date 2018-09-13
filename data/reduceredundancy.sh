@@ -44,6 +44,8 @@ if notExists "${TMP_PATH}/dp_contig_strand_map"; then
         || fail "swapdb step died"
 fi
 
+# the CS map record contains 10 columns: proteinContigStrandId, proteinMMSeqs2Key, contigMMSeqs2Key, strand, combinedBitScore, combinedEvalue, numExons, lowContigCoord, highContigCoord, exonIDsStr.
+
 ## the following three steps create a primary, secondary and tertiary order:
 
 # within each CS, sort by bitscore (decreasing order), tertiary order
@@ -54,13 +56,13 @@ fi
 
 # within each CS, sort by number of exons (decreasing order), secondary order
 if notExists "${TMP_PATH}/dp_contig_strand_map_sorted_by_num_exons_subsorted_by_bit"; then
-    "$MMSEQS" filterdb "${TMP_PATH}/dp_contig_strand_map_sorted_by_bitscore" "${TMP_PATH}/dp_contig_strand_map_sorted_by_num_exons_subsorted_by_bit" --sort-entries 2 --filter-column 6 \
+    "$MMSEQS" filterdb "${TMP_PATH}/dp_contig_strand_map_sorted_by_bitscore" "${TMP_PATH}/dp_contig_strand_map_sorted_by_num_exons_subsorted_by_bit" --sort-entries 2 --filter-column 7 \
         || fail "filterdb (to sort by number of exons in decreasing order) step died"
 fi
 
 # within each CS, sort by start position on the contig (increasing order), primary order
 if notExists "${TMP_PATH}/dp_contig_strand_map_sorted_by_start_subsorted_by_num_and_bit"; then
-    "$MMSEQS" filterdb "${TMP_PATH}/dp_contig_strand_map_sorted_by_num_exons_subsorted_by_bit" "${TMP_PATH}/dp_contig_strand_map_sorted_by_start_subsorted_by_num_and_bit" --sort-entries 1 --filter-column 7 \
+    "$MMSEQS" filterdb "${TMP_PATH}/dp_contig_strand_map_sorted_by_num_exons_subsorted_by_bit" "${TMP_PATH}/dp_contig_strand_map_sorted_by_start_subsorted_by_num_and_bit" --sort-entries 1 --filter-column 8 \
         || fail "filterdb (to sort by start position on the contig in increasing order) step died"
 fi
 

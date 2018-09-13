@@ -25,11 +25,11 @@ const size_t EXPECTED_NUM_PREDICTIONS = 100000;
 struct prediction {
     // constructor
     prediction(unsigned int iProteinContigStrandId, unsigned int iProteinMMSeqs2Key, unsigned int iContigMMSeqs2Key, 
-                int iStrand, int iCombinedNormalizedAlnBitScore, unsigned int iNumExons, unsigned int iLowContigCoord, 
+                int iStrand, int iCombinedNormalizedAlnBitScore, double iCombinedEvalue, unsigned int iNumExons, unsigned int iLowContigCoord, 
                 unsigned int iHighContigCoord, char * iExonCharptr) : proteinContigStrandId(iProteinContigStrandId), proteinMMSeqs2Key(iProteinMMSeqs2Key), 
                 contigMMSeqs2Key(iContigMMSeqs2Key), strand(iStrand),
-                combinedNormalizedAlnBitScore(iCombinedNormalizedAlnBitScore), numExons(iNumExons),
-                lowContigCoord(iLowContigCoord), highContigCoord(iHighContigCoord) {
+                combinedNormalizedAlnBitScore(iCombinedNormalizedAlnBitScore), combinedEvalue(iCombinedEvalue),
+                numExons(iNumExons), lowContigCoord(iLowContigCoord), highContigCoord(iHighContigCoord) {
         
         // parsing exon info: 20317*20995*21701*21720*21753*21795\n
         // first replace the "\n" with "\0" to avoid potentially super long strings in split
@@ -59,6 +59,7 @@ struct prediction {
     unsigned int contigMMSeqs2Key;
     int strand;
     int combinedNormalizedAlnBitScore;
+    double combinedEvalue;
     unsigned int numExons;
     unsigned int lowContigCoord;
     unsigned int highContigCoord;
@@ -107,8 +108,8 @@ int grouppredictions(int argn, const char **argv, const Command& command) {
             while (*contigStrandSortedRecord != '\0') {
                 const size_t contigStrandSortedColumns = Util::getWordsOfLine(contigStrandSortedRecord, entry, 255);
 
-                if (contigStrandSortedColumns != 9) {
-                    Debug(Debug::ERROR) << "ERROR: the sorted contig+strand map record should contain 9 columns: proteinContigStrandId, proteinMMSeqs2Key, contigMMSeqs2Key, strand, combinedBitScore, numExons, lowContigCoord, highContigCoord, exonIDsStr. This doesn't seem to be the case.\n";
+                if (contigStrandSortedColumns != 10) {
+                    Debug(Debug::ERROR) << "ERROR: the sorted contig+strand map record should contain 10 columns: proteinContigStrandId, proteinMMSeqs2Key, contigMMSeqs2Key, strand, combinedBitScore, combinedEvalue, numExons, lowContigCoord, highContigCoord, exonIDsStr. This doesn't seem to be the case.\n";
                     EXIT(EXIT_FAILURE);
                 }
 
@@ -117,10 +118,11 @@ int grouppredictions(int argn, const char **argv, const Command& command) {
                 unsigned int contigMMSeqs2Key = Util::fast_atoi<int>(entry[2]);
                 int strand = Util::fast_atoi<int>(entry[3]);
                 int combinedNormalizedAlnBitScore = Util::fast_atoi<int>(entry[4]);
-                unsigned int numExons = Util::fast_atoi<int>(entry[5]);
-                unsigned int lowContigCoord = Util::fast_atoi<int>(entry[6]);
-                unsigned int highContigCoord = Util::fast_atoi<int>(entry[7]);
-                char * exonCharptr = entry[8];
+                double combinedEvalue = atof(entry[5]);
+                unsigned int numExons = Util::fast_atoi<int>(entry[6]);
+                unsigned int lowContigCoord = Util::fast_atoi<int>(entry[7]);
+                unsigned int highContigCoord = Util::fast_atoi<int>(entry[8]);
+                char * exonCharptr = entry[9];
 
                 // verify sorted order:
                 if (prevNumExons == 0) {
@@ -147,7 +149,7 @@ int grouppredictions(int argn, const char **argv, const Command& command) {
                     prevBitScore = combinedNormalizedAlnBitScore;
                 }
 
-                predictionToCluster.emplace_back(proteinContigStrandId, proteinMMSeqs2Key, contigMMSeqs2Key, strand, combinedNormalizedAlnBitScore, numExons, lowContigCoord, highContigCoord, exonCharptr);
+                predictionToCluster.emplace_back(proteinContigStrandId, proteinMMSeqs2Key, contigMMSeqs2Key, strand, combinedNormalizedAlnBitScore, combinedEvalue, numExons, lowContigCoord, highContigCoord, exonCharptr);
                 contigStrandSortedRecord = Util::skipLine(contigStrandSortedRecord);
             }
 

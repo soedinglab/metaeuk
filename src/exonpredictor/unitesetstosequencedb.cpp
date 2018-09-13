@@ -60,7 +60,7 @@ int unitesetstosequencedb(int argn, const char **argv, const Command& command) {
     DBReader<unsigned int> contigsHeaders(contigsDBHeaderFilename.c_str(), contigsDBHeaderIndexFilename.c_str());
     contigsHeaders.open(DBReader<unsigned int>::NOSORT);
 
-    // db2 = proteinsDB (the header is used while the data is needed for size computation)
+    // db2 = proteinsDB (only the header is used)
     std::string proteinsDBFilename = par.db2;
     std::string proteinsDBHeaderFilename(proteinsDBFilename);
     proteinsDBHeaderFilename.append("_h");
@@ -70,15 +70,6 @@ int unitesetstosequencedb(int argn, const char **argv, const Command& command) {
     DBReader<unsigned int> proteinsHeaders(proteinsDBHeaderFilename.c_str(), proteinsDBHeaderIndexFilename.c_str());
     proteinsHeaders.open(DBReader<unsigned int>::NOSORT);
 
-    std::string proteinsDBIndexFilename(par.db2);
-    proteinsDBIndexFilename.append(".index");
-    DBReader<unsigned int> proteinsData(par.db2.c_str(), proteinsDBIndexFilename.c_str());
-    proteinsData.open(DBReader<unsigned int>::NOSORT);
-    size_t numRecordsInDb = proteinsData.getSize();
-    size_t numCharactersInDb = proteinsData.getAminoAcidDBSize(); // method name is confusing...
-    size_t totNumOfAAsInProteinsDb = numCharactersInDb - (numRecordsInDb * 2); // \n and \0 for each record
-    proteinsData.close();
-    
     // db3 = optimalExonsResuls (exons + map)
     std::string combinedResultBasename = par.db3;
     std::string optimalSetsExonRecordsFilename(combinedResultBasename);
@@ -139,8 +130,8 @@ int unitesetstosequencedb(int argn, const char **argv, const Command& command) {
             
             // parse setRecord (a single line)
             const size_t setColumns = Util::getWordsOfLine(setRecord, entry, 255);
-            if (setColumns != 9) {
-                Debug(Debug::ERROR) << "ERROR: the map record should contain 9 columns: contigStrandId, proteinMMSeqs2Key, contigMMSeqs2Key, strand, combinedBitScore, numExons, lowContigCoord, highContigCoord, exonIDsStr. This doesn't seem to be the case.\n";
+            if (setColumns != 10) {
+                Debug(Debug::ERROR) << "ERROR: the map record should contain 10 columns: contigStrandId, proteinMMSeqs2Key, contigMMSeqs2Key, strand, combinedBitScore, combinedEvalue, numExons, lowContigCoord, highContigCoord, exonIDsStr. This doesn't seem to be the case.\n";
                 EXIT(EXIT_FAILURE);
             }
             //unsigned int contigAndStrandId = Util::fast_atoi<int>(entry[0]);
@@ -148,9 +139,10 @@ int unitesetstosequencedb(int argn, const char **argv, const Command& command) {
             unsigned int contigMMSeqs2Key = Util::fast_atoi<int>(entry[2]);
             int strand = Util::fast_atoi<int>(entry[3]);
             int combinedNormalizedAlnBitScore = Util::fast_atoi<int>(entry[4]);
-            unsigned int numExons = Util::fast_atoi<int>(entry[5]);
-            unsigned int lowContigCoord = Util::fast_atoi<int>(entry[6]);
-            unsigned int highContigCoord = Util::fast_atoi<int>(entry[7]);
+            double combinedEvalue = atof(entry[5]);
+            unsigned int numExons = Util::fast_atoi<int>(entry[6]);
+            unsigned int lowContigCoord = Util::fast_atoi<int>(entry[7]);
+            unsigned int highContigCoord = Util::fast_atoi<int>(entry[8]);
             setRecord = Util::skipLine(setRecord);
 
             // get non-MMSeqs2 identifiers from header files:
@@ -159,11 +151,6 @@ int unitesetstosequencedb(int argn, const char **argv, const Command& command) {
             
             // get contig data:
             const char* contigData = contigsData.getDataByDBKey(contigMMSeqs2Key);
-            
-            // approximate the total Evalue:
-            // Evalue = m X n * 2^(-S), where m = totNumOfAAsInProteinsDb, n = twoStrands, S = combinedNormalizedAlnBitScore
-            double log2Evalue = log2(totNumOfAAsInProteinsDb) + log2(2) - combinedNormalizedAlnBitScore;
-            double combinedEvalue = pow(2, log2Evalue);
             
             // initialize header:
             size_t numWhiteCharsToTrim = 2; // a single space and a \n
