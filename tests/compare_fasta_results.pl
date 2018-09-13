@@ -136,9 +136,9 @@ sub parse_metaeuk_fasta_file
 		{
 			# identical_exon1_and_exon4|my_multi_exon_contig|+|398|2.94007e-117|2|100|1444|100[100]:429[429]:330[330]|1184[1202]:1444[1444]:261[243]
 			my ($target_id, $contig_id, $strand, $sum_bit_score, $evalue, $num_exons, $low_coord, $high_coord, @exons_info) = split(/\|/, $1);
-			
+			my $rounded_evalue = sprintf("%.2g", $evalue);
 			$metaeuk_preds_to_info_ref->{$target_id}{$contig_id}{$strand}{sum_bit_score} = $sum_bit_score;
-			$metaeuk_preds_to_info_ref->{$target_id}{$contig_id}{$strand}{evalue} = $evalue;
+			$metaeuk_preds_to_info_ref->{$target_id}{$contig_id}{$strand}{evalue} = $rounded_evalue;
 			$metaeuk_preds_to_info_ref->{$target_id}{$contig_id}{$strand}{num_exons} = $num_exons;
 			$metaeuk_preds_to_info_ref->{$target_id}{$contig_id}{$strand}{low} = $low_coord; # MMSeqs2 starts the count at 0, not 1
 			$metaeuk_preds_to_info_ref->{$target_id}{$contig_id}{$strand}{high} = $high_coord; # MMSeqs2 starts the count at 0, not 1	

@@ -269,7 +269,7 @@ size_t fillBufferWithMapInfo (char * mapBuffer, int proteinID, int contigID, int
     *(tmpBuff-1) = '\t';
     tmpBuff = Itoa::i32toa_sse2(static_cast<uint32_t>(totalBitScore), tmpBuff);
     *(tmpBuff-1) = '\t';
-    tmpBuff += sprintf(tmpBuff,"%.5E",combinedEvalue);
+    tmpBuff += sprintf(tmpBuff,"%.3E",combinedEvalue);
     tmpBuff++;
     *(tmpBuff-1) = '\t';
     tmpBuff = Itoa::i32toa_sse2(static_cast<uint32_t>(numExons), tmpBuff);
