@@ -94,7 +94,7 @@ fi
 
 # for each target, with respect to each contig and each strand, find the optimal set of exons
 if notExists "${TMP_PATH}/dp_protein_contig_strand_map"; then
-    "$MMSEQS" collectoptimalset "${TMP_PATH}/search_res_swap_w_contig_info_sorted" "${TMP_PATH}/dp" \
+    "$MMSEQS" collectoptimalset "${TMP_PATH}/search_res_swap_w_contig_info_sorted" "${INPUT_TARGET_PROTEINS}" "${TMP_PATH}/dp" \
         || fail "collectoptimalset step died"
 fi
 

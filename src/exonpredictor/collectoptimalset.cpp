@@ -294,21 +294,32 @@ size_t fillBufferWithMapInfo (char * mapBuffer, int proteinID, int contigID, int
 
 int collectoptimalset(int argn, const char **argv, const Command& command) {
     LocalParameters& par = LocalParameters::getLocalInstance();
-    par.parseParameters(argn, argv, command, 2, true, true);
+    par.parseParameters(argn, argv, command, 3, true, true);
 
     DBReader<unsigned int> resultReader(par.db1.c_str(), par.db1Index.c_str());
     resultReader.open(DBReader<unsigned int>::LINEAR_ACCCESS);
 
+    // get number of AAs in target DB for an E-Value computation
+    std::string proteinsDBIndexFilename(par.db2);
+    proteinsDBIndexFilename.append(".index");
+    DBReader<unsigned int> proteinsData(par.db2.c_str(), proteinsDBIndexFilename.c_str());
+    proteinsData.open(DBReader<unsigned int>::NOSORT);
+    size_t numRecordsInDb = proteinsData.getSize();
+    size_t numCharactersInDb = proteinsData.getAminoAcidDBSize(); // method name is confusing...
+    size_t totNumOfAAsInProteinsDb = numCharactersInDb - (numRecordsInDb * 2); // \n and \0 for each record
+    proteinsData.close();
+    double metaEukEvalThr = 0.01; // temp - will become a parameter
+
     // this key is joint to several threads so will be increamented by the __sync_fetch_and_add atomic instruction:
     size_t globalMapKey = 0; 
     
-    std::string dbProteinContigStrandMap = par.db2 + "_protein_contig_strand_map";
-    std::string dbProteinContigStrandMapIndex = par.db2 + "_protein_contig_strand_map.index";
+    std::string dbProteinContigStrandMap = par.db3 + "_protein_contig_strand_map";
+    std::string dbProteinContigStrandMapIndex = par.db3 + "_protein_contig_strand_map.index";
     DBWriter mapWriter(dbProteinContigStrandMap.c_str(), dbProteinContigStrandMapIndex.c_str(), par.threads);
     mapWriter.open();
 
-    std::string dbOptimalExons = par.db2 + "_optimal_exon_sets";
-    std::string dbOptimalExonsIndex = par.db2 + "_optimal_exon_sets.index";
+    std::string dbOptimalExons = par.db3 + "_optimal_exon_sets";
+    std::string dbOptimalExonsIndex = par.db3 + "_optimal_exon_sets.index";
     DBWriter optimalExonsWriter(dbOptimalExons.c_str(), dbOptimalExonsIndex.c_str(), par.threads);
     optimalExonsWriter.open();
 
@@ -409,23 +420,35 @@ int collectoptimalset(int argn, const char **argv, const Command& command) {
                     // sort + dynamic programming to find the optimals set:
                     int totalBitScorePlus = findoptimalsetbydp(plusStrandPotentialExons, plusStrandOptimalExonSet);
                     int totalBitScoreMinus = findoptimalsetbydp(minusStrandPotentialExons, minusStrandOptimalExonSet);
-                    
+
                     // write optimal sets to result file:
                     if (plusStrandOptimalExonSet.size() > 0) {
-                        size_t mapKey = __sync_fetch_and_add(&globalMapKey, 1);
-                        size_t mapCombinationLen = fillBufferWithMapInfo(mapBuffer, proteinID, currContigId, PLUS, totalBitScorePlus, plusStrandOptimalExonSet);
-                        mapWriter.writeData(mapBuffer, mapCombinationLen, mapKey, thread_idx);
+                        // compute E-Values of the optimal set:
+                        // Evalue = m X n * 2^(-S), where m = totNumOfAAsInProteinsDb, n = twoStrands, S = combinedNormalizedAlnBitScore
+                        double log2EvaluePlus = log2(totNumOfAAsInProteinsDb) + log2(2) - totalBitScorePlus;
+                        double combinedEvaluePlus = pow(2, log2EvaluePlus);
+                        if (combinedEvaluePlus <= metaEukEvalThr) {
+                            size_t mapKey = __sync_fetch_and_add(&globalMapKey, 1);
+                            size_t mapCombinationLen = fillBufferWithMapInfo(mapBuffer, proteinID, currContigId, PLUS, totalBitScorePlus, plusStrandOptimalExonSet);
+                            mapWriter.writeData(mapBuffer, mapCombinationLen, mapKey, thread_idx);
 
-                        size_t exonsResultsLen = fillBufferWithExonsResults (plusStrandOptimalExonSet, exonsResultsBuffer); 
-                        optimalExonsWriter.writeData(exonsResultsBuffer, exonsResultsLen, mapKey, thread_idx);
+                            size_t exonsResultsLen = fillBufferWithExonsResults (plusStrandOptimalExonSet, exonsResultsBuffer); 
+                            optimalExonsWriter.writeData(exonsResultsBuffer, exonsResultsLen, mapKey, thread_idx);
+                        }
                     }
                     if (minusStrandOptimalExonSet.size() > 0) {
-                        size_t mapKey = __sync_fetch_and_add(&globalMapKey, 1);
-                        size_t mapCombinationLen = fillBufferWithMapInfo(mapBuffer, proteinID, currContigId, MINUS, totalBitScoreMinus, minusStrandOptimalExonSet);
-                        mapWriter.writeData(mapBuffer, mapCombinationLen, mapKey, thread_idx);
+                        // compute E-Values of the optimal set:
+                        // Evalue = m X n * 2^(-S), where m = totNumOfAAsInProteinsDb, n = twoStrands, S = combinedNormalizedAlnBitScore
+                        double log2EvalueMinus = log2(totNumOfAAsInProteinsDb) + log2(2) - totalBitScoreMinus;
+                        double combinedEvalueMinus = pow(2, log2EvalueMinus);
+                        if (combinedEvalueMinus <= metaEukEvalThr) {
+                            size_t mapKey = __sync_fetch_and_add(&globalMapKey, 1);
+                            size_t mapCombinationLen = fillBufferWithMapInfo(mapBuffer, proteinID, currContigId, MINUS, totalBitScoreMinus, minusStrandOptimalExonSet);
+                            mapWriter.writeData(mapBuffer, mapCombinationLen, mapKey, thread_idx);
 
-                        size_t exonsResultsLen = fillBufferWithExonsResults (minusStrandOptimalExonSet, exonsResultsBuffer); 
-                        optimalExonsWriter.writeData(exonsResultsBuffer, exonsResultsLen, mapKey, thread_idx);
+                            size_t exonsResultsLen = fillBufferWithExonsResults (minusStrandOptimalExonSet, exonsResultsBuffer); 
+                            optimalExonsWriter.writeData(exonsResultsBuffer, exonsResultsLen, mapKey, thread_idx);
+                        }
                     }
 
                     // empty vectors:
@@ -453,20 +476,32 @@ int collectoptimalset(int argn, const char **argv, const Command& command) {
             
             // write optimal sets to result file:
             if (plusStrandOptimalExonSet.size() > 0) {
-                size_t mapKey = __sync_fetch_and_add(&globalMapKey, 1);
-                size_t mapCombinationLen = fillBufferWithMapInfo(mapBuffer, proteinID, currContigId, PLUS, totalBitScorePlus, plusStrandOptimalExonSet);
-                mapWriter.writeData(mapBuffer, mapCombinationLen, mapKey, thread_idx);
+                // compute E-Values of the optimal set:
+                // Evalue = m X n * 2^(-S), where m = totNumOfAAsInProteinsDb, n = twoStrands, S = combinedNormalizedAlnBitScore
+                double log2EvaluePlus = log2(totNumOfAAsInProteinsDb) + log2(2) - totalBitScorePlus;
+                double combinedEvaluePlus = pow(2, log2EvaluePlus);
+                if (combinedEvaluePlus <= metaEukEvalThr) {
+                    size_t mapKey = __sync_fetch_and_add(&globalMapKey, 1);
+                    size_t mapCombinationLen = fillBufferWithMapInfo(mapBuffer, proteinID, currContigId, PLUS, totalBitScorePlus, plusStrandOptimalExonSet);
+                    mapWriter.writeData(mapBuffer, mapCombinationLen, mapKey, thread_idx);
 
-                size_t exonsResultsLen = fillBufferWithExonsResults (plusStrandOptimalExonSet, exonsResultsBuffer); 
-                optimalExonsWriter.writeData(exonsResultsBuffer, exonsResultsLen, mapKey, thread_idx);
+                    size_t exonsResultsLen = fillBufferWithExonsResults (plusStrandOptimalExonSet, exonsResultsBuffer); 
+                    optimalExonsWriter.writeData(exonsResultsBuffer, exonsResultsLen, mapKey, thread_idx);
+                }
             }
             if (minusStrandOptimalExonSet.size() > 0) {
-                size_t mapKey = __sync_fetch_and_add(&globalMapKey, 1);
-                size_t mapCombinationLen = fillBufferWithMapInfo(mapBuffer, proteinID, currContigId, MINUS, totalBitScoreMinus, minusStrandOptimalExonSet);
-                mapWriter.writeData(mapBuffer, mapCombinationLen, mapKey, thread_idx);
+                // compute E-Values of the optimal set:
+                // Evalue = m X n * 2^(-S), where m = totNumOfAAsInProteinsDb, n = twoStrands, S = combinedNormalizedAlnBitScore
+                double log2EvalueMinus = log2(totNumOfAAsInProteinsDb) + log2(2) - totalBitScoreMinus;
+                double combinedEvalueMinus = pow(2, log2EvalueMinus);
+                if (combinedEvalueMinus <= metaEukEvalThr) {
+                    size_t mapKey = __sync_fetch_and_add(&globalMapKey, 1);
+                    size_t mapCombinationLen = fillBufferWithMapInfo(mapBuffer, proteinID, currContigId, MINUS, totalBitScoreMinus, minusStrandOptimalExonSet);
+                    mapWriter.writeData(mapBuffer, mapCombinationLen, mapKey, thread_idx);
 
-                size_t exonsResultsLen = fillBufferWithExonsResults (minusStrandOptimalExonSet, exonsResultsBuffer); 
-                optimalExonsWriter.writeData(exonsResultsBuffer, exonsResultsLen, mapKey, thread_idx);
+                    size_t exonsResultsLen = fillBufferWithExonsResults (minusStrandOptimalExonSet, exonsResultsBuffer); 
+                    optimalExonsWriter.writeData(exonsResultsBuffer, exonsResultsLen, mapKey, thread_idx);
+                }
             }
 
             // empty vectors (between protein records):

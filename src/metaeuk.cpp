@@ -24,7 +24,7 @@ std::vector<struct Command> commands = {
                 "Collect the optimal set of exons for a target protein",
                 "A dynamic programming procedure on all candidates of each contig and strand combination",
                 "Eli Levy Karin <eli.levy.karin@gmail.com> ",
-                "<i:proteinToPotentialExonsWithContigInfoDB> <o:optimalResultsBaseName>",
+                "<i:proteinToPotentialExonsWithContigInfoDB> <i:proteinsDB> <o:optimalResultsBaseName>",
                 CITATION_MMSEQS2},
         {"unitesetstosequencedb",             unitesetstosequencedb,            &par.predictexonsworkflow,    COMMAND_EXPERT,
                 "Create a sequence DB from collected optimal exon sets",
