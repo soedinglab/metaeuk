@@ -8,6 +8,9 @@
 void setPredictExonsDefaults(Parameters *p) {
     p->orfStartMode = 1;
     p->alignmentMode = Parameters::ALIGNMENT_MODE_SCORE_COV;
+    // As discussed
+    // p->evalThr = 1;
+
 }
 
 int predictexons(int argc, const char **argv, const Command& command) {
@@ -44,6 +47,8 @@ int predictexons(int argc, const char **argv, const Command& command) {
     cmd.addVariable("TRANSLATENUCS_PAR", par.createParameterString(par.translatenucs).c_str());
     cmd.addVariable("SEARCH_PAR", par.createParameterString(par.searchworkflow).c_str());
     cmd.addVariable("THREADS_PAR", par.createParameterString(par.onlythreads).c_str());
+
+    cmd.addVariable("COLLECTOPTIMALSET_PAR", par.createParameterString(par.collectoptimalset).c_str());
 
     FileUtil::writeFile(par.db4 + "/predictexons.sh", predictexons_sh, predictexons_sh_len);
     std::string program(par.db4 + "/predictexons.sh");

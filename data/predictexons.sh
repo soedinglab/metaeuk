@@ -45,7 +45,8 @@ fi
 
 # write extracted orfs locations on contig in alignment format
 if notExists "${TMP_PATH}/nucl_6f_orf_aligned_to_contig"; then
-    "$MMSEQS" orftocontig "${INPUT_CONTIGS}" "${TMP_PATH}/nucl_6f" "${TMP_PATH}/nucl_6f_orf_aligned_to_contig" \
+    # shellcheck disable=SC2086
+    "$MMSEQS" orftocontig "${INPUT_CONTIGS}" "${TMP_PATH}/nucl_6f" "${TMP_PATH}/nucl_6f_orf_aligned_to_contig" ${THREADS_PAR} \
         || fail "orftocontig step died"
 fi
 
@@ -59,7 +60,8 @@ fi
 # when running in null mode (to assess evalues), we reverse the AA fragments:
 AA_FRAGS="${TMP_PATH}/aa_6f"
 if [ -n "$REVERSE_FRAGMENTS" ]; then
-    "$MMSEQS" reversefragments "${AA_FRAGS}" "${AA_FRAGS}_reverse" \
+    # shellcheck disable=SC2086
+    "$MMSEQS" reversefragments "${AA_FRAGS}" "${AA_FRAGS}_reverse" ${THREADS_PAR} \
         || fail "reversefragments step died"
     AA_FRAGS="${AA_FRAGS}_reverse"
     echo "Will base search on ${AA_FRAGS}"
@@ -74,7 +76,8 @@ fi
 
 # swap results (result has targets as implicit keys)
 if notExists "${TMP_PATH}/search_res_swap"; then
-    "$MMSEQS" swapresults "${AA_FRAGS}" "${INPUT_TARGET_PROTEINS}" "${TMP_PATH}/search_res" "${TMP_PATH}/search_res_swap" -e 0.1 \
+    # shellcheck disable=SC2086
+    "$MMSEQS" swapresults "${AA_FRAGS}" "${INPUT_TARGET_PROTEINS}" "${TMP_PATH}/search_res" "${TMP_PATH}/search_res_swap" -e 1000 ${THREADS_PAR} \
         || fail "swap step died"
 fi
 
@@ -94,13 +97,15 @@ fi
 
 # for each target, with respect to each contig and each strand, find the optimal set of exons
 if notExists "${TMP_PATH}/dp_protein_contig_strand_map"; then
-    "$MMSEQS" collectoptimalset "${TMP_PATH}/search_res_swap_w_contig_info_sorted" "${INPUT_TARGET_PROTEINS}" "${TMP_PATH}/dp" \
+    # shellcheck disable=SC2086
+    "$MMSEQS" collectoptimalset "${TMP_PATH}/search_res_swap_w_contig_info_sorted" "${INPUT_TARGET_PROTEINS}" "${TMP_PATH}/dp" ${COLLECTOPTIMALSET_PAR} \
         || fail "collectoptimalset step died"
 fi
 
 # create sequence DBs from the results, these contain the original identifiers
 if notExists "${TMP_PATH}/united_exons"; then
-    "$MMSEQS" unitesetstosequencedb "${INPUT_CONTIGS}" "${INPUT_TARGET_PROTEINS}" "${TMP_PATH}/dp" "${TMP_PATH}/united_exons" \
+    # shellcheck disable=SC2086
+    "$MMSEQS" unitesetstosequencedb "${INPUT_CONTIGS}" "${INPUT_TARGET_PROTEINS}" "${TMP_PATH}/dp" "${TMP_PATH}/united_exons" ${THREADS_PAR} \
         || fail "unitesetstosequencedb step died"
 fi
 

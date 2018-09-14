@@ -311,8 +311,8 @@ int collectoptimalset(int argn, const char **argv, const Command& command) {
     size_t numCharactersInDb = proteinsData.getAminoAcidDBSize(); // method name is confusing...
     size_t totNumOfAAsInProteinsDb = numCharactersInDb - (numRecordsInDb * 2); // \n and \0 for each record
     proteinsData.close();
-    double metaEukEvalThr = 0.01; // temp - will become a parameter
-
+    double dMetaeukEvalueThr = (double)par.metaeukEvalueThr; // converting to double for precise comparisons
+   
     // this key is joint to several threads so will be increamented by the __sync_fetch_and_add atomic instruction:
     size_t globalMapKey = 0; 
     
@@ -430,7 +430,7 @@ int collectoptimalset(int argn, const char **argv, const Command& command) {
                         // Evalue = m X n * 2^(-S), where m = totNumOfAAsInProteinsDb, n = twoStrands, S = combinedNormalizedAlnBitScore
                         double log2EvaluePlus = log2(totNumOfAAsInProteinsDb) + log2(2) - totalBitScorePlus;
                         double combinedEvaluePlus = pow(2, log2EvaluePlus);
-                        if (combinedEvaluePlus <= metaEukEvalThr) {
+                        if (combinedEvaluePlus <= dMetaeukEvalueThr) {
                             size_t mapKey = __sync_fetch_and_add(&globalMapKey, 1);
                             size_t mapCombinationLen = fillBufferWithMapInfo(mapBuffer, proteinID, currContigId, PLUS, totalBitScorePlus, combinedEvaluePlus, plusStrandOptimalExonSet);
                             mapWriter.writeData(mapBuffer, mapCombinationLen, mapKey, thread_idx);
@@ -444,7 +444,7 @@ int collectoptimalset(int argn, const char **argv, const Command& command) {
                         // Evalue = m X n * 2^(-S), where m = totNumOfAAsInProteinsDb, n = twoStrands, S = combinedNormalizedAlnBitScore
                         double log2EvalueMinus = log2(totNumOfAAsInProteinsDb) + log2(2) - totalBitScoreMinus;
                         double combinedEvalueMinus = pow(2, log2EvalueMinus);
-                        if (combinedEvalueMinus <= metaEukEvalThr) {
+                        if (combinedEvalueMinus <= dMetaeukEvalueThr) {
                             size_t mapKey = __sync_fetch_and_add(&globalMapKey, 1);
                             size_t mapCombinationLen = fillBufferWithMapInfo(mapBuffer, proteinID, currContigId, MINUS, totalBitScoreMinus, combinedEvalueMinus, minusStrandOptimalExonSet);
                             mapWriter.writeData(mapBuffer, mapCombinationLen, mapKey, thread_idx);
@@ -483,7 +483,7 @@ int collectoptimalset(int argn, const char **argv, const Command& command) {
                 // Evalue = m X n * 2^(-S), where m = totNumOfAAsInProteinsDb, n = twoStrands, S = combinedNormalizedAlnBitScore
                 double log2EvaluePlus = log2(totNumOfAAsInProteinsDb) + log2(2) - totalBitScorePlus;
                 double combinedEvaluePlus = pow(2, log2EvaluePlus);
-                if (combinedEvaluePlus <= metaEukEvalThr) {
+                if (combinedEvaluePlus <= dMetaeukEvalueThr) {
                     size_t mapKey = __sync_fetch_and_add(&globalMapKey, 1);
                     size_t mapCombinationLen = fillBufferWithMapInfo(mapBuffer, proteinID, currContigId, PLUS, totalBitScorePlus, combinedEvaluePlus, plusStrandOptimalExonSet);
                     mapWriter.writeData(mapBuffer, mapCombinationLen, mapKey, thread_idx);
@@ -497,7 +497,7 @@ int collectoptimalset(int argn, const char **argv, const Command& command) {
                 // Evalue = m X n * 2^(-S), where m = totNumOfAAsInProteinsDb, n = twoStrands, S = combinedNormalizedAlnBitScore
                 double log2EvalueMinus = log2(totNumOfAAsInProteinsDb) + log2(2) - totalBitScoreMinus;
                 double combinedEvalueMinus = pow(2, log2EvalueMinus);
-                if (combinedEvalueMinus <= metaEukEvalThr) {
+                if (combinedEvalueMinus <= dMetaeukEvalueThr) {
                     size_t mapKey = __sync_fetch_and_add(&globalMapKey, 1);
                     size_t mapCombinationLen = fillBufferWithMapInfo(mapBuffer, proteinID, currContigId, MINUS, totalBitScoreMinus, combinedEvalueMinus, minusStrandOptimalExonSet);
                     mapWriter.writeData(mapBuffer, mapCombinationLen, mapKey, thread_idx);
