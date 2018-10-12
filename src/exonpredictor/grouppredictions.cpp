@@ -92,7 +92,7 @@ int grouppredictions(int argn, const char **argv, const Command& command) {
         predictionToCluster.reserve(EXPECTED_NUM_PREDICTIONS);
         char *entry[255];
         char clusterKey[128];
-        std::vector<char> clusterBuffer;
+        std::string clusterBuffer;
         clusterBuffer.reserve(10000);  
         
 #pragma omp for schedule(dynamic, 100)
@@ -163,8 +163,8 @@ int grouppredictions(int argn, const char **argv, const Command& command) {
                 
                 // initialize the new cluster:
                 char *tmpBuff = Itoa::i32toa_sse2(static_cast<uint32_t>(predictionToCluster[i].proteinContigStrandId), clusterKey);
-                std::copy(clusterKey, tmpBuff, std::back_inserter(clusterBuffer));
-                clusterBuffer.emplace_back('\n');
+                clusterBuffer.append(clusterKey, tmpBuff - clusterKey - 1);
+                clusterBuffer.append(1, '\n');
 
                 // collect cluster members:
                 for (size_t j = (i + 1); j < predictionToCluster.size(); ++j) {
@@ -189,14 +189,13 @@ int grouppredictions(int argn, const char **argv, const Command& command) {
                         predictionToCluster[j].clusterProteinContigStrandId = predictionToCluster[i].proteinContigStrandId;
 
                         tmpBuff = Itoa::i32toa_sse2(static_cast<uint32_t>(predictionToCluster[j].proteinContigStrandId), clusterKey);
-                        std::copy(clusterKey, tmpBuff, std::back_inserter(clusterBuffer));
-                        clusterBuffer.emplace_back('\n');
+                        clusterBuffer.append(clusterKey, tmpBuff - clusterKey - 1);
+                        clusterBuffer.append(1, '\n');
                     }
                 }
 
                 writeClusterTCSi:
-                clusterBuffer.emplace_back('\0');
-                writerGroupedPredictions.writeData(&clusterBuffer[0], clusterBuffer.size(), predictionToCluster[i].proteinContigStrandId, thread_idx);
+                writerGroupedPredictions.writeData(clusterBuffer.c_str(), clusterBuffer.size(), predictionToCluster[i].proteinContigStrandId, thread_idx);
                 clusterBuffer.clear();
             }
 
