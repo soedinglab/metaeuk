@@ -41,6 +41,7 @@ private:
         predictexonsworkflow = combineList(predictexonsworkflow, collectoptimalset);
         predictexonsworkflow.push_back(PARAM_REVERSE_FRAGMENTS);
 
+        reduceredundancyworkflow.push_back(PARAM_THREADS);
         reduceredundancyworkflow.push_back(PARAM_REMOVE_TMP_FILES);
 
         // default value 0 means no reverse of AA fragments
