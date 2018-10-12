@@ -303,13 +303,18 @@ int collectoptimalset(int argn, const char **argv, const Command& command) {
     resultReader.open(DBReader<unsigned int>::LINEAR_ACCCESS);
 
     // get number of AAs in target DB for an E-Value computation
+    size_t totNumOfAAsInTargetDb = 0;
     std::string proteinsDBIndexFilename(par.db2);
     proteinsDBIndexFilename.append(".index");
     DBReader<unsigned int> proteinsData(par.db2.c_str(), proteinsDBIndexFilename.c_str());
     proteinsData.open(DBReader<unsigned int>::NOSORT);
     size_t numRecordsInDb = proteinsData.getSize();
     size_t numCharactersInDb = proteinsData.getAminoAcidDBSize(); // method name is confusing...
-    size_t totNumOfAAsInProteinsDb = numCharactersInDb - (numRecordsInDb * 2); // \n and \0 for each record
+    if (proteinsData.getDbtype() == Sequence::HMM_PROFILE) {
+        totNumOfAAsInTargetDb = numCharactersInDb / Sequence::PROFILE_READIN_SIZE;
+    } else {
+        totNumOfAAsInTargetDb = numCharactersInDb - (numRecordsInDb * 2); // \n and \0 for each record
+    }
     proteinsData.close();
     double dMetaeukEvalueThr = (double)par.metaeukEvalueThr; // converting to double for precise comparisons
    
@@ -427,8 +432,8 @@ int collectoptimalset(int argn, const char **argv, const Command& command) {
                     // write optimal sets to result file:
                     if (plusStrandOptimalExonSet.size() > 0) {
                         // compute E-Values of the optimal set:
-                        // Evalue = m X n * 2^(-S), where m = totNumOfAAsInProteinsDb, n = twoStrands, S = combinedNormalizedAlnBitScore
-                        double log2EvaluePlus = log2(totNumOfAAsInProteinsDb) + log2(2) - totalBitScorePlus;
+                        // Evalue = m X n * 2^(-S), where m = totNumOfAAsInTargetDb, n = twoStrands, S = combinedNormalizedAlnBitScore
+                        double log2EvaluePlus = log2(totNumOfAAsInTargetDb) + log2(2) - totalBitScorePlus;
                         double combinedEvaluePlus = pow(2, log2EvaluePlus);
                         if (combinedEvaluePlus <= dMetaeukEvalueThr) {
                             size_t mapKey = __sync_fetch_and_add(&globalMapKey, 1);
@@ -441,8 +446,8 @@ int collectoptimalset(int argn, const char **argv, const Command& command) {
                     }
                     if (minusStrandOptimalExonSet.size() > 0) {
                         // compute E-Values of the optimal set:
-                        // Evalue = m X n * 2^(-S), where m = totNumOfAAsInProteinsDb, n = twoStrands, S = combinedNormalizedAlnBitScore
-                        double log2EvalueMinus = log2(totNumOfAAsInProteinsDb) + log2(2) - totalBitScoreMinus;
+                        // Evalue = m X n * 2^(-S), where m = totNumOfAAsInTargetDb, n = twoStrands, S = combinedNormalizedAlnBitScore
+                        double log2EvalueMinus = log2(totNumOfAAsInTargetDb) + log2(2) - totalBitScoreMinus;
                         double combinedEvalueMinus = pow(2, log2EvalueMinus);
                         if (combinedEvalueMinus <= dMetaeukEvalueThr) {
                             size_t mapKey = __sync_fetch_and_add(&globalMapKey, 1);
@@ -480,8 +485,8 @@ int collectoptimalset(int argn, const char **argv, const Command& command) {
             // write optimal sets to result file:
             if (plusStrandOptimalExonSet.size() > 0) {
                 // compute E-Values of the optimal set:
-                // Evalue = m X n * 2^(-S), where m = totNumOfAAsInProteinsDb, n = twoStrands, S = combinedNormalizedAlnBitScore
-                double log2EvaluePlus = log2(totNumOfAAsInProteinsDb) + log2(2) - totalBitScorePlus;
+                // Evalue = m X n * 2^(-S), where m = totNumOfAAsInTargetDb, n = twoStrands, S = combinedNormalizedAlnBitScore
+                double log2EvaluePlus = log2(totNumOfAAsInTargetDb) + log2(2) - totalBitScorePlus;
                 double combinedEvaluePlus = pow(2, log2EvaluePlus);
                 if (combinedEvaluePlus <= dMetaeukEvalueThr) {
                     size_t mapKey = __sync_fetch_and_add(&globalMapKey, 1);
@@ -494,8 +499,8 @@ int collectoptimalset(int argn, const char **argv, const Command& command) {
             }
             if (minusStrandOptimalExonSet.size() > 0) {
                 // compute E-Values of the optimal set:
-                // Evalue = m X n * 2^(-S), where m = totNumOfAAsInProteinsDb, n = twoStrands, S = combinedNormalizedAlnBitScore
-                double log2EvalueMinus = log2(totNumOfAAsInProteinsDb) + log2(2) - totalBitScoreMinus;
+                // Evalue = m X n * 2^(-S), where m = totNumOfAAsInTargetDb, n = twoStrands, S = combinedNormalizedAlnBitScore
+                double log2EvalueMinus = log2(totNumOfAAsInTargetDb) + log2(2) - totalBitScoreMinus;
                 double combinedEvalueMinus = pow(2, log2EvalueMinus);
                 if (combinedEvalueMinus <= dMetaeukEvalueThr) {
                     size_t mapKey = __sync_fetch_and_add(&globalMapKey, 1);
