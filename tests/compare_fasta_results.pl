@@ -33,7 +33,7 @@ if ($as_should_num_grouped_preds != $num_grouped_preds)
 	die "Failed at grouped predictions: number of predictions has changed!\n";
 }
 
-# comapre all results #
+# compare all results #
 compare_as_should_and_current(\%as_should_be_metaek_all_predictions, \%metaek_all_predictions, "all predictions");
 
 # compare grouped results #
