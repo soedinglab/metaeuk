@@ -13,14 +13,25 @@ my ($in_fasta_all_predictions, $in_fasta_grouped_predictions, $in_correct_fasta_
 # read the expected output #
 my %as_should_be_metaek_all_predictions;
 my %as_should_be_metaeuk_grouped_predictions;
-parse_metaeuk_fasta_file($in_correct_fasta_all_predictions, \%as_should_be_metaek_all_predictions);
-parse_metaeuk_fasta_file($in_correct_fasta_grouped_predictions, \%as_should_be_metaeuk_grouped_predictions);
+my $as_should_num_preds = parse_metaeuk_fasta_file($in_correct_fasta_all_predictions, \%as_should_be_metaek_all_predictions);
+my $as_should_num_grouped_preds = parse_metaeuk_fasta_file($in_correct_fasta_grouped_predictions, \%as_should_be_metaeuk_grouped_predictions);
 
 # read the current output #
 my %metaek_all_predictions;
 my %metaeuk_grouped_predictions;
-parse_metaeuk_fasta_file($in_fasta_all_predictions, \%metaek_all_predictions);
-parse_metaeuk_fasta_file($in_fasta_grouped_predictions, \%metaeuk_grouped_predictions);
+my $num_preds = parse_metaeuk_fasta_file($in_fasta_all_predictions, \%metaek_all_predictions);
+my $num_grouped_preds = parse_metaeuk_fasta_file($in_fasta_grouped_predictions, \%metaeuk_grouped_predictions);
+
+# compare total number of all predictions:
+if ($as_should_num_preds != $num_preds)
+{
+	die "Failed at all predictions: number of predictions has changed!\n";
+}
+# compare total number of grouped predictions:
+if ($as_should_num_grouped_preds != $num_grouped_preds)
+{
+	die "Failed at grouped predictions: number of predictions has changed!\n";
+}
 
 # comapre all results #
 compare_as_should_and_current(\%as_should_be_metaek_all_predictions, \%metaek_all_predictions, "all predictions");
@@ -37,10 +48,10 @@ sub compare_as_should_and_current
 	my %as_should_metaeuk_preds_to_info = %{$as_should_metaeuk_preds_to_info_ref};
 	my %metaeuk_preds_to_info = %{$metaeuk_preds_to_info_ref};
 	
-	# compare number of predictions #
+	# compare number of unique predictions #
 	if (scalar(keys %as_should_metaeuk_preds_to_info) != scalar(keys %metaeuk_preds_to_info))
 	{
-		die "Failed at $type: number of predictions has changed!\n";
+		die "Failed at $type: number of unique predictions has changed!\n";
 	}
 	
 	# compare each prediction #
@@ -128,12 +139,16 @@ sub parse_metaeuk_fasta_file
 	my ($in_metaeuk_united_exons_fasta_file, $metaeuk_preds_to_info_ref) = @_;
 	open (my $in, "<", $in_metaeuk_united_exons_fasta_file) or die "could not open $in_metaeuk_united_exons_fasta_file for reading";
 	
+	my $total_num_preds_in_file = 0;
+
 	my $line = <$in>;
 	while (defined $line)
 	{
 		chomp ($line);
 		if ($line =~ m/^>(.*)/)
 		{
+			$total_num_preds_in_file++;
+
 			# identical_exon1_and_exon4|my_multi_exon_contig|+|398|2.94007e-117|2|100|1444|100[100]:429[429]:330[330]|1184[1202]:1444[1444]:261[243]
 			my ($target_id, $contig_id, $strand, $sum_bit_score, $evalue, $num_exons, $low_coord, $high_coord, @exons_info) = split(/\|/, $1);
 			my $rounded_evalue = sprintf("%.2g", $evalue);
@@ -162,4 +177,6 @@ sub parse_metaeuk_fasta_file
 		$line = <$in>;
 	}
 	close ($in);
+
+	return($total_num_preds_in_file);
 }
