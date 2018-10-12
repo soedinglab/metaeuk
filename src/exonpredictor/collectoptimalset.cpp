@@ -104,10 +104,12 @@ struct potentialExon {
 
 struct dpMatrixRow {
     // constructor
-    dpMatrixRow(size_t iPrevPotentialExonId, int iPathScore) : prevPotentialExonId(iPrevPotentialExonId), pathScore(iPathScore) {
+    dpMatrixRow(size_t iPrevPotentialExonId, int iPathScore, size_t iNumExonsInPath) : 
+        prevPotentialExonId(iPrevPotentialExonId), pathScore(iPathScore), numExonsInPath(iNumExonsInPath) {
 
     }
     // the prevPotentialExonId refers to the row Id (i.e., the sorted order)
+    size_t numExonsInPath;
     size_t prevPotentialExonId;
     int pathScore;
 };
@@ -152,7 +154,9 @@ int getPenaltyForProtCoords(const potentialExon & prevPotentialExon, const poten
     int diffAAs = currPotentialExon.proteinMatchStart - prevPotentialExon.proteinMatchEnd - 1;
     if (diffAAs < 0) {
         // legal overlap that should be penalized:
-        return CONST_LEGAL_OVERLAP_PENALTY;
+        // currently GAP_OPEN_PENALTY = GAP_EXTEND_PENALTY so this is linear penalty
+        int penalty = GAP_OPEN_PENALTY + GAP_EXTEND_PENALTY * (abs(diffAAs) - 1);
+        return penalty;
     }
     else if (diffAAs <= 1) {
         // no penalty for missing up to one AA in between exons:
@@ -166,7 +170,7 @@ int getPenaltyForProtCoords(const potentialExon & prevPotentialExon, const poten
     }
 
     // never reached:
-    return 1;
+    return -1000;
 }
 
 int findoptimalsetbydp(std::vector<potentialExon> & potentialExonCandidates, std::vector<potentialExon> & optimalExonSet) {
@@ -184,12 +188,12 @@ int findoptimalsetbydp(std::vector<potentialExon> & potentialExonCandidates, std
     // Each row i is of the struct dpMatrixRow, which works as follows:
     // prevPotentialExonId keeps the id j such that j is the previous potentialExon
     // on the best path ending with the potentialExon i. It will allow for the trace back.
-    // pathScore contains the score itself
+    // pathScore contains the score itself and numExonsInPath contans the number of exons in the path (including i)
     std::vector<dpMatrixRow> prevIdsAndScoresBestPath;
     prevIdsAndScoresBestPath.reserve(numPotentialExonCandidates);
     // initialize:
     for (size_t id = 0; id < numPotentialExonCandidates; ++id) {
-        prevIdsAndScoresBestPath.emplace_back(dpMatrixRow(id, potentialExonCandidates[id].alnScore));
+        prevIdsAndScoresBestPath.emplace_back(dpMatrixRow(id, potentialExonCandidates[id].alnScore, 1));
     }
 
     int bestPathScore = 0;
@@ -199,13 +203,18 @@ int findoptimalsetbydp(std::vector<potentialExon> & potentialExonCandidates, std
         for (size_t prevPotentialExonId = 0; prevPotentialExonId < currPotentialExonId; ++prevPotentialExonId) {
             if (isPairCompatible(potentialExonCandidates[prevPotentialExonId], potentialExonCandidates[currPotentialExonId])) {
                 int bestScorePathPrevIsLast = prevIdsAndScoresBestPath[prevPotentialExonId].pathScore;
+                size_t numExonsInPathPrevIsLast = prevIdsAndScoresBestPath[prevPotentialExonId].numExonsInPath;
                 int costOfPrevToCurrTransition = getPenaltyForProtCoords(potentialExonCandidates[prevPotentialExonId], potentialExonCandidates[currPotentialExonId]);
-                int currScoreWithPrev = bestScorePathPrevIsLast + costOfPrevToCurrTransition + potentialExonCandidates[currPotentialExonId].alnScore;
+                
+                size_t currNumExonsWithPrev = numExonsInPathPrevIsLast + 1;
+                int bonusForAddingAnExon = (int) log2(currNumExonsWithPrev); // not the most accurate...
+                int currScoreWithPrev = bestScorePathPrevIsLast + costOfPrevToCurrTransition + potentialExonCandidates[currPotentialExonId].alnScore + bonusForAddingAnExon;
 
                 // update row of currPotentialExon in case of improvement:
                 if (currScoreWithPrev > prevIdsAndScoresBestPath[currPotentialExonId].pathScore) {
                     prevIdsAndScoresBestPath[currPotentialExonId].prevPotentialExonId = prevPotentialExonId;
                     prevIdsAndScoresBestPath[currPotentialExonId].pathScore = currScoreWithPrev;
+                    prevIdsAndScoresBestPath[currPotentialExonId].numExonsInPath = currNumExonsWithPrev;
                 }
             }
         }
