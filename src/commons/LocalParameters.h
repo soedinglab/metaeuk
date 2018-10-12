@@ -36,7 +36,7 @@ private:
         collectoptimalset.push_back(PARAM_THREADS);
         collectoptimalset.push_back(PARAM_V);
 
-        predictexonsworkflow = combineList(extractorfs, translatenucs);
+        // predictexonsworkflow = combineList(extractorfs, translatenucs); // available through searchworkflow
         predictexonsworkflow = combineList(predictexonsworkflow, searchworkflow);
         predictexonsworkflow = combineList(predictexonsworkflow, collectoptimalset);
         predictexonsworkflow.push_back(PARAM_REVERSE_FRAGMENTS);
