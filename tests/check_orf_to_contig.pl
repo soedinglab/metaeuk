@@ -8,12 +8,17 @@ my ($in_orfs_to_contigs) = glob($in_dir_to_search_orfs_to_contigs . '/*/nucl_6f_
 my %orfs_to_contigs;
 my %orfs_to_contigs_as_should;
 
-parse_orfs_to_contig($in_orfs_to_contigs, \%orfs_to_contigs);
-parse_orfs_to_contig($in_correct_orfs_to_contigs, \%orfs_to_contigs_as_should);
+my $raw_num_orfs = parse_orfs_to_contig($in_orfs_to_contigs, \%orfs_to_contigs);
+my $raw_num_orfs_as_should = parse_orfs_to_contig($in_correct_orfs_to_contigs, \%orfs_to_contigs_as_should);
+
+if ($raw_num_orfs != $raw_num_orfs_as_should)
+{
+	die "not the same number of non-unique records!";
+}
 
 if (scalar(keys %orfs_to_contigs) != scalar(keys %orfs_to_contigs_as_should))
 {
-	die "not the same number of records!";
+	die "not the same number of unique records!";
 }
 
 compare_hash_to_hash(\%orfs_to_contigs_as_should, \%orfs_to_contigs);
@@ -56,7 +61,7 @@ sub parse_orfs_to_contig
 		}
 		$line = <$in>;
 	}
-	
-	print "\ninserted $num_records in total\n\n";
+
 	close ($in);
+	return ($num_records);
 }
