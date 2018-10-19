@@ -109,9 +109,9 @@ struct dpMatrixRow {
 
     }
     // the prevPotentialExonId refers to the row Id (i.e., the sorted order)
-    size_t numExonsInPath;
     size_t prevPotentialExonId;
     int pathScore;
+    size_t numExonsInPath;
 };
 
 bool isPairCompatible(const potentialExon & firstPotentialExonOnContig, const potentialExon & secondPotentialExonOnContig) {
