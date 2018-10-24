@@ -122,10 +122,13 @@ mv -f "${TMP_PATH}/united_exons_h.index" "$3_united_exons_h.index" || fail "Coul
 # translate sequence DBs to AAs
 if notExists "$3_united_exons_aa"; then
     # shellcheck disable=SC2086
-    "$MMSEQS" translatenucs "$3_united_exons" "$3_united_exons_aa" ${TRANSLATENUCS_PAR} \
+    UNITED_EXONS_FILESIZE="$(stat -c%s "$3_united_exons")"
+    if (( "${UNITED_EXONS_FILESIZE}" > 0 )); then
+        # shellcheck disable=SC2086
+        "$MMSEQS" translatenucs "$3_united_exons" "$3_united_exons_aa" ${TRANSLATENUCS_PAR} \
         || fail "translatenucs step died"
+    fi
 fi
-
 
 # create a symbolic link for the map to the header and index file
 UNITED_EXONS_HEADER="$(abspath "$3_united_exons_h")"

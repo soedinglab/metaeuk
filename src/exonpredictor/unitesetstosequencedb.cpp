@@ -9,6 +9,7 @@
 #include "DBWriter.h"
 #include "Debug.h"
 #include "Util.h"
+#include "FileUtil.h"
 #include "MathUtil.h"
 #include <limits>
 #include <cstdint>
@@ -70,24 +71,6 @@ int unitesetstosequencedb(int argn, const char **argv, const Command& command) {
     DBReader<unsigned int> proteinsHeaders(proteinsDBHeaderFilename.c_str(), proteinsDBHeaderIndexFilename.c_str());
     proteinsHeaders.open(DBReader<unsigned int>::NOSORT);
 
-    // db3 = optimalExonsResuls (exons + map)
-    std::string combinedResultBasename = par.db3;
-    std::string optimalSetsExonRecordsFilename(combinedResultBasename);
-    optimalSetsExonRecordsFilename.append("_optimal_exon_sets");
-    std::string optimalSetsExonRecordsIndexFilename(optimalSetsExonRecordsFilename);
-    optimalSetsExonRecordsIndexFilename.append(".index");
-
-    std::string setsMapFilename(combinedResultBasename);
-    setsMapFilename.append("_protein_contig_strand_map");
-    std::string setsMapIndexFilename(setsMapFilename);
-    setsMapIndexFilename.append(".index");
-
-    DBReader<unsigned int> optimalSetsExonRecords(optimalSetsExonRecordsFilename.c_str(), optimalSetsExonRecordsIndexFilename.c_str());
-    optimalSetsExonRecords.open(DBReader<unsigned int>::LINEAR_ACCCESS);
-
-    DBReader<unsigned int> setMap(setsMapFilename.c_str(), setsMapIndexFilename.c_str());
-    setMap.open(DBReader<unsigned int>::LINEAR_ACCCESS);
-    
     // db4 = output
     std::string outDBFilename(par.db4);
     std::string outDBIndexFilename(par.db4);
@@ -103,6 +86,38 @@ int unitesetstosequencedb(int argn, const char **argv, const Command& command) {
 
     DBWriter concatenatedSetsData(outDBFilename.c_str(), outDBIndexFilename.c_str(), par.threads);
     concatenatedSetsData.open();
+
+    // db3 = optimalExonsResuls (exons + map)
+    std::string combinedResultBasename = par.db3;
+    std::string optimalSetsExonRecordsFilename(combinedResultBasename);
+    optimalSetsExonRecordsFilename.append("_optimal_exon_sets");
+    std::string optimalSetsExonRecordsIndexFilename(optimalSetsExonRecordsFilename);
+    optimalSetsExonRecordsIndexFilename.append(".index");
+
+    std::string setsMapFilename(combinedResultBasename);
+    setsMapFilename.append("_protein_contig_strand_map");
+    std::string setsMapIndexFilename(setsMapFilename);
+    setsMapIndexFilename.append(".index");
+
+    // in rare cases there will be no results to process:
+    size_t optimalSetsExonRecordsFileSize = FileUtil::getFileSize(optimalSetsExonRecordsFilename);
+    size_t setsMapFileSize = FileUtil::getFileSize(setsMapFilename);
+    if ((optimalSetsExonRecordsFileSize == 0) || (setsMapFileSize == 0)) {
+        concatenatedSetsHeaders.close();
+        concatenatedSetsData.close();
+        contigsData.close();
+        contigsHeaders.close();
+        proteinsHeaders.close();
+        
+        Debug(Debug::INFO) << "\nNo optimal sets were found.\n";
+        return EXIT_SUCCESS;
+    }
+
+    DBReader<unsigned int> optimalSetsExonRecords(optimalSetsExonRecordsFilename.c_str(), optimalSetsExonRecordsIndexFilename.c_str());
+    optimalSetsExonRecords.open(DBReader<unsigned int>::LINEAR_ACCCESS);
+
+    DBReader<unsigned int> setMap(setsMapFilename.c_str(), setsMapIndexFilename.c_str());
+    setMap.open(DBReader<unsigned int>::LINEAR_ACCCESS);
 
 #pragma omp parallel
     {
