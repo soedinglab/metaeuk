@@ -113,9 +113,6 @@ int unitesetstosequencedb(int argn, const char **argv, const Command& command) {
         // per thread variables
         std::ostringstream joinedHeaderStream;
         std::ostringstream joinedExonsStream;
-        std::string littleStringBuffer;
-        littleStringBuffer.reserve(1000);
-
         char *entry[255];      
         
 #pragma omp for schedule(dynamic, 100)
@@ -153,13 +150,9 @@ int unitesetstosequencedb(int argn, const char **argv, const Command& command) {
             const char* contigData = contigsData.getDataByDBKey(contigMMSeqs2Key);
             
             // initialize header:
-            size_t numWhiteCharsToTrim = 2; // a single space and a \n
-            littleStringBuffer.append(proteinHeader, std::strlen(proteinHeader) - numWhiteCharsToTrim);
-            joinedHeaderStream << littleStringBuffer << "|";
-            littleStringBuffer.clear();
-            littleStringBuffer.append(contigHeader, std::strlen(contigHeader) - numWhiteCharsToTrim);
-            joinedHeaderStream << littleStringBuffer << "|";
-            littleStringBuffer.clear();
+            std::string proteinHeaderAccession = Util::parseFastaHeader(proteinHeader);
+            std::string contigHeaderAccession = Util::parseFastaHeader(contigHeader);
+            joinedHeaderStream << proteinHeaderAccession << "|" << contigHeaderAccession << "|";
             (strand == PLUS) ? joinedHeaderStream << "+" : joinedHeaderStream << "-";
             joinedHeaderStream << "|" << combinedNormalizedAlnBitScore << "|" << combinedEvalue << "|" << numExons << "|" << lowContigCoord << "|" << highContigCoord;
             
