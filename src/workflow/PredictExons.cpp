@@ -7,10 +7,13 @@
 
 void setPredictExonsDefaults(Parameters *p) {
     p->orfStartMode = 1;
+    // minimal exon length in codons:
+    p->orfMinLength = 15;
     p->alignmentMode = Parameters::ALIGNMENT_MODE_SCORE_COV;
-    // As discussed
-    // p->evalThr = 1;
-
+    // evalues for search (sequence or profile) are high by default
+    // The metaeuk Evalue Thr is lower
+    p->evalThr = 100;
+    p->evalProfile = 100;
 }
 
 int predictexons(int argc, const char **argv, const Command& command) {
