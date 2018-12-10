@@ -9,8 +9,10 @@ mkdir -p "${RESULTPATH}"
 "${METAEUK}" createdb "${DATAPATH}/proteins.faa" "${RESULTPATH}/proteins"
 "${METAEUK}" predictexons "${RESULTPATH}/contigs" "${RESULTPATH}/proteins" "${RESULTPATH}/final" "${RESULTPATH}/tempFolder"
 "${METAEUK}" reduceredundancy "${RESULTPATH}/final" "${RESULTPATH}/final" "${RESULTPATH}/tempGroup"
+"${METAEUK}" unitetoseqdb "${RESULTPATH}/contigs" "${RESULTPATH}/proteins" "${RESULTPATH}/final" "${RESULTPATH}/tempSeq"
 "${METAEUK}" convert2fasta "${RESULTPATH}/final_united_exons_aa" "${RESULTPATH}/final_united_exons_aa.fas"
-"${METAEUK}" convert2fasta "${RESULTPATH}/final_grouped_predictions_rep" "${RESULTPATH}/final_grouped_predictions_rep.fas"
+"${METAEUK}" unitetoseqdb "${RESULTPATH}/contigs" "${RESULTPATH}/proteins" "${RESULTPATH}/final" "${RESULTPATH}/tempSeq" --unite-exons-rep 1
+"${METAEUK}" convert2fasta "${RESULTPATH}/final_united_exons_rep_aa" "${RESULTPATH}/final_grouped_predictions_rep.fas"
 "${METAEUK}" createtsv "${RESULTPATH}/final_united_exons_aa" "${RESULTPATH}/final_united_exons_aa" "${RESULTPATH}/final_grouped_predictions" "${RESULTPATH}/final_grouped_predictions.tsv"
 
 # check orf to contig alignment procedure #

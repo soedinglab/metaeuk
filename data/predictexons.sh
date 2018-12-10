@@ -25,7 +25,7 @@ abspath() {
 }
 
 # check number of input variables
-[ "$#" -ne 4 ] && echo "Please provide <sequenceDB> <proteinTargetsDB> <outMetaeukBaseName> <tmpDir>" && exit 1;
+[ "$#" -ne 4 ] && echo "Please provide <contigsDB> <proteinTargetsDB> <outMetaeukBaseName> <tmpDir>" && exit 1;
 # check if files exist
 [ ! -f "$1" ] &&  echo "$1 not found!" && exit 1;
 [ ! -f "$2" ] &&  echo "$2 not found!" && exit 1;
@@ -107,43 +107,6 @@ mv -f "${TMP_PATH}/dp_protein_contig_strand_map" "$3_dp_protein_contig_strand_ma
 mv -f "${TMP_PATH}/dp_protein_contig_strand_map.index" "$3_dp_protein_contig_strand_map.index" || fail "Could not move result to $3_dp_protein_contig_strand_map.index"
 mv -f "${TMP_PATH}/dp_optimal_exon_sets" "$3_dp_optimal_exon_sets" || fail "Could not move result to $3_dp_optimal_exon_sets"
 mv -f "${TMP_PATH}/dp_optimal_exon_sets.index" "$3_dp_optimal_exon_sets.index" || fail "Could not move result to $3_dp_optimal_exon_sets.index"
-
-# by default unite the exons to a sequence DB -- the user can turn off this option
-if [ -n "$UNITE_EXONS" ]; then
-    # shellcheck disable=SC2086
-    
-    # create sequence DBs from the results, these contain the original identifiers
-    if notExists "${TMP_PATH}/united_exons"; then
-        # shellcheck disable=SC2086
-        "$MMSEQS" unitesetstosequencedb "${INPUT_CONTIGS}" "${INPUT_TARGET_PROTEINS}" "$3_dp" "${TMP_PATH}/united_exons" ${THREADS_PAR} \
-            || fail "unitesetstosequencedb step died"
-    fi
-
-    # post processing
-    mv -f "${TMP_PATH}/united_exons" "$3_united_exons" || fail "Could not move result to $3_united_exons"
-    mv -f "${TMP_PATH}/united_exons.index" "$3_united_exons.index" || fail "Could not move result to $3_united_exons.index"
-    mv -f "${TMP_PATH}/united_exons_h" "$3_united_exons_h" || fail "Could not move result to $3_united_exons_h"
-    mv -f "${TMP_PATH}/united_exons_h.index" "$3_united_exons_h.index" || fail "Could not move result to $3_united_exons_h.index"
-
-    # translate sequence DBs to AAs
-    if notExists "$3_united_exons_aa"; then
-        # shellcheck disable=SC2086
-        UNITED_EXONS_FILESIZE="$(stat -c%s "$3_united_exons")"
-        if (( "${UNITED_EXONS_FILESIZE}" > 0 )); then
-            # shellcheck disable=SC2086
-            "$MMSEQS" translatenucs "$3_united_exons" "$3_united_exons_aa" ${TRANSLATENUCS_PAR} \
-            || fail "translatenucs step died"
-        fi
-    fi
-
-    # create a symbolic link for the map to the header and index file
-    UNITED_EXONS_HEADER="$(abspath "$3_united_exons_h")"
-    UNITED_EXONS_HEADER_INDEX="$(abspath "$3_united_exons_h.index")"
-    echo "Creating symlink from: " "${UNITED_EXONS_HEADER}"
-    ln -sf "${UNITED_EXONS_HEADER}" "$3_dp_protein_contig_strand_map_h" || fail "Could not create symbolic link for map headers"
-    ln -sf "${UNITED_EXONS_HEADER_INDEX}" "$3_dp_protein_contig_strand_map_h.index" || fail "Could not create symbolic link for map headers index"
-
-fi
 
 
 if [ -n "$REMOVE_TMP" ]; then

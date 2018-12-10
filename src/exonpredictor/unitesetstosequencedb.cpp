@@ -45,7 +45,7 @@ void reverseComplement (const std::string & seq, std::string & revCompSeq) {
 
 int unitesetstosequencedb(int argn, const char **argv, const Command& command) {
     LocalParameters& par = LocalParameters::getLocalInstance();
-    par.parseParameters(argn, argv, command, 4, true, true);
+    par.parseParameters(argn, argv, command, 5, true, true);
 
     // db1 = contigsDB (data + header):
     std::string contigsDBFilename = par.db1;
@@ -71,14 +71,24 @@ int unitesetstosequencedb(int argn, const char **argv, const Command& command) {
     DBReader<unsigned int> proteinsHeaders(proteinsDBHeaderFilename.c_str(), proteinsDBHeaderIndexFilename.c_str());
     proteinsHeaders.open(DBReader<unsigned int>::NOSORT);
 
-    // db4 = output
-    std::string outDBFilename(par.db4);
-    std::string outDBIndexFilename(par.db4);
+    // db3 = optimalExonsResuls map
+    std::string setsMapFilename(par.db3);
+    std::string setsMapIndexFilename(par.db3);
+    setsMapIndexFilename.append(".index");
+
+    // db4 = optimalExonsResuls exons
+    std::string optimalSetsExonRecordsFilename(par.db4);
+    std::string optimalSetsExonRecordsIndexFilename(par.db4);
+    optimalSetsExonRecordsIndexFilename.append(".index");
+
+    // db5 = output
+    std::string outDBFilename(par.db5);
+    std::string outDBIndexFilename(par.db5);
     outDBIndexFilename.append(".index");
 
-    std::string outDBHeaderFilename(par.db4);
+    std::string outDBHeaderFilename(par.db5);
     outDBHeaderFilename.append("_h");
-    std::string outDBHeaderIndexFilename(par.db4);
+    std::string outDBHeaderIndexFilename(par.db5);
     outDBHeaderIndexFilename.append("_h.index");
 
     DBWriter concatenatedSetsHeaders(outDBHeaderFilename.c_str(), outDBHeaderIndexFilename.c_str(), par.threads);
@@ -86,18 +96,6 @@ int unitesetstosequencedb(int argn, const char **argv, const Command& command) {
 
     DBWriter concatenatedSetsData(outDBFilename.c_str(), outDBIndexFilename.c_str(), par.threads);
     concatenatedSetsData.open();
-
-    // db3 = optimalExonsResuls (exons + map)
-    std::string combinedResultBasename = par.db3;
-    std::string optimalSetsExonRecordsFilename(combinedResultBasename);
-    optimalSetsExonRecordsFilename.append("_optimal_exon_sets");
-    std::string optimalSetsExonRecordsIndexFilename(optimalSetsExonRecordsFilename);
-    optimalSetsExonRecordsIndexFilename.append(".index");
-
-    std::string setsMapFilename(combinedResultBasename);
-    setsMapFilename.append("_protein_contig_strand_map");
-    std::string setsMapIndexFilename(setsMapFilename);
-    setsMapIndexFilename.append(".index");
 
     // in rare cases there will be no results to process:
     size_t optimalSetsExonRecordsFileSize = FileUtil::getFileSize(optimalSetsExonRecordsFilename);
