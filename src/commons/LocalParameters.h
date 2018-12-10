@@ -19,6 +19,7 @@ public:
     std::vector<MMseqsParameter> predictexonsworkflow;
     std::vector<MMseqsParameter> collectoptimalset;
     std::vector<MMseqsParameter> reduceredundancyworkflow;
+    std::vector<MMseqsParameter> assigntaxonomyworkflow;
 
     PARAMETER(PARAM_REVERSE_FRAGMENTS)
     int reverseFragments;
@@ -43,6 +44,9 @@ private:
 
         reduceredundancyworkflow.push_back(PARAM_THREADS);
         reduceredundancyworkflow.push_back(PARAM_REMOVE_TMP_FILES);
+
+        assigntaxonomyworkflow.push_back(PARAM_THREADS);
+        assigntaxonomyworkflow.push_back(PARAM_REMOVE_TMP_FILES);
 
         // default value 0 means no reverse of AA fragments
         reverseFragments = 0;
