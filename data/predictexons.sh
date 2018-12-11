@@ -108,7 +108,6 @@ mv -f "${TMP_PATH}/dp_protein_contig_strand_map.index" "$3_dp_protein_contig_str
 mv -f "${TMP_PATH}/dp_optimal_exon_sets" "$3_dp_optimal_exon_sets" || fail "Could not move result to $3_dp_optimal_exon_sets"
 mv -f "${TMP_PATH}/dp_optimal_exon_sets.index" "$3_dp_optimal_exon_sets.index" || fail "Could not move result to $3_dp_optimal_exon_sets.index"
 
-
 if [ -n "$REMOVE_TMP" ]; then
     echo "Removing temporary files from ${TMP_PATH}"
     rm -f "${TMP_PATH}"/nucl_6f*

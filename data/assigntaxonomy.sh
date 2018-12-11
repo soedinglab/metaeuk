@@ -25,7 +25,7 @@ abspath() {
 }
 
 # check number of input variables
-[ "$#" -ne 4 ] && echo "Please provide <metaeukBaseName> <uniprotFasta> <outDB> <tmpDir>" && exit 1;
+[ "$#" -ne 3 ] && echo "Please provide <metaeukBaseName> <uniprotFasta> <tmpDir>" && exit 1;
 # check if file exists
 INPUT_MAP="$(abspath "$1_dp_protein_contig_strand_map")"
 INPUT_UNITED_EXONS="$(abspath "$1_united_exons_aa")"
@@ -35,10 +35,9 @@ INPUT_UNIPROT_REF_FASTA="$(abspath "$2")"
 [ ! -f "${INPUT_MAP}" ] &&  echo "${INPUT_MAP} not found!" && exit 1;
 [ ! -f "${INPUT_UNITED_EXONS}" ] &&  echo "${INPUT_UNITED_EXONS} not found!" && exit 1;
 [ ! -f "${INPUT_GROUPED_PREDICTIONS_REP}" ] &&  echo "${INPUT_GROUPED_PREDICTIONS_REP} not found!" && exit 1;
-[   -f "$3" ] &&  echo "$3 exists already!" && exit 1;
-[ ! -d "$4" ] &&  echo "tmp directory $4 not found!" && mkdir -p "$4";
+[ ! -d "$3" ] &&  echo "tmp directory $3 not found!" && mkdir -p "$3";
 
-TMP_PATH="$(abspath "$4")"
+TMP_PATH="$(abspath "$3")"
 
 # prepare reference taxonomy DB
 if notExists "${TMP_PATH}/uniprotDB"; then

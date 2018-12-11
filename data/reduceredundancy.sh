@@ -25,16 +25,15 @@ abspath() {
 }
 
 # check number of input variables
-[ "$#" -ne 3 ] && echo "Please provide <metaeukBaseName> <outDB> <tmpDir>" && exit 1;
+[ "$#" -ne 2 ] && echo "Please provide <metaeukBaseName> <tmpDir>" && exit 1;
 # check if file exists
 INPUT_MAP="$(abspath "$1_dp_protein_contig_strand_map")"
 
 [ ! -f "${INPUT_MAP}" ] &&  echo "${INPUT_MAP} not found!" && exit 1;
-[   -f "$2" ] &&  echo "$2 exists already!" && exit 1;
-[ ! -d "$3" ] &&  echo "tmp directory $3 not found!" && mkdir -p "$3";
+[ ! -d "$2" ] &&  echo "tmp directory $2 not found!" && mkdir -p "$2";
 
 
-TMP_PATH="$(abspath "$3")"
+TMP_PATH="$(abspath "$2")"
 
 # aggregate all TCS (Target + Contig + Strand) predictions by their CS
 if notExists "${TMP_PATH}/dp_contig_strand_map"; then

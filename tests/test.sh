@@ -8,7 +8,7 @@ mkdir -p "${RESULTPATH}"
 "${METAEUK}" createdb "${DATAPATH}/contigs.fna" "${RESULTPATH}/contigs" --dont-split-seq-by-len
 "${METAEUK}" createdb "${DATAPATH}/proteins.faa" "${RESULTPATH}/proteins"
 "${METAEUK}" predictexons "${RESULTPATH}/contigs" "${RESULTPATH}/proteins" "${RESULTPATH}/final" "${RESULTPATH}/tempFolder"
-"${METAEUK}" reduceredundancy "${RESULTPATH}/final" "${RESULTPATH}/final" "${RESULTPATH}/tempGroup"
+"${METAEUK}" reduceredundancy "${RESULTPATH}/final" "${RESULTPATH}/tempGroup"
 "${METAEUK}" unitetoseqdb "${RESULTPATH}/contigs" "${RESULTPATH}/proteins" "${RESULTPATH}/final" "${RESULTPATH}/tempSeq"
 "${METAEUK}" convert2fasta "${RESULTPATH}/final_united_exons_aa" "${RESULTPATH}/final_united_exons_aa.fas"
 "${METAEUK}" unitetoseqdb "${RESULTPATH}/contigs" "${RESULTPATH}/proteins" "${RESULTPATH}/final" "${RESULTPATH}/tempSeq" --unite-exons-rep 1

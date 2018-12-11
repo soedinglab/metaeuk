@@ -46,7 +46,6 @@ TMP_PATH="$(abspath "$4")"
 UNITED_EXONS_NAME="$3_united_exons"
 if [ -n "$UNITE_EXONS_REP" ]; then
     # shellcheck disable=SC2086
-    echo "HEY"
     UNITED_EXONS_NAME="$3_united_exons_rep"
 fi
 
@@ -84,13 +83,6 @@ if notExists "${UNITED_EXONS_NAME}"; then
             || fail "translatenucs step died"
         fi
     fi
-
-    # create a symbolic link for the map to the header and index file
-    UNITED_EXONS_HEADER="$(abspath "${UNITED_EXONS_NAME}_h")"
-    UNITED_EXONS_HEADER_INDEX="$(abspath "${UNITED_EXONS_NAME}_h.index")"
-    echo "Creating symlink from: " "${UNITED_EXONS_HEADER}"
-    ln -sf "${UNITED_EXONS_HEADER}" "$3_dp_protein_contig_strand_map_h" || fail "Could not create symbolic link for map headers"
-    ln -sf "${UNITED_EXONS_HEADER_INDEX}" "$3_dp_protein_contig_strand_map_h.index" || fail "Could not create symbolic link for map headers index"
 fi
 
 

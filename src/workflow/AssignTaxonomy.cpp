@@ -7,7 +7,7 @@
 
 int assigntaxonomy(int argc, const char **argv, const Command& command) {
     LocalParameters& par = LocalParameters::getLocalInstance();
-    par.parseParameters(argc, argv, command, 2);
+    par.parseParameters(argc, argv, command, 3);
 
     // check if temp dir exists and if not, try to create it:
     if (FileUtil::directoryExists(par.db3.c_str()) == false){
