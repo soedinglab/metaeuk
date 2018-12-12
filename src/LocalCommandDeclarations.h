@@ -10,6 +10,6 @@ extern int unitesetstosequencedb(int argn, const char **argv, const Command& com
 extern int reduceredundancy(int argc, const char **argv, const Command& command);
 extern int grouppredictions(int argn, const char **argv, const Command& command);
 extern int assigntaxonomy(int argc, const char **argv, const Command& command);
-extern int unitetoseqdb(int argc, const char **argv, const Command& command);
+extern int unitetoseqdbs(int argc, const char **argv, const Command& command);
 
 #endif

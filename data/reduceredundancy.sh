@@ -25,15 +25,17 @@ abspath() {
 }
 
 # check number of input variables
-[ "$#" -ne 2 ] && echo "Please provide <metaeukBaseName> <tmpDir>" && exit 1;
+[ "$#" -ne 4 ] && echo "Please provide <dp_protein_contig_strand_map> <dp_optimal_exon_sets> <metaeukBaseName> <tmpDir>" && exit 1;
 # check if file exists
-INPUT_MAP="$(abspath "$1_dp_protein_contig_strand_map")"
+INPUT_MAP="$(abspath "$1")"
+INPUT_OPTIMAL_EXON_SETS="$(abspath "$2")"
 
 [ ! -f "${INPUT_MAP}" ] &&  echo "${INPUT_MAP} not found!" && exit 1;
-[ ! -d "$2" ] &&  echo "tmp directory $2 not found!" && mkdir -p "$2";
+[ ! -f "${INPUT_OPTIMAL_EXON_SETS}" ] &&  echo "${INPUT_OPTIMAL_EXON_SETS} not found!" && exit 1;
+[ ! -d "$4" ] &&  echo "tmp directory $2 not found!" && mkdir -p "$4";
 
 
-TMP_PATH="$(abspath "$2")"
+TMP_PATH="$(abspath "$4")"
 
 # aggregate all TCS (Target + Contig + Strand) predictions by their CS
 if notExists "${TMP_PATH}/dp_contig_strand_map"; then
@@ -69,8 +71,19 @@ if notExists "${TMP_PATH}/grouped_predictions"; then
         || fail "grouppredictions step died"
 fi
 
-mv -f "${TMP_PATH}/grouped_predictions" "$1_grouped_predictions" || fail "Could not move result to $1_grouped_predictions"
-mv -f "${TMP_PATH}/grouped_predictions.index" "$1_grouped_predictions.index" || fail "Could not move result to $1_grouped_predictions.index"
+mv -f "${TMP_PATH}/grouped_predictions" "$3_grouped_predictions" || fail "Could not move result to $3_grouped_predictions"
+mv -f "${TMP_PATH}/grouped_predictions.index" "$3_grouped_predictions.index" || fail "Could not move result to $3_grouped_predictions.index"
+
+# create a subdb of the dp files:
+if notExists "$3_dp_protein_contig_strand_map"; then
+    "$MMSEQS" createsubdb "$3_grouped_predictions" "${INPUT_MAP}" "$3_dp_protein_contig_strand_map" \
+        || fail "createsubdb on INPUT_MAP step died"
+fi
+
+if notExists "$3_dp_optimal_exon_sets"; then
+    "$MMSEQS" createsubdb "$3_grouped_predictions" "${INPUT_OPTIMAL_EXON_SETS}" "$3_dp_optimal_exon_sets" \
+        || fail "createsubdb on INPUT_OPTIMAL_EXON_SETS step died"
+fi
 
 
 if [ -n "$REMOVE_TMP" ]; then

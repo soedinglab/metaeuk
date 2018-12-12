@@ -7,13 +7,16 @@ RESULTPATH="$3"
 mkdir -p "${RESULTPATH}"
 "${METAEUK}" createdb "${DATAPATH}/contigs.fna" "${RESULTPATH}/contigs" --dont-split-seq-by-len
 "${METAEUK}" createdb "${DATAPATH}/proteins.faa" "${RESULTPATH}/proteins"
-"${METAEUK}" predictexons "${RESULTPATH}/contigs" "${RESULTPATH}/proteins" "${RESULTPATH}/final" "${RESULTPATH}/tempFolder"
-"${METAEUK}" reduceredundancy "${RESULTPATH}/final" "${RESULTPATH}/tempGroup"
-"${METAEUK}" unitetoseqdb "${RESULTPATH}/contigs" "${RESULTPATH}/proteins" "${RESULTPATH}/final" "${RESULTPATH}/tempSeq"
+
+"${METAEUK}" predictexons "${RESULTPATH}/contigs" "${RESULTPATH}/proteins" "${RESULTPATH}/predEx" tempFolder
+"${METAEUK}" unitetoseqdbs "${RESULTPATH}/contigs" "${RESULTPATH}/proteins" "${RESULTPATH}/predEx_dp_protein_contig_strand_map" "${RESULTPATH}/predEx_dp_optimal_exon_sets" "${RESULTPATH}/final" "${RESULTPATH}/temp2"
 "${METAEUK}" convert2fasta "${RESULTPATH}/final_united_exons_aa" "${RESULTPATH}/final_united_exons_aa.fas"
-"${METAEUK}" unitetoseqdb "${RESULTPATH}/contigs" "${RESULTPATH}/proteins" "${RESULTPATH}/final" "${RESULTPATH}/tempSeq" --unite-exons-rep 1
-"${METAEUK}" convert2fasta "${RESULTPATH}/final_united_exons_rep_aa" "${RESULTPATH}/final_grouped_predictions_rep.fas"
-"${METAEUK}" createtsv "${RESULTPATH}/final_united_exons_aa" "${RESULTPATH}/final_united_exons_aa" "${RESULTPATH}/final_grouped_predictions" "${RESULTPATH}/final_grouped_predictions.tsv"
+
+"${METAEUK}" reduceredundancy "${RESULTPATH}/predEx_dp_protein_contig_strand_map" "${RESULTPATH}/predEx_dp_optimal_exon_sets" "${RESULTPATH}/redRed" "${RESULTPATH}/temp3"
+"${METAEUK}" unitetoseqdbs "${RESULTPATH}/contigs" "${RESULTPATH}/proteins" "${RESULTPATH}/redRed_dp_protein_contig_strand_map" "${RESULTPATH}/redRed_dp_optimal_exon_sets" "${RESULTPATH}/final_grouped" "${RESULTPATH}/temp4"
+"${METAEUK}" convert2fasta "${RESULTPATH}/final_grouped_united_exons_aa" "${RESULTPATH}/final_grouped_predictions_rep.fas"
+
+"${METAEUK}" createtsv "${RESULTPATH}/final_united_exons_aa" "${RESULTPATH}/final_united_exons_aa" "${RESULTPATH}/redRed_grouped_predictions" "${RESULTPATH}/redRed_grouped_predictions.tsv"
 
 # check orf to contig alignment procedure #
 perl check_orf_to_contig.pl "${RESULTPATH}/tempFolder" "${DATAPATH}/as_should_nucl_6f_orf_aligned_to_contig"

@@ -4,7 +4,6 @@
 #include <sys/time.h>
 
 #include "LocalParameters.h"
-#include "boost/mpl/as_sequence.hpp"
 #include "DBReader.h"
 #include "DBWriter.h"
 #include "Debug.h"
