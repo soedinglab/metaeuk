@@ -25,6 +25,7 @@ const int MINUS = -1;
 const int MAXIMAL_INTRON_LENGTH = 10000;
 const int MINIMAL_INTRON_LENGTH = 15;
 int const MAX_AA_OVERLAP = 10;
+int const MIN_EXON_AA_LENGTH = MAX_AA_OVERLAP + 1;
 
 // simple consts, to be changed in the future:
 int const CONST_LEGAL_OVERLAP_PENALTY = -5;
@@ -477,12 +478,14 @@ int collectoptimalset(int argn, const char **argv, const Command& command) {
                 }
                 
                 // push current potentialExon struct to vector:
-                if (potentialExonStrand == PLUS) {
-                    plusStrandPotentialExons.emplace_back(potentialExonMMSeqs2Key, potentialExonToProteinAlnScore, potentialExonContigStart, potentialExonContigEnd, potentialExonStrand, proteinMatchStart, proteinMatchEnd, proteinLen, potentialExonSequenceIdentity, potentialExonEvalue);
-                } else {
-                    minusStrandPotentialExons.emplace_back(potentialExonMMSeqs2Key, potentialExonToProteinAlnScore, potentialExonContigStart, potentialExonContigEnd, potentialExonStrand, proteinMatchStart, proteinMatchEnd, proteinLen, potentialExonSequenceIdentity, potentialExonEvalue);
+                size_t potentialExonAALen = (std::abs(potentialExonContigEnd - potentialExonContigStart) + 1) / 3;
+                if (potentialExonAALen >= MIN_EXON_AA_LENGTH) {
+                    if (potentialExonStrand == PLUS) {
+                        plusStrandPotentialExons.emplace_back(potentialExonMMSeqs2Key, potentialExonToProteinAlnScore, potentialExonContigStart, potentialExonContigEnd, potentialExonStrand, proteinMatchStart, proteinMatchEnd, proteinLen, potentialExonSequenceIdentity, potentialExonEvalue);
+                    } else {
+                        minusStrandPotentialExons.emplace_back(potentialExonMMSeqs2Key, potentialExonToProteinAlnScore, potentialExonContigStart, potentialExonContigEnd, potentialExonStrand, proteinMatchStart, proteinMatchEnd, proteinLen, potentialExonSequenceIdentity, potentialExonEvalue);
+                    }
                 }
-
                 results = Util::skipLine(results);
             }
 
