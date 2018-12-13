@@ -97,7 +97,7 @@ fi
 # for each target, with respect to each contig and each strand, find the optimal set of exons
 if notExists "${TMP_PATH}/dp_protein_contig_strand_map"; then
     # shellcheck disable=SC2086
-    "$MMSEQS" collectoptimalset "${TMP_PATH}/search_res_swap_w_contig_info_sorted" "${INPUT_TARGET_PROTEINS}" "${TMP_PATH}/dp" ${COLLECTOPTIMALSET_PAR} \
+    "$MMSEQS" collectoptimalset "${TMP_PATH}/search_res_swap_w_contig_info_sorted" "${INPUT_TARGET_PROTEINS}" "${TMP_PATH}/" ${COLLECTOPTIMALSET_PAR} \
         || fail "collectoptimalset step died"
 fi
 

@@ -331,13 +331,13 @@ int collectoptimalset(int argn, const char **argv, const Command& command) {
     // this key is joint to several threads so will be increamented by the __sync_fetch_and_add atomic instruction:
     size_t globalMapKey = 0; 
     
-    std::string dbProteinContigStrandMap = par.db3 + "_protein_contig_strand_map";
-    std::string dbProteinContigStrandMapIndex = par.db3 + "_protein_contig_strand_map.index";
+    std::string dbProteinContigStrandMap = par.db3 + "dp_protein_contig_strand_map";
+    std::string dbProteinContigStrandMapIndex = par.db3 + "dp_protein_contig_strand_map.index";
     DBWriter mapWriter(dbProteinContigStrandMap.c_str(), dbProteinContigStrandMapIndex.c_str(), par.threads);
     mapWriter.open();
 
-    std::string dbOptimalExons = par.db3 + "_optimal_exon_sets";
-    std::string dbOptimalExonsIndex = par.db3 + "_optimal_exon_sets.index";
+    std::string dbOptimalExons = par.db3 + "dp_optimal_exon_sets";
+    std::string dbOptimalExonsIndex = par.db3 + "dp_optimal_exon_sets.index";
     DBWriter optimalExonsWriter(dbOptimalExons.c_str(), dbOptimalExonsIndex.c_str(), par.threads);
     optimalExonsWriter.open();
 
