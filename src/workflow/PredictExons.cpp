@@ -57,6 +57,5 @@ int predictexons(int argc, const char **argv, const Command& command) {
     std::string program(par.db4 + "/predictexons.sh");
     cmd.execProgram(program.c_str(), par.filenames);
 
-
     return EXIT_SUCCESS;
 }
