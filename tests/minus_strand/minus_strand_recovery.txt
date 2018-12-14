@@ -23,22 +23,13 @@ tcgtggagcgccgaggcgaaggatctgaggtcaccggcgctagaccgtctccgaccgtacattggagcacgacatgacct
 # now create a DB of three proteins - this will cause multiple reports of the protein:
 >identical_all_2_exons
 MTLCAGFDPNRFLPIVLDVGTNNETHRKNHQYMGLRKDRVHGEQYDIFLENVIKAIREVFPEAFIHFEDFGLKNAKRILDHYRPNIACFNDDIQGTGAVALAAIIGALHVTKSPLTEQRIMIFGAGTAGVGIANQIVAGMVTDGLSLGKARDNLFMIDRCGLLLERHAKIATDGQKPFLKKDSDFKEVPSGDIDLETAISLIKPTVLLGCSGQPGKFTEKAIREMSKHVKHPIIFPISNPTTLM
->identical_exon2
-TKSPLTEQRIMIFGAGTAGVGIANQIVAGMVTDGLSLGKARDNLFMIDRCGLLLERHAKIATDGQKPFLKKDSDFKEVPSGDIDLETAISLIKPTVLLGCSGQPGKFTEKAIREMSKHVKHPIIFPISNPTTLM
->identical_exon1
-MTLCAGFDPNRFLPIVLDVGTNNETHRKNHQYMGLRKDRVHGEQYDIFLENVIKAIREVFPEAFIHFEDFGLKNAKRILDHYRPNIACFNDDIQGTGAVALAAIIGALHV
+>identical_exon2_minus_three_AAs
+TKSPLTEQRIMIFGAGTAGVGIANQIVAGMVTDGLSLGKARDNLFMIDRCGLLLERHAKIATDGQKPFLKKDSDFKEVPSGDIDLETAISLIKPTVLLGCSGQPGKFTEKAIREMSKHVKHPIIFPISNPT
+>identical_exon1_minus_three_AAs
+MTLCAGFDPNRFLPIVLDVGTNNETHRKNHQYMGLRKDRVHGEQYDIFLENVIKAIREVFPEAFIHFEDFGLKNAKRILDHYRPNIACFNDDIQGTGAVALAAIIGA
 
-# the result should be 3 hits for the minus strand (exon1, exon2 and exon1+exon2) and 2 hits for the plus strand (exon2, exon1+exon2)
-
+# the result should be 3 hits for the minus strand (exon1_not_full, exon2_not_full and exon1+exon2) and 2 hits for the plus strand (exon2_not_full, exon1+exon2)
 ### run test ###
-cd /home/eli/postdoc/unitests/minus_strand
-/home/eli/postdoc/metaeuk/build/src/metaeuk createdb data/contigs.fna contigs --dont-split-seq-by-len
-/home/eli/postdoc/metaeuk/build/src/metaeuk createdb data/proteins.faa proteins
-/home/eli/postdoc/metaeuk/build/src/metaeuk predictexons contigs proteins final tempFolder
-/home/eli/postdoc/metaeuk/build/src/metaeuk reduceredundancy final final tempGroup
-/home/eli/postdoc/metaeuk/build/src/metaeuk convert2fasta final_united_exons_aa final_united_exons_aa.fas
-/home/eli/postdoc/metaeuk/build/src/metaeuk convert2fasta final_grouped_predictions_rep final_grouped_predictions_rep.fas
-/home/eli/postdoc/metaeuk/build/src/metaeuk createtsv final_united_exons_aa final_united_exons_aa final_grouped_predictions final_grouped_predictions.tsv
 
 ### the results - ungroupped ###
 as_should_final_united_exons_aa.fas

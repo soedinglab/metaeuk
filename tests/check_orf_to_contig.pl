@@ -3,7 +3,7 @@ use warnings;
 
 my ($in_dir_to_search_orfs_to_contigs, $in_correct_orfs_to_contigs) = @ARGV;
 
-my ($in_orfs_to_contigs) = glob($in_dir_to_search_orfs_to_contigs . '/*/nucl_6f_orf_aligned_to_contig');
+my ($in_orfs_to_contigs) = glob($in_dir_to_search_orfs_to_contigs . '/latest/nucl_6f_orf_aligned_to_contig');
 
 my %orfs_to_contigs;
 my %orfs_to_contigs_as_should;
@@ -56,6 +56,9 @@ sub parse_orfs_to_contig
 		chomp($line);
 		if ($line ne '')
 		{
+			my @line_parts = split(/\s+/, $line);
+			shift @line_parts; # the first field has the contig_id and that can change from run to run
+			$line = join("\t", @line_parts);
 			$orfs_to_conts_hash_ref->{$line} = 1;
 			$num_records++;
 		}
