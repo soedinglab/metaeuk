@@ -55,10 +55,10 @@ int unitesetstosequencedb(int argn, const char **argv, const Command& command) {
     std::string contigsDBHeaderIndexFilename(contigsDBFilename);
     contigsDBHeaderIndexFilename.append("_h.index");
 
-    DBReader<unsigned int> contigsData(contigsDBFilename.c_str(), contigsDBIndexFilename.c_str());
+    DBReader<unsigned int> contigsData(contigsDBFilename.c_str(), contigsDBIndexFilename.c_str(), par.threads, DBReader<unsigned int>::USE_INDEX|DBReader<unsigned int>::USE_DATA);
     contigsData.open(DBReader<unsigned int>::NOSORT);
 
-    DBReader<unsigned int> contigsHeaders(contigsDBHeaderFilename.c_str(), contigsDBHeaderIndexFilename.c_str());
+    DBReader<unsigned int> contigsHeaders(contigsDBHeaderFilename.c_str(), contigsDBHeaderIndexFilename.c_str(), par.threads, DBReader<unsigned int>::USE_INDEX|DBReader<unsigned int>::USE_DATA);
     contigsHeaders.open(DBReader<unsigned int>::NOSORT);
 
     // db2 = proteinsDB (only the header is used)
@@ -68,7 +68,7 @@ int unitesetstosequencedb(int argn, const char **argv, const Command& command) {
     std::string proteinsDBHeaderIndexFilename(proteinsDBFilename);
     proteinsDBHeaderIndexFilename.append("_h.index");
 
-    DBReader<unsigned int> proteinsHeaders(proteinsDBHeaderFilename.c_str(), proteinsDBHeaderIndexFilename.c_str());
+    DBReader<unsigned int> proteinsHeaders(proteinsDBHeaderFilename.c_str(), proteinsDBHeaderIndexFilename.c_str(), par.threads, DBReader<unsigned int>::USE_INDEX|DBReader<unsigned int>::USE_DATA);
     proteinsHeaders.open(DBReader<unsigned int>::NOSORT);
 
     // db3 = optimalExonsResuls map
@@ -91,10 +91,10 @@ int unitesetstosequencedb(int argn, const char **argv, const Command& command) {
     std::string outDBHeaderIndexFilename(par.db5);
     outDBHeaderIndexFilename.append("_h.index");
 
-    DBWriter concatenatedSetsHeaders(outDBHeaderFilename.c_str(), outDBHeaderIndexFilename.c_str(), par.threads);
+    DBWriter concatenatedSetsHeaders(outDBHeaderFilename.c_str(), outDBHeaderIndexFilename.c_str(), par.threads, par.compressed, Parameters::DBTYPE_GENERIC_DB);
     concatenatedSetsHeaders.open();
 
-    DBWriter concatenatedSetsData(outDBFilename.c_str(), outDBIndexFilename.c_str(), par.threads);
+    DBWriter concatenatedSetsData(outDBFilename.c_str(), outDBIndexFilename.c_str(), par.threads, par.compressed, Parameters::DBTYPE_NUCLEOTIDES);
     concatenatedSetsData.open();
 
     // in rare cases there will be no results to process:
@@ -111,10 +111,10 @@ int unitesetstosequencedb(int argn, const char **argv, const Command& command) {
         return EXIT_SUCCESS;
     }
 
-    DBReader<unsigned int> optimalSetsExonRecords(optimalSetsExonRecordsFilename.c_str(), optimalSetsExonRecordsIndexFilename.c_str());
+    DBReader<unsigned int> optimalSetsExonRecords(optimalSetsExonRecordsFilename.c_str(), optimalSetsExonRecordsIndexFilename.c_str(), par.threads, DBReader<unsigned int>::USE_INDEX|DBReader<unsigned int>::USE_DATA);
     optimalSetsExonRecords.open(DBReader<unsigned int>::LINEAR_ACCCESS);
 
-    DBReader<unsigned int> setMap(setsMapFilename.c_str(), setsMapIndexFilename.c_str());
+    DBReader<unsigned int> setMap(setsMapFilename.c_str(), setsMapIndexFilename.c_str(), par.threads, DBReader<unsigned int>::USE_INDEX|DBReader<unsigned int>::USE_DATA);
     setMap.open(DBReader<unsigned int>::LINEAR_ACCCESS);
 
 #pragma omp parallel
@@ -135,8 +135,8 @@ int unitesetstosequencedb(int argn, const char **argv, const Command& command) {
             unsigned int setCombinationKey = optimalSetsExonRecords.getDbKey(id);
 
             // take the record corresponding to the same id from both result files:
-            char *optimalExonRecord = optimalSetsExonRecords.getData(id);
-            char *setRecord = setMap.getData(id);
+            char *optimalExonRecord = optimalSetsExonRecords.getData(id, thread_idx);
+            char *setRecord = setMap.getData(id, thread_idx);
             
             // parse setRecord (a single line)
             const size_t setColumns = Util::getWordsOfLine(setRecord, entry, 255);
@@ -156,11 +156,11 @@ int unitesetstosequencedb(int argn, const char **argv, const Command& command) {
             setRecord = Util::skipLine(setRecord);
 
             // get non-MMSeqs2 identifiers from header files:
-            const char* contigHeader = contigsHeaders.getDataByDBKey(contigMMSeqs2Key);
-            const char* proteinHeader = proteinsHeaders.getDataByDBKey(proteinMMSeqs2Key);
+            const char* contigHeader = contigsHeaders.getDataByDBKey(contigMMSeqs2Key, thread_idx);
+            const char* proteinHeader = proteinsHeaders.getDataByDBKey(proteinMMSeqs2Key, thread_idx);
             
             // get contig data:
-            const char* contigData = contigsData.getDataByDBKey(contigMMSeqs2Key);
+            const char* contigData = contigsData.getDataByDBKey(contigMMSeqs2Key, thread_idx);
             
             // initialize header:
             std::string proteinHeaderAccession = Util::parseFastaHeader(proteinHeader);

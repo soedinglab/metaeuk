@@ -18,12 +18,12 @@ int reversefragments(int argn, const char **argv, const Command& command) {
     LocalParameters& par = LocalParameters::getLocalInstance();
     par.parseParameters(argn, argv, command, 2, true, true);
 
-    DBReader<unsigned int> aaFragmentsReader(par.db1.c_str(), par.db1Index.c_str());
+    DBReader<unsigned int> aaFragmentsReader(par.db1.c_str(), par.db1Index.c_str(), par.threads, DBReader<unsigned int>::USE_INDEX|DBReader<unsigned int>::USE_DATA);
     aaFragmentsReader.open(DBReader<unsigned int>::LINEAR_ACCCESS);
 
     std::string aaFragmentsReversed = par.db2;
     std::string aaFragmentsReversedIndex = par.db2Index;
-    DBWriter aaFragmentsReversedWriter(aaFragmentsReversed.c_str(), aaFragmentsReversedIndex.c_str(), par.threads);
+    DBWriter aaFragmentsReversedWriter(aaFragmentsReversed.c_str(), aaFragmentsReversedIndex.c_str(), par.threads, par.compressed, Parameters::DBTYPE_AMINO_ACIDS);
     aaFragmentsReversedWriter.open();
 
 #pragma omp parallel
@@ -39,7 +39,7 @@ int reversefragments(int argn, const char **argv, const Command& command) {
             Debug::printProgress(id);
 
             unsigned int fragmentKey = aaFragmentsReader.getDbKey(id);
-            char *aaFragment = aaFragmentsReader.getData(id);
+            char *aaFragment = aaFragmentsReader.getData(id, thread_idx);
             int lenFragment = strlen(aaFragment) - 1; // last char is '\n'
 
             if ((lenFragment - 1) > 32000) {
@@ -58,7 +58,7 @@ int reversefragments(int argn, const char **argv, const Command& command) {
     }
 
     // cleanup
-    aaFragmentsReversedWriter.close(Sequence::AMINO_ACIDS);
+    aaFragmentsReversedWriter.close();
     aaFragmentsReader.close();
 
     FileUtil::symlinkAbs(par.hdr1, par.hdr2);

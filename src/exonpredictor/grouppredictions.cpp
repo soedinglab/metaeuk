@@ -74,11 +74,11 @@ int grouppredictions(int argn, const char **argv, const Command& command) {
 
     // Terminology: CS = Contig & Strand combination, TCS = Target & Contig & Strand (i.e. -  a prediction identifier)
     // db1 = a map from CS to all its TCS predictions, ordered by their start on the contig, reverse subordered by # exons 
-    DBReader<unsigned int> contigStrandSortedMap(par.db1.c_str(), par.db1Index.c_str());
+    DBReader<unsigned int> contigStrandSortedMap(par.db1.c_str(), par.db1Index.c_str(), par.threads, DBReader<unsigned int>::USE_INDEX|DBReader<unsigned int>::USE_DATA);
     contigStrandSortedMap.open(DBReader<unsigned int>::LINEAR_ACCCESS);
 
     // db2 = output, cluster format
-    DBWriter writerGroupedPredictions(par.db2.c_str(), par.db2Index.c_str(), par.threads);
+    DBWriter writerGroupedPredictions(par.db2.c_str(), par.db2Index.c_str(), par.threads, par.compressed, Parameters::DBTYPE_CLUSTER_RES);
     writerGroupedPredictions.open();
 
 #pragma omp parallel
@@ -104,7 +104,7 @@ int grouppredictions(int argn, const char **argv, const Command& command) {
             unsigned int prevNumExons = 0;
             int prevBitScore = 0;
 
-            char *contigStrandSortedRecord = contigStrandSortedMap.getData(id);
+            char *contigStrandSortedRecord = contigStrandSortedMap.getData(id, thread_idx);
             while (*contigStrandSortedRecord != '\0') {
                 const size_t contigStrandSortedColumns = Util::getWordsOfLine(contigStrandSortedRecord, entry, 255);
 

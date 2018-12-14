@@ -309,18 +309,18 @@ int collectoptimalset(int argn, const char **argv, const Command& command) {
     LocalParameters& par = LocalParameters::getLocalInstance();
     par.parseParameters(argn, argv, command, 3, true, true);
 
-    DBReader<unsigned int> resultReader(par.db1.c_str(), par.db1Index.c_str());
+    DBReader<unsigned int> resultReader(par.db1.c_str(), par.db1Index.c_str(), par.threads, DBReader<unsigned int>::USE_INDEX|DBReader<unsigned int>::USE_DATA);
     resultReader.open(DBReader<unsigned int>::LINEAR_ACCCESS);
 
     // get number of AAs in target DB for an E-Value computation
     size_t totNumOfAAsInTargetDb = 0;
     std::string proteinsDBIndexFilename(par.db2);
     proteinsDBIndexFilename.append(".index");
-    DBReader<unsigned int> proteinsData(par.db2.c_str(), proteinsDBIndexFilename.c_str());
+    DBReader<unsigned int> proteinsData(par.db2.c_str(), proteinsDBIndexFilename.c_str(), par.threads, DBReader<unsigned int>::USE_INDEX|DBReader<unsigned int>::USE_DATA);
     proteinsData.open(DBReader<unsigned int>::NOSORT);
     size_t numRecordsInDb = proteinsData.getSize();
     size_t numCharactersInDb = proteinsData.getAminoAcidDBSize(); // method name is confusing...
-    if (proteinsData.getDbtype() == Sequence::HMM_PROFILE) {
+    if (proteinsData.getDbtype() == Parameters::DBTYPE_HMM_PROFILE) {
         totNumOfAAsInTargetDb = numCharactersInDb / Sequence::PROFILE_READIN_SIZE;
     } else {
         totNumOfAAsInTargetDb = numCharactersInDb - (numRecordsInDb * 2); // \n and \0 for each record
@@ -333,12 +333,12 @@ int collectoptimalset(int argn, const char **argv, const Command& command) {
     
     std::string dbProteinContigStrandMap = par.db3 + "dp_protein_contig_strand_map";
     std::string dbProteinContigStrandMapIndex = par.db3 + "dp_protein_contig_strand_map.index";
-    DBWriter mapWriter(dbProteinContigStrandMap.c_str(), dbProteinContigStrandMapIndex.c_str(), par.threads);
+    DBWriter mapWriter(dbProteinContigStrandMap.c_str(), dbProteinContigStrandMapIndex.c_str(), par.threads, par.compressed, Parameters::DBTYPE_GENERIC_DB);
     mapWriter.open();
 
     std::string dbOptimalExons = par.db3 + "dp_optimal_exon_sets";
     std::string dbOptimalExonsIndex = par.db3 + "dp_optimal_exon_sets.index";
-    DBWriter optimalExonsWriter(dbOptimalExons.c_str(), dbOptimalExonsIndex.c_str(), par.threads);
+    DBWriter optimalExonsWriter(dbOptimalExons.c_str(), dbOptimalExonsIndex.c_str(), par.threads, par.compressed, Parameters::DBTYPE_GENERIC_DB);
     optimalExonsWriter.open();
 
     // analyze each entry of the result DB, this is a swapped DB
@@ -367,7 +367,7 @@ int collectoptimalset(int argn, const char **argv, const Command& command) {
 
             unsigned int proteinID = resultReader.getDbKey(id);
 
-            char *results = resultReader.getData(id);
+            char *results = resultReader.getData(id, thread_idx);
             
             int currContigId = -1;
             bool isFirstIteration = true;
