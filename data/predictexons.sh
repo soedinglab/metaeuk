@@ -60,8 +60,8 @@ fi
 AA_FRAGS="${TMP_PATH}/aa_6f"
 if [ -n "$REVERSE_FRAGMENTS" ]; then
     # shellcheck disable=SC2086
-    "$MMSEQS" reversefragments "${AA_FRAGS}" "${AA_FRAGS}_reverse" ${THREADS_PAR} \
-        || fail "reversefragments step died"
+    "$MMSEQS" reverseseq "${AA_FRAGS}" "${AA_FRAGS}_reverse" ${THREADS_PAR} \
+        || fail "reverseseq step died"
     AA_FRAGS="${AA_FRAGS}_reverse"
     echo "Will base search on ${AA_FRAGS}"
 fi
