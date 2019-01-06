@@ -50,8 +50,25 @@ struct prediction {
         for (size_t i = 0; i < exonIdsSepStrs.size(); ++i) {
             exonIds.push_back(Util::fast_atoi<int>(exonIdsSepStrs[i].c_str()));
         }
-        // initialize the cluster assignment as self (will change later):
+        // initialize cluster assignment as self (will change later):
         clusterProteinContigStrandId = proteinContigStrandId;
+        // initialize cluster no overlap assignment as self (will change later):
+        noOverlapProteinContigStrandId = proteinContigStrandId;
+    }
+
+    // to allow sorting a vector of predictions by their E-values
+    static bool comparePredictionsByEvalue (const prediction & aPrediction, const prediction & anotherPrediction) {
+        if(aPrediction.combinedEvalue < anotherPrediction.combinedEvalue)
+            return true;
+        if(aPrediction.combinedEvalue > anotherPrediction.combinedEvalue)
+            return false;
+        // the following lines will break even cases in a consistent way
+        if(aPrediction.lowContigCoord < anotherPrediction.lowContigCoord)
+            return true;
+        if(aPrediction.lowContigCoord > anotherPrediction.lowContigCoord)
+            return false;
+        // this line will not be reached...
+        return false;
     }
 
     unsigned int proteinContigStrandId;
@@ -65,21 +82,26 @@ struct prediction {
     unsigned int highContigCoord;
     std::vector<unsigned int> exonIds;
     unsigned int clusterProteinContigStrandId; // this will hold the cluster identifier
+    unsigned int noOverlapProteinContigStrandId; // this will hold the cluster identifier for the no overlap data structure
 };
 
 
 int grouppredictions(int argn, const char **argv, const Command& command) {
     LocalParameters& par = LocalParameters::getLocalInstance();
-    par.parseParameters(argn, argv, command, 2, true, true);
+    par.parseParameters(argn, argv, command, 3, true, true);
 
     // Terminology: CS = Contig & Strand combination, TCS = Target & Contig & Strand (i.e. -  a prediction identifier)
     // db1 = a map from CS to all its TCS predictions, ordered by their start on the contig, reverse subordered by # exons 
     DBReader<unsigned int> contigStrandSortedMap(par.db1.c_str(), par.db1Index.c_str(), par.threads, DBReader<unsigned int>::USE_INDEX|DBReader<unsigned int>::USE_DATA);
     contigStrandSortedMap.open(DBReader<unsigned int>::LINEAR_ACCCESS);
 
-    // db2 = output, cluster format
+    // db2 = output, cluster format: TCS representative to all TCSs that share an exon with it
     DBWriter writerGroupedPredictions(par.db2.c_str(), par.db2Index.c_str(), par.threads, par.compressed, Parameters::DBTYPE_CLUSTER_RES);
     writerGroupedPredictions.open();
+
+    // db3 = output, cluster format: TCS representative to all TCS representatives that overlap it
+    DBWriter writerGroupedPredictionsNoOverlap(par.db3.c_str(), par.db3Index.c_str(), par.threads, par.compressed, Parameters::DBTYPE_CLUSTER_RES);
+    writerGroupedPredictionsNoOverlap.open();
 
 #pragma omp parallel
     {
@@ -90,8 +112,10 @@ int grouppredictions(int argn, const char **argv, const Command& command) {
         // per thread variables
         std::vector<prediction> predictionToCluster;
         predictionToCluster.reserve(EXPECTED_NUM_PREDICTIONS);
+        std::vector<prediction> representativePredictions;
+        representativePredictions.reserve(EXPECTED_NUM_PREDICTIONS);
         char *entry[255];
-        char clusterKey[128];
+        char TCSKeyBuff[128];
         std::string clusterBuffer;
         clusterBuffer.reserve(10000);  
         
@@ -162,9 +186,11 @@ int grouppredictions(int argn, const char **argv, const Command& command) {
                 }
                 
                 // initialize the new cluster:
-                char *tmpBuff = Itoa::i32toa_sse2(static_cast<uint32_t>(predictionToCluster[i].proteinContigStrandId), clusterKey);
-                clusterBuffer.append(clusterKey, tmpBuff - clusterKey - 1);
+                char *tmpBuff = Itoa::i32toa_sse2(static_cast<uint32_t>(predictionToCluster[i].proteinContigStrandId), TCSKeyBuff);
+                clusterBuffer.append(TCSKeyBuff, tmpBuff - TCSKeyBuff - 1);
                 clusterBuffer.append(1, '\n');
+                // push the representative into the representative vector - will be used to avoid overlaps
+                representativePredictions.emplace_back(predictionToCluster[i]);
 
                 // collect cluster members:
                 for (size_t j = (i + 1); j < predictionToCluster.size(); ++j) {
@@ -188,8 +214,8 @@ int grouppredictions(int argn, const char **argv, const Command& command) {
                     if (doIandJshareAnExon && (predictionToCluster[j].proteinContigStrandId == predictionToCluster[j].clusterProteinContigStrandId)) {
                         predictionToCluster[j].clusterProteinContigStrandId = predictionToCluster[i].proteinContigStrandId;
 
-                        tmpBuff = Itoa::i32toa_sse2(static_cast<uint32_t>(predictionToCluster[j].proteinContigStrandId), clusterKey);
-                        clusterBuffer.append(clusterKey, tmpBuff - clusterKey - 1);
+                        tmpBuff = Itoa::i32toa_sse2(static_cast<uint32_t>(predictionToCluster[j].proteinContigStrandId), TCSKeyBuff);
+                        clusterBuffer.append(TCSKeyBuff, tmpBuff - TCSKeyBuff - 1);
                         clusterBuffer.append(1, '\n');
                     }
                 }
@@ -199,13 +225,48 @@ int grouppredictions(int argn, const char **argv, const Command& command) {
                 clusterBuffer.clear();
             }
 
-            // empty the predictions vector so the same thread can process another CS combination:
+            // output representatives with no overlap in coords:
+            // sort vector by E-value:
+            std::stable_sort(representativePredictions.begin(), representativePredictions.end(), prediction::comparePredictionsByEvalue);
+            // go over sorted representatives - unassigned representatives are non-overlap representatives
+            for (size_t i = 0; i < representativePredictions.size(); ++i) {
+                // if i is already assigned - skip it, it is not a non-overlap cluster representative
+                if (representativePredictions[i].proteinContigStrandId != representativePredictions[i].noOverlapProteinContigStrandId) {
+                    continue;
+                }
+                // initialize the new cluster:
+                char *tmpBuff = Itoa::i32toa_sse2(static_cast<uint32_t>(representativePredictions[i].proteinContigStrandId), TCSKeyBuff);
+                clusterBuffer.append(TCSKeyBuff, tmpBuff - TCSKeyBuff - 1);
+                clusterBuffer.append(1, '\n');
+
+                // collect cluster members:
+                for (size_t j = (i + 1); j < representativePredictions.size(); ++j) {
+                    if (
+                        ((representativePredictions[j].lowContigCoord < representativePredictions[i].lowContigCoord) && 
+                        (representativePredictions[j].highContigCoord > representativePredictions[i].lowContigCoord)) || 
+                        ((representativePredictions[j].lowContigCoord < representativePredictions[i].highContigCoord) && 
+                        (representativePredictions[j].highContigCoord > representativePredictions[i].highContigCoord))) {
+                            // i begins in the middle of j or j begins in the middle of i ==> overlap
+                            representativePredictions[j].noOverlapProteinContigStrandId = representativePredictions[i].proteinContigStrandId;
+                            tmpBuff = Itoa::i32toa_sse2(static_cast<uint32_t>(representativePredictions[j].proteinContigStrandId), TCSKeyBuff);
+                            clusterBuffer.append(TCSKeyBuff, tmpBuff - TCSKeyBuff - 1);
+                            clusterBuffer.append(1, '\n');
+                    }
+                }
+
+                writerGroupedPredictionsNoOverlap.writeData(clusterBuffer.c_str(), clusterBuffer.size(), representativePredictions[i].proteinContigStrandId, thread_idx);
+                clusterBuffer.clear();
+            }
+            
+            // empty predictions vectors so the same thread can process another CS combination:
             predictionToCluster.clear();
+            representativePredictions.clear();
         }        
     }
    
     // cleanup
     writerGroupedPredictions.close();
+    writerGroupedPredictionsNoOverlap.close();
     contigStrandSortedMap.close();
     
     Debug(Debug::INFO) << "\nDone.\n";

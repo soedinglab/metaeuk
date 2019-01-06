@@ -67,7 +67,7 @@ fi
 
 # greedy grouping of predictions based on the sorted map
 if notExists "${TMP_PATH}/grouped_predictions"; then
-    "$MMSEQS" grouppredictions "${TMP_PATH}/dp_contig_strand_map_sorted_by_start_subsorted_by_num_and_bit" "${TMP_PATH}/grouped_predictions" \
+    "$MMSEQS" grouppredictions "${TMP_PATH}/dp_contig_strand_map_sorted_by_start_subsorted_by_num_and_bit" "${TMP_PATH}/grouped_predictions" "${TMP_PATH}/grouped_predictions_no_overlap" \
         || fail "grouppredictions step died"
 fi
 

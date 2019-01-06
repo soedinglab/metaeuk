@@ -54,7 +54,7 @@ std::vector<struct Command> commands = {
                 "Assignment of predictions to cluster",
                 "A greedy examination of predictions accoridng to their contig order, subordered by the number of exons. Predictions in a cluster share an exon with the representative.",
                 "Eli Levy Karin <eli.levy.karin@gmail.com>",
-                "<i:contigStrandSortedMap> <o:groupedPredictionsDB>",
+                "<i:contigStrandSortedMap> <o:groupedPredictionsDB> <o:groupedPredictionsDBNoOverlpa>",
                 CITATION_MMSEQS2},
         {"createdb",             createdb,             &par.createdb,             COMMAND_MAIN,
                 "Convert protein sequence set in a FASTA file to MMseqs sequence DB format",
