@@ -104,8 +104,12 @@ fi
 # post processing
 mv -f "${TMP_PATH}/dp_protein_contig_strand_map" "$3_dp_protein_contig_strand_map" || fail "Could not move result to $3_dp_protein_contig_strand_map"
 mv -f "${TMP_PATH}/dp_protein_contig_strand_map.index" "$3_dp_protein_contig_strand_map.index" || fail "Could not move result to $3_dp_protein_contig_strand_map.index"
+mv -f "${TMP_PATH}/dp_protein_contig_strand_map.dbtype" "$3_dp_protein_contig_strand_map.dbtype" || fail "Could not move result to $3_dp_protein_contig_strand_map.dbtype"
+
 mv -f "${TMP_PATH}/dp_optimal_exon_sets" "$3_dp_optimal_exon_sets" || fail "Could not move result to $3_dp_optimal_exon_sets"
 mv -f "${TMP_PATH}/dp_optimal_exon_sets.index" "$3_dp_optimal_exon_sets.index" || fail "Could not move result to $3_dp_optimal_exon_sets.index"
+mv -f "${TMP_PATH}/dp_optimal_exon_sets.dbtype" "$3_dp_optimal_exon_sets.dbtype" || fail "Could not move result to $3_dp_optimal_exon_sets.dbtype"
+
 
 if [ -n "$REMOVE_TMP" ]; then
     echo "Removing temporary files from ${TMP_PATH}"
