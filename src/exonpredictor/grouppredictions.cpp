@@ -243,9 +243,17 @@ int grouppredictions(int argn, const char **argv, const Command& command) {
                 for (size_t j = (i + 1); j < representativePredictions.size(); ++j) {
                     if (
                         ((representativePredictions[j].highContigCoord < representativePredictions[i].highContigCoord) && 
-                        (representativePredictions[j].highContigCoord > representativePredictions[i].lowContigCoord)) || 
+                        (representativePredictions[j].highContigCoord > representativePredictions[i].lowContigCoord)) ||
+
                         ((representativePredictions[j].lowContigCoord < representativePredictions[i].highContigCoord) && 
-                        (representativePredictions[j].lowContigCoord > representativePredictions[i].lowContigCoord))) {
+                        (representativePredictions[j].lowContigCoord > representativePredictions[i].lowContigCoord)) ||
+
+                        ((representativePredictions[j].highContigCoord < representativePredictions[i].highContigCoord) && 
+                        (representativePredictions[j].lowContigCoord > representativePredictions[i].lowContigCoord)) ||
+
+                        ((representativePredictions[j].highContigCoord > representativePredictions[i].highContigCoord) && 
+                        (representativePredictions[j].lowContigCoord < representativePredictions[i].lowContigCoord))
+                        ) {
                             // i begins in the middle of j or j begins in the middle of i ==> overlap
                             representativePredictions[j].noOverlapProteinContigStrandId = representativePredictions[i].proteinContigStrandId;
                             tmpBuff = Itoa::i32toa_sse2(static_cast<uint32_t>(representativePredictions[j].proteinContigStrandId), TCSKeyBuff);
