@@ -15,7 +15,7 @@ LocalParameters& par = LocalParameters::getLocalInstance();
 std::vector<struct Command> commands = {
         // Main tools  (for non-experts)
         {"predictexons",             predictexons,            &par.predictexonsworkflow,    COMMAND_MAIN,
-                "Predict eukaryotic exons based on protein similarity.",
+                "Predict eukaryotic exons based on protein similarity",
                 "An analog of 6-frame translation to produce putative protein fragments. Search against protein DB. Compatible exon set identified with respect to each target. Two dynamic programming outputs: predictexonsBaseName_dp_protein_contig_strand_map and predictexonsBaseName_dp_optimal_exon_sets",
                 "Eli Levy Karin <eli.levy.karin@gmail.com>",
                 "<i:contigsDB> <i:proteinsDB> <o:predictexonsBaseName> <tmpDir>",
@@ -33,12 +33,12 @@ std::vector<struct Command> commands = {
                 "<i:contigsDB> <i:proteinsDB> <i:dp_protein_contig_strand_map> <i:dp_optimal_exon_sets> <o:unitedexons>",
                 CITATION_MMSEQS2},
         {"reduceredundancy",             reduceredundancy,            &par.reduceredundancyworkflow,    COMMAND_MAIN,
-                "A greedy approach to cluster metaeuk predictions which share an exon",
+                "A greedy approach to group metaeuk predictions which share an exon",
                 "A protein coding gene can be predicted more than once due to target DB homologies. A cluster representative is selected. Predictions in a cluster share an exon with the representative. Outputs: reduceRedundBaseName_grouped_predictions, reduceRedundBaseName_dp_protein_contig_strand_map and reduceRedundBaseName_dp_optimal_exon_sets",
                 "Eli Levy Karin <eli.levy.karin@gmail.com>",
                 "<i:dp_protein_contig_strand_map> <i:dp_optimal_exon_sets> <o:reduceRedundBaseName> <tmpDir>",
                 CITATION_MMSEQS2},
-        {"assigntaxonomy",             assigntaxonomy,            &par.assigntaxonomyworkflow,    COMMAND_MAIN,
+        {"assigntaxonomy",             assigntaxonomy,            &par.assigntaxonomyworkflow,    COMMAND_HIDDEN,
                 "Assign taxonomy to each representative prediction using 2bLCA",
                 "Assign taxonomy to each representative prediction using 2bLCA against a uniprot-based refernce database. Contigs are assigned based on their predictions",
                 "Eli Levy Karin <eli.levy.karin@gmail.com>",
