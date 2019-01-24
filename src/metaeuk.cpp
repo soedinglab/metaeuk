@@ -34,7 +34,7 @@ std::vector<struct Command> commands = {
                 CITATION_MMSEQS2},
         {"reduceredundancy",             reduceredundancy,            &par.reduceredundancyworkflow,    COMMAND_MAIN,
                 "A greedy approach to group metaeuk predictions which share an exon",
-                "A protein coding gene can be predicted more than once due to target DB homologies. A cluster representative is selected. Predictions in a cluster share an exon with the representative. Outputs: reduceRedundBaseName_grouped_predictions, reduceRedundBaseName_dp_protein_contig_strand_map and reduceRedundBaseName_dp_optimal_exon_sets",
+                "A protein coding gene can be predicted more than once due to target DB homologies. A cluster representative is selected. Predictions in a cluster share an exon with the representative. Outputs: reduceRedundBaseName_grouped_predictions, reduceRedundBaseName_dp_protein_contig_strand_map, reduceRedundBaseName_dp_optimal_exon_sets, reduceRedundBaseName_grouped_predictions_no_overlap, reduceRedundBaseName_no_overlap_dp_protein_contig_strand_map and reduceRedundBaseName_no_overlap_dp_optimal_exon_sets",
                 "Eli Levy Karin <eli.levy.karin@gmail.com>",
                 "<i:dp_protein_contig_strand_map> <i:dp_optimal_exon_sets> <o:reduceRedundBaseName> <tmpDir>",
                 CITATION_MMSEQS2},
