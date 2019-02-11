@@ -76,7 +76,7 @@ fi
 # swap results (result has targets as implicit keys)
 if notExists "${TMP_PATH}/search_res_swap"; then
     # shellcheck disable=SC2086
-    "$MMSEQS" swapresults "${AA_FRAGS}" "${INPUT_TARGET_PROTEINS}" "${TMP_PATH}/search_res" "${TMP_PATH}/search_res_swap" -e 1000 ${THREADS_PAR} \
+    "$MMSEQS" swapresults "${AA_FRAGS}" "${INPUT_TARGET_PROTEINS}" "${TMP_PATH}/search_res" "${TMP_PATH}/search_res_swap" ${SWAPRESULT_PAR} \
         || fail "swap step died"
 fi
 

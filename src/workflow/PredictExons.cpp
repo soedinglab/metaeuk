@@ -49,6 +49,10 @@ int predictexons(int argc, const char **argv, const Command& command) {
     cmd.addVariable("EXTRACTORFS_PAR", par.createParameterString(par.extractorfs).c_str());
     cmd.addVariable("TRANSLATENUCS_PAR", par.createParameterString(par.translatenucs).c_str());
     cmd.addVariable("SEARCH_PAR", par.createParameterString(par.searchworkflow).c_str());
+    float originalEvalThr = par.evalThr;
+    par.evalThr = std::numeric_limits<float>::max();
+    cmd.addVariable("SWAPRESULT_PAR", par.createParameterString(par.swapresult).c_str());
+    par.evalThr = originalEvalThr;
     cmd.addVariable("THREADS_PAR", par.createParameterString(par.onlythreads).c_str());
 
     cmd.addVariable("COLLECTOPTIMALSET_PAR", par.createParameterString(par.collectoptimalset).c_str());
