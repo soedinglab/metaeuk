@@ -106,6 +106,6 @@ Compiling MetaEuk from source has the advantage that it will be optimized to the
       CXX="$(brew --prefix)/bin/g++-8" cmake -DCMAKE_BUILD_TYPE=RELEASE -DCMAKE_INSTALL_PREFIX=. ..
 
 ## Hardware requirements
-Metaeuk needs roughly 1 byte of memory per residue to work efficiently. MetaEuk will scale its memory consumption based on the available main memory of the machine. MetaEuk needs a CPU with at least the SSE4.1 instruction set to run. 
+MetaEuk needs roughly 1 byte of memory per residue to work efficiently. MetaEuk will scale its memory consumption based on the available main memory of the machine. MetaEuk needs a CPU with at least the SSE4.1 instruction set to run. 
 
 
