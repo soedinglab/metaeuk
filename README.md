@@ -7,7 +7,7 @@ MetaEuk is a modular toolkit designed for fast and large-scale gene calling and 
 [Levy Larin E, Mirdita M and Soeding J. MetaEuk – fast gene discovery in large-scale eukaryotic metagenomics data. biorxiv, doi: doi.org/????/??? (2019)](https://www.biorxiv.org/content/???/2019/??/??/?????).
 
 ## Input 
-MetaEuk will search for eukaryotic protein-coding genes in **contigs** based on similarity to a reference database of **proteins** or **protein profiles**. The starting point are Fasta files of sequences.
+MetaEuk will search for eukaryotic protein-coding genes in **contigs** based on similarity to a reference database of **proteins** or **protein profiles**. The starting point are Fasta files of sequences (you can use contigs.fna and proteins.faa from the tests/two_contigs directory as a small toy example).
 
 Read [here](https://github.com/soedinglab/mmseqs2/wiki#how-to-create-a-target-profile-database-from-pfam) to learn more on how to create a protein profile database using MMseqs2. Once created, this database can be used as referenceDB in the command below.
 
