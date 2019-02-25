@@ -89,7 +89,7 @@ Example header (two exons on the minus strand):
 
 
 ## Compile from source
-Compiling MetaEuk from source has the advantage that it will be optimized to the specific system, which should improve its performance. To compile PLASS `git`, `g++` (4.6 or higher) and `cmake` (3.0 or higher) are required. Afterwards, the metaeuk binary will be located in the `build/bin` directory.
+Compiling MetaEuk from source has the advantage that it will be optimized to the specific system, which should improve its performance. To compile MetaEuk `git`, `g++` (4.6 or higher) and `cmake` (3.0 or higher) are required. Afterwards, the MetaEuk binary will be located in the `build/bin` directory.
 
       git clone git@github.com:soedinglab/metaeuk.git .
       git submodule init
@@ -101,7 +101,7 @@ Compiling MetaEuk from source has the advantage that it will be optimized to the
       make install
       export PATH="$(pwd)/bin/:$PATH"
         
-:exclamation: If you want to compile metaeuk on macOS, please install and use `gcc` from Homebrew. The default macOS `clang` compiler does not support OpenMP and metaeuk will not be able to run multithreaded. Use the following cmake call:
+:exclamation: If you want to compile metaeuk on macOS, please install and use `gcc` from Homebrew. The default macOS `clang` compiler does not support OpenMP and MetaEuk will not be able to run multithreaded. Use the following cmake call:
 
       CXX="$(brew --prefix)/bin/g++-8" cmake -DCMAKE_BUILD_TYPE=RELEASE -DCMAKE_INSTALL_PREFIX=. ..
 
