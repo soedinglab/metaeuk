@@ -26,7 +26,7 @@ struct prediction {
     // constructor
     prediction(unsigned int iProteinContigStrandId, unsigned int iProteinMMSeqs2Key, unsigned int iContigMMSeqs2Key, 
                 int iStrand, int iCombinedNormalizedAlnBitScore, double iCombinedEvalue, unsigned int iNumExons, unsigned int iLowContigCoord, 
-                unsigned int iHighContigCoord, char * iExonCharptr) : proteinContigStrandId(iProteinContigStrandId), proteinMMSeqs2Key(iProteinMMSeqs2Key), 
+                unsigned int iHighContigCoord, const char * iExonCharptr) : proteinContigStrandId(iProteinContigStrandId), proteinMMSeqs2Key(iProteinMMSeqs2Key), 
                 contigMMSeqs2Key(iContigMMSeqs2Key), strand(iStrand),
                 combinedNormalizedAlnBitScore(iCombinedNormalizedAlnBitScore), combinedEvalue(iCombinedEvalue),
                 numExons(iNumExons), lowContigCoord(iLowContigCoord), highContigCoord(iHighContigCoord) {
@@ -114,7 +114,7 @@ int grouppredictions(int argn, const char **argv, const Command& command) {
         predictionToCluster.reserve(EXPECTED_NUM_PREDICTIONS);
         std::vector<prediction> representativePredictions;
         representativePredictions.reserve(EXPECTED_NUM_PREDICTIONS);
-        char *entry[255];
+        const char *entry[255];
         char TCSKeyBuff[128];
         std::string clusterBuffer;
         clusterBuffer.reserve(10000);  
@@ -146,7 +146,7 @@ int grouppredictions(int argn, const char **argv, const Command& command) {
                 unsigned int numExons = Util::fast_atoi<int>(entry[6]);
                 unsigned int lowContigCoord = Util::fast_atoi<int>(entry[7]);
                 unsigned int highContigCoord = Util::fast_atoi<int>(entry[8]);
-                char * exonCharptr = entry[9];
+                const char * exonCharptr = entry[9];
 
                 // verify sorted order:
                 if (prevNumExons == 0) {
@@ -273,8 +273,8 @@ int grouppredictions(int argn, const char **argv, const Command& command) {
     }
    
     // cleanup
-    writerGroupedPredictions.close();
-    writerGroupedPredictionsNoOverlap.close();
+    writerGroupedPredictions.close(true);
+    writerGroupedPredictionsNoOverlap.close(true);
     contigStrandSortedMap.close();
     
     Debug(Debug::INFO) << "\nDone.\n";

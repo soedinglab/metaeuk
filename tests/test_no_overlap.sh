@@ -5,8 +5,8 @@ DATAPATH="$2"
 RESULTPATH="$3"
 
 mkdir -p "${RESULTPATH}"
-"${METAEUK}" createdb "${DATAPATH}/contigs.fna" "${RESULTPATH}/contigs" --dont-split-seq-by-len
-"${METAEUK}" createdb "${DATAPATH}/proteins.faa" "${RESULTPATH}/proteins"
+"${METAEUK}" createdb "${DATAPATH}/contigs.fna" "${RESULTPATH}/contigs" --dont-split-seq-by-len --dbtype 0
+"${METAEUK}" createdb "${DATAPATH}/proteins.faa" "${RESULTPATH}/proteins" --dbtype 1
 
 "${METAEUK}" predictexons "${RESULTPATH}/contigs" "${RESULTPATH}/proteins" "${RESULTPATH}/predEx" "${RESULTPATH}/tempFolder" --metaeuk-eval 0.0001 -e 100 --min-length 20
 "${METAEUK}" unitetoseqdbs "${RESULTPATH}/contigs" "${RESULTPATH}/proteins" "${RESULTPATH}/predEx_dp_protein_contig_strand_map" "${RESULTPATH}/predEx_dp_optimal_exon_sets" "${RESULTPATH}/final" "${RESULTPATH}/temp2"

@@ -312,19 +312,12 @@ int collectoptimalset(int argn, const char **argv, const Command& command) {
     DBReader<unsigned int> resultReader(par.db1.c_str(), par.db1Index.c_str(), par.threads, DBReader<unsigned int>::USE_INDEX|DBReader<unsigned int>::USE_DATA);
     resultReader.open(DBReader<unsigned int>::LINEAR_ACCCESS);
 
-    // get number of AAs in target DB for an E-Value computation
-    size_t totNumOfAAsInTargetDb = 0;
     std::string proteinsDBIndexFilename(par.db2);
     proteinsDBIndexFilename.append(".index");
     DBReader<unsigned int> proteinsData(par.db2.c_str(), proteinsDBIndexFilename.c_str(), par.threads, DBReader<unsigned int>::USE_INDEX|DBReader<unsigned int>::USE_DATA);
     proteinsData.open(DBReader<unsigned int>::NOSORT);
-    size_t numRecordsInDb = proteinsData.getSize();
-    size_t numCharactersInDb = proteinsData.getAminoAcidDBSize(); // method name is confusing...
-    if (proteinsData.getDbtype() == Parameters::DBTYPE_HMM_PROFILE) {
-        totNumOfAAsInTargetDb = numCharactersInDb / Sequence::PROFILE_READIN_SIZE;
-    } else {
-        totNumOfAAsInTargetDb = numCharactersInDb - (numRecordsInDb * 2); // \n and \0 for each record
-    }
+    // get number of AAs in target DB for an E-Value computation
+    size_t totNumOfAAsInTargetDb = proteinsData.getAminoAcidDBSize(); // method now returns db size for proteins and for profiles by checking dbtype
     proteinsData.close();
     double dMetaeukEvalueThr = (double)par.metaeukEvalueThr; // converting to double for precise comparisons
    
@@ -359,7 +352,7 @@ int collectoptimalset(int argn, const char **argv, const Command& command) {
         std::vector<potentialExon> minusStrandOptimalExonSet;
         minusStrandOptimalExonSet.reserve(100);
 
-        char *entry[255];          
+        const char *entry[255];          
         
 #pragma omp for schedule(dynamic, 100)
         for (size_t id = 0; id < resultReader.getSize(); id++) {
@@ -533,8 +526,8 @@ int collectoptimalset(int argn, const char **argv, const Command& command) {
     }
 
     // cleanup
-    mapWriter.close();
-    optimalExonsWriter.close();
+    mapWriter.close(true);
+    optimalExonsWriter.close(true);
     resultReader.close();
     
     Debug(Debug::INFO) << "\nDone.\n";

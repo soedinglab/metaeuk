@@ -126,7 +126,7 @@ int unitesetstosequencedb(int argn, const char **argv, const Command& command) {
         // per thread variables
         std::ostringstream joinedHeaderStream;
         std::ostringstream joinedExonsStream;
-        char *entry[255];      
+        const char *entry[255];      
         
 #pragma omp for schedule(dynamic, 100)
         for (size_t id = 0; id < optimalSetsExonRecords.getSize(); id++) {
@@ -241,8 +241,8 @@ int unitesetstosequencedb(int argn, const char **argv, const Command& command) {
     }
 
     // cleanup
-    concatenatedSetsHeaders.close();
-    concatenatedSetsData.close();
+    concatenatedSetsHeaders.close(true);
+    concatenatedSetsData.close(true);
     contigsData.close();
     contigsHeaders.close();
     proteinsHeaders.close();

@@ -42,13 +42,13 @@ TMP_PATH="$(abspath "$6")"
 
 
 UNITED_EXONS_NAME="$(abspath "$5_united_exons")"
-if notExists "${UNITED_EXONS_NAME}"; then
+if notExists "${UNITED_EXONS_NAME}.index"; then
     # shellcheck disable=SC2086
     "$MMSEQS" unitesetstosequencedb "${INPUT_CONTIGS}" "${INPUT_TARGET_PROTEINS}" "${INPUT_MAP}" "${INPUT_OPTIMAL_EXON_SETS}" "${UNITED_EXONS_NAME}" ${THREADS_PAR} \
             || fail "unitesetstosequencedb step died"
 
     # translate sequence DB to AAs
-    if notExists "${UNITED_EXONS_NAME}_aa"; then
+    if notExists "${UNITED_EXONS_NAME}_aa.index"; then
         # shellcheck disable=SC2086
         UNITED_EXONS_FILESIZE="$(stat -c%s "${UNITED_EXONS_NAME}")"
         if (( "${UNITED_EXONS_FILESIZE}" > 0 )); then

@@ -40,24 +40,24 @@ INPUT_UNIPROT_REF_FASTA="$(abspath "$2")"
 TMP_PATH="$(abspath "$3")"
 
 # prepare reference taxonomy DB
-if notExists "${TMP_PATH}/uniprotDB"; then
+if notExists "${TMP_PATH}/uniprotDB.index"; then
     "$MMSEQS" createdb "${INPUT_UNIPROT_REF_FASTA}" "${TMP_PATH}/uniprotDB" \
         || fail "createdb step died"
 fi
 
-if notExists "${TMP_PATH}/uniprotDB"; then
+if notExists "${TMP_PATH}/uniprotDB.index"; then
     "$MMSEQS" createtaxdb "${TMP_PATH}/uniprotDB" "${TMP_PATH}" \
         || fail "createtaxdb step died"
 fi
 
 
 # map each contig C to its predictions TCS
-if notExists "${TMP_PATH}/pred_to_contig"; then
+if notExists "${TMP_PATH}/pred_to_contig.index"; then
     "$MMSEQS" filterdb "${INPUT_MAP}" "${TMP_PATH}/pred_to_contig" --trim-to-one-column --filter-column 3 \
         || fail "filterdb step died"
 fi
 
-if notExists "${TMP_PATH}/contig_to_pred"; then
+if notExists "${TMP_PATH}/contig_to_pred.index"; then
     "$MMSEQS" swapdb "${TMP_PATH}/pred_to_contig" "${TMP_PATH}/contig_to_pred" \
         || fail "swapdb step died"
 fi
