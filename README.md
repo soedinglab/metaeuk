@@ -1,17 +1,17 @@
-# metaeuk - fast gene discovery in large-scale eukaryotic metagenomics data
+# MetaEuk - fast gene discovery in large-scale eukaryotic metagenomics data
 
 [ ![Codeship Status for soedinglab/metaeuk](https://app.codeship.com/projects/07a9f310-7bb9-0136-3e65-3e3f6cc64c07/status?branch=master)](https://app.codeship.com/projects/300789)
 
-Metaeuk is a modular toolkit designed for fast and large-scale gene calling and annotation in eukaryotic metagenomics contigs. Metaeuk combines the fast and sensitive homology search capabilities of [MMseqs2](https://github.com/soedinglab/MMseqs2) with a dynamic programming procedure to recover optimal exons sets. It reduces redundancies in multiple discoveries of the same gene and resolves conflicting gene predictions on the same strand. Metaeuk is GPL-licensed open source software that is implemented in C++ and available for Linux and macOS. The software is designed to run on multiple cores. Metaeuk was used to create a catalog of protein coding genes of marine eukaryotes based on Tara Oceans 912 metagenomics samples.
+MetaEuk is a modular toolkit designed for fast and large-scale gene calling and annotation in eukaryotic metagenomics contigs. Metaeuk combines the fast and sensitive homology search capabilities of [MMseqs2](https://github.com/soedinglab/MMseqs2) with a dynamic programming procedure to recover optimal exons sets. It reduces redundancies in multiple discoveries of the same gene and resolves conflicting gene predictions on the same strand. MetaEuk is GPL-licensed open source software that is implemented in C++ and available for Linux and macOS. The software is designed to run on multiple cores. MetaEuk was used to create a catalog of protein coding genes of marine eukaryotes based on Tara Oceans 912 metagenomics samples.
 
-[Levy Larin E, Mirdita M and Soeding J. Metaeuk - fast processing of large-scale eukaryotic metagenomics data. biorxiv, doi: doi.org/????/??? (2019)](https://www.biorxiv.org/content/???/2019/??/??/?????).
+[Levy Larin E, Mirdita M and Soeding J. MetaEuk – fast gene discovery in large-scale eukaryotic metagenomics data. biorxiv, doi: doi.org/????/??? (2019)](https://www.biorxiv.org/content/???/2019/??/??/?????).
 
 ## Input 
-Metaeuk will search for eukaryotic protein-coding genes in **contigs** based on similarity to a reference database of **proteins** or **protein profiles**. The starting point are Fasta files of sequences.
+MetaEuk will search for eukaryotic protein-coding genes in **contigs** based on similarity to a reference database of **proteins** or **protein profiles**. The starting point are Fasta files of sequences (you can use contigs.fna and proteins.faa from the tests/two_contigs directory as a small toy example).
 
 Read [here](https://github.com/soedinglab/mmseqs2/wiki#how-to-create-a-target-profile-database-from-pfam) to learn more on how to create a protein profile database using MMseqs2. Once created, this database can be used as referenceDB in the command below.
 
-## Running metaeuk 
+## Running MetaEuk 
 ### Main Modules:
 
       predictexons      	Predict eukaryotic exons based on protein similarity
@@ -71,7 +71,7 @@ The X_dp_protein_contig_strand_map and X_dp_optimal_exon_sets produced by the mo
     
     metaeuk convert2fasta result_united_exons_aa result_united_exons_aa.fas
     
-#### The metaeuk header:
+#### The MetaEuk header:
 
 The header is composed of several sections, separated by pipes ('|'):
 
@@ -79,7 +79,7 @@ The header is composed of several sections, separated by pipes ('|'):
 
 *coord* refers to the coordination on the contig. It is advisable to keep T_header and C_header short and without pipes. The exon_coords are of the structure:
 *low[taken_low]:high[taken_high]:nucleotide_length[taken_nucleotide_length]*
-Since metaeuk allows for a very overlap on T of two putative exons (see P1 and P2 in the illustartion below), when joining the sequences of the exons, one of them is shortened.
+Since MetaEuk allows for a very overlap on T of two putative exons (see P1 and P2 in the illustartion below), when joining the sequences of the exons, one of them is shortened.
 
 <p align="center"><img src="https://github.com/soedinglab/metaeuk/blob/master/imgs/small_overlap_allowed.png" height="150"/></p>
 
@@ -89,7 +89,7 @@ Example header (two exons on the minus strand):
 
 
 ## Compile from source
-Compiling metaeuk from source has the advantage that it will be optimized to the specific system, which should improve its performance. To compile PLASS `git`, `g++` (4.6 or higher) and `cmake` (3.0 or higher) are required. Afterwards, the PLASS binary will be located in the `build/bin` directory.
+Compiling MetaEuk from source has the advantage that it will be optimized to the specific system, which should improve its performance. To compile MetaEuk `git`, `g++` (4.6 or higher) and `cmake` (3.0 or higher) are required. Afterwards, the MetaEuk binary will be located in the `build/bin` directory.
 
       git clone git@github.com:soedinglab/metaeuk.git .
       git submodule init
@@ -101,11 +101,11 @@ Compiling metaeuk from source has the advantage that it will be optimized to the
       make install
       export PATH="$(pwd)/bin/:$PATH"
         
-:exclamation: If you want to compile metaeuk on macOS, please install and use `gcc` from Homebrew. The default macOS `clang` compiler does not support OpenMP and metaeuk will not be able to run multithreaded. Use the following cmake call:
+:exclamation: If you want to compile metaeuk on macOS, please install and use `gcc` from Homebrew. The default macOS `clang` compiler does not support OpenMP and MetaEuk will not be able to run multithreaded. Use the following cmake call:
 
       CXX="$(brew --prefix)/bin/g++-8" cmake -DCMAKE_BUILD_TYPE=RELEASE -DCMAKE_INSTALL_PREFIX=. ..
 
 ## Hardware requirements
-Metaeuk needs roughly 1 byte of memory per residue to work efficiently. Metaeuk will scale its memory consumption based on the available main memory of the machine. Metaeuk needs a CPU with at least the SSE4.1 instruction set to run. 
+MetaEuk needs roughly 1 byte of memory per residue to work efficiently. MetaEuk will scale its memory consumption based on the available main memory of the machine. MetaEuk needs a CPU with at least the SSE4.1 instruction set to run. 
 
 
