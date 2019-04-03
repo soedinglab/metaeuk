@@ -436,8 +436,8 @@ int collectoptimalset(int argn, const char **argv, const Command& command) {
                         EXIT(EXIT_FAILURE);
                     }
                     // sort + dynamic programming to find the optimals set:
-                    int totalBitScorePlus = findoptimalsetbydp(plusStrandPotentialExons, plusStrandOptimalExonSet, par.minIntronLength, par.minIntronLength, par.maxAaOverlap, par.setGapOpenPenalty, par.setGapExtendPenalty);
-                    int totalBitScoreMinus = findoptimalsetbydp(minusStrandPotentialExons, minusStrandOptimalExonSet, par.minIntronLength, par.minIntronLength, par.maxAaOverlap, par.setGapOpenPenalty, par.setGapExtendPenalty);
+                    int totalBitScorePlus = findoptimalsetbydp(plusStrandPotentialExons, plusStrandOptimalExonSet, par.minIntronLength, par.maxIntronLength, par.maxAaOverlap, par.setGapOpenPenalty, par.setGapExtendPenalty);
+                    int totalBitScoreMinus = findoptimalsetbydp(minusStrandPotentialExons, minusStrandOptimalExonSet, par.minIntronLength, par.maxIntronLength, par.maxAaOverlap, par.setGapOpenPenalty, par.setGapExtendPenalty);
 
                     // write optimal sets to result file:
                     if (plusStrandOptimalExonSet.size() > 0) {
@@ -491,8 +491,8 @@ int collectoptimalset(int argn, const char **argv, const Command& command) {
 
             // one last time - required for the matches of the last contig against the protein
             // sort + dynamic programming to find the optimals set:
-            int totalBitScorePlus = findoptimalsetbydp(plusStrandPotentialExons, plusStrandOptimalExonSet, par.minIntronLength, par.minIntronLength, par.maxAaOverlap, par.setGapOpenPenalty, par.setGapExtendPenalty);
-            int totalBitScoreMinus = findoptimalsetbydp(minusStrandPotentialExons, minusStrandOptimalExonSet, par.minIntronLength, par.minIntronLength, par.maxAaOverlap, par.setGapOpenPenalty, par.setGapExtendPenalty);
+            int totalBitScorePlus = findoptimalsetbydp(plusStrandPotentialExons, plusStrandOptimalExonSet, par.minIntronLength, par.maxIntronLength, par.maxAaOverlap, par.setGapOpenPenalty, par.setGapExtendPenalty);
+            int totalBitScoreMinus = findoptimalsetbydp(minusStrandPotentialExons, minusStrandOptimalExonSet, par.minIntronLength, par.maxIntronLength, par.maxAaOverlap, par.setGapOpenPenalty, par.setGapExtendPenalty);
             
             // write optimal sets to result file:
             if (plusStrandOptimalExonSet.size() > 0) {
