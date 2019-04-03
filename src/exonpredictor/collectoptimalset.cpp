@@ -22,16 +22,6 @@
 const int PLUS = 1;
 const int MINUS = -1;
 
-const int MAXIMAL_INTRON_LENGTH = 10000;
-const int MINIMAL_INTRON_LENGTH = 15;
-int const MAX_AA_OVERLAP = 10;
-int const MIN_EXON_AA_LENGTH = MAX_AA_OVERLAP + 1;
-
-// simple consts, to be changed in the future:
-int const CONST_LEGAL_OVERLAP_PENALTY = -5;
-int const GAP_OPEN_PENALTY = -1;
-int const GAP_EXTEND_PENALTY = -1;
-
 struct potentialExon {
     // constructor
     potentialExon(int iMMSeqs2Key, int iAlnScore, int iContigStart, int iContigEnd, int iStrand, int iProteinMatchStart, int iProteinMatchEnd, int iProteinLen, float iPotentialExonSequenceIdentity, double iPotentialExonEval) :
@@ -42,7 +32,7 @@ struct potentialExon {
             int alignemntLength = potentialExonLengthInNucleotides / 3;
             if ((potentialExonLengthInNucleotides % 3 != 0) || ((alignemntLength * 3) != potentialExonLengthInNucleotides)) {
                 std::string potentialExonStr = potentialExonToStr();
-                Debug(Debug::ERROR) << "ERROR: seems like the coordiantes do not dictate a legal length for a codon segment. " << potentialExonStr << "\n";
+                Debug(Debug::ERROR) << "seems like the coordiantes do not dictate a legal length for a codon segment. " << potentialExonStr << "\n";
                 EXIT(EXIT_FAILURE);
             }
 
@@ -115,7 +105,7 @@ struct dpMatrixRow {
     size_t numExonsInPath;
 };
 
-bool isPairCompatible(const potentialExon & firstPotentialExonOnContig, const potentialExon & secondPotentialExonOnContig) {
+bool isPairCompatible(const potentialExon & firstPotentialExonOnContig, const potentialExon & secondPotentialExonOnContig, const size_t minIntronLength, const size_t maxIntronLength, const size_t maxAaOvelap) {
 	// it is assumed firstPotentialExonOnContig comes before secondPotentialExonOnContig on contig, i.e.:
     // firstPotentialExonOnContig.contigStart <= secondPotentialExonOnContig.contigStart
     // because negative coordinates are used for the minus strand, the logic works
@@ -130,16 +120,27 @@ bool isPairCompatible(const potentialExon & firstPotentialExonOnContig, const po
         return false;
     }
 
-    // check gap/overlap on contig:
+    // check overlap on contig:
     int diffOnContig = secondPotentialExonOnContig.contigStart - firstPotentialExonOnContig.contigEnd - 1;
-    if ((diffOnContig < MINIMAL_INTRON_LENGTH) || (diffOnContig > MAXIMAL_INTRON_LENGTH)) {
+    if (diffOnContig < 0) {
+        // overlap on the contig is not allowed:
+        return false;
+    }
+    // if no contig overlap - check legal intron length:
+    size_t diffOnContigNonNeg = abs(diffOnContig);
+    if ((diffOnContigNonNeg < minIntronLength) || (diffOnContigNonNeg > maxIntronLength)) {
         return false;
     }
 
-    // check gap/overlap on target:
+    // check overlap on target:
     int diffAAs = secondPotentialExonOnContig.proteinMatchStart - firstPotentialExonOnContig.proteinMatchEnd - 1;
-    if (diffAAs < -(MAX_AA_OVERLAP)) {
-        return false;
+    // if diffAAs is negative - there is some target overlap:
+    if (diffAAs < 0) {
+        size_t diffAAsAbs = abs(diffAAs);
+        // check overlap is not too long
+        if (diffAAsAbs > maxAaOvelap) {
+            return false;
+        }
     }
 
     // check contig order is as target order:
@@ -150,13 +151,13 @@ bool isPairCompatible(const potentialExon & firstPotentialExonOnContig, const po
     return true;
 }
 
-int getPenaltyForProtCoords(const potentialExon & prevPotentialExon, const potentialExon & currPotentialExon) {
+int getPenaltyForProtCoords(const potentialExon & prevPotentialExon, const potentialExon & currPotentialExon, const int setGapOpenPenalty, const int setGapExtendPenalty) {
     // this function is called on a compatible pair
     int diffAAs = currPotentialExon.proteinMatchStart - prevPotentialExon.proteinMatchEnd - 1;
     if (diffAAs < 0) {
         // legal overlap that should be penalized:
-        // currently GAP_OPEN_PENALTY = GAP_EXTEND_PENALTY so this is linear penalty
-        int penalty = GAP_OPEN_PENALTY + GAP_EXTEND_PENALTY * (abs(diffAAs) - 1);
+        // by default setGapOpenPenalty = setGapExtendPenalty so this is linear penalty
+        int penalty = setGapOpenPenalty + setGapExtendPenalty * (abs(diffAAs) - 1);
         return penalty;
     }
     else if (diffAAs <= 1) {
@@ -165,8 +166,8 @@ int getPenaltyForProtCoords(const potentialExon & prevPotentialExon, const poten
     }
     else {
         // penalize for missing protein fragment:
-        // currently GAP_OPEN_PENALTY = GAP_EXTEND_PENALTY so this is linear penalty
-        int penalty = GAP_OPEN_PENALTY + GAP_EXTEND_PENALTY * (diffAAs - 1);
+        // by default setGapOpenPenalty = setGapExtendPenalty so this is linear penalty
+        int penalty = setGapOpenPenalty + setGapExtendPenalty * (diffAAs - 1);
         return penalty;
     }
 
@@ -174,7 +175,7 @@ int getPenaltyForProtCoords(const potentialExon & prevPotentialExon, const poten
     return -1000;
 }
 
-int findoptimalsetbydp(std::vector<potentialExon> & potentialExonCandidates, std::vector<potentialExon> & optimalExonSet) {
+int findoptimalsetbydp(std::vector<potentialExon> & potentialExonCandidates, std::vector<potentialExon> & optimalExonSet, const size_t minIntronLength, const size_t maxIntronLength, const size_t maxAaOvelap, const int setGapOpenPenalty, const int setGapExtendPenalty) {
     size_t numPotentialExonCandidates = potentialExonCandidates.size();
     if (numPotentialExonCandidates == 0) {
         // nothing to do here!
@@ -202,10 +203,10 @@ int findoptimalsetbydp(std::vector<potentialExon> & potentialExonCandidates, std
     // dynamic programming to fill in the matrix, go over all rows - previous values have been computed:
     for (size_t currPotentialExonId = 0; currPotentialExonId < numPotentialExonCandidates; ++currPotentialExonId) {
         for (size_t prevPotentialExonId = 0; prevPotentialExonId < currPotentialExonId; ++prevPotentialExonId) {
-            if (isPairCompatible(potentialExonCandidates[prevPotentialExonId], potentialExonCandidates[currPotentialExonId])) {
+            if (isPairCompatible(potentialExonCandidates[prevPotentialExonId], potentialExonCandidates[currPotentialExonId], minIntronLength, maxIntronLength, maxAaOvelap)) {
                 int bestScorePathPrevIsLast = prevIdsAndScoresBestPath[prevPotentialExonId].pathScore;
                 size_t numExonsInPathPrevIsLast = prevIdsAndScoresBestPath[prevPotentialExonId].numExonsInPath;
-                int costOfPrevToCurrTransition = getPenaltyForProtCoords(potentialExonCandidates[prevPotentialExonId], potentialExonCandidates[currPotentialExonId]);
+                int costOfPrevToCurrTransition = getPenaltyForProtCoords(potentialExonCandidates[prevPotentialExonId], potentialExonCandidates[currPotentialExonId], setGapOpenPenalty, setGapExtendPenalty);
                 
                 size_t currNumExonsWithPrev = numExonsInPathPrevIsLast + 1;
                 int bonusForAddingAnExon = (int) log2(currNumExonsWithPrev); // not the most accurate...
@@ -309,6 +310,11 @@ int collectoptimalset(int argn, const char **argv, const Command& command) {
     LocalParameters& par = LocalParameters::getLocalInstance();
     par.parseParameters(argn, argv, command, 3, true, true);
 
+    if (par.minExonAaLength < par.maxAaOverlap) {
+        Debug(Debug::ERROR) << "minExonAaLength was set to be smaller than maxAaOverlap. This can cause trouble for very short exons...\n";
+        EXIT(EXIT_FAILURE);
+    }
+
     DBReader<unsigned int> resultReader(par.db1.c_str(), par.db1Index.c_str(), par.threads, DBReader<unsigned int>::USE_INDEX|DBReader<unsigned int>::USE_DATA);
     resultReader.open(DBReader<unsigned int>::LINEAR_ACCCESS);
 
@@ -380,7 +386,7 @@ int collectoptimalset(int argn, const char **argv, const Command& command) {
                     firstColumnOfSecondAlignemnt = 11;
                 }
                 if (columns < 20) {
-                    Debug(Debug::ERROR) << "ERROR: there should be at least 20 columns in the input file. This doesn't seem to be the case.\n";
+                    Debug(Debug::ERROR) << "there should be at least 20 columns in the input file. This doesn't seem to be the case.\n";
                     EXIT(EXIT_FAILURE);
                 }
 
@@ -423,14 +429,15 @@ int collectoptimalset(int argn, const char **argv, const Command& command) {
                     isFirstIteration = false;
                 }
 
+                // after collecting all the exons on the current contig - find optimal set on each strand:
                 if (potentialExonContigId != currContigId) {
                     if (potentialExonContigId < currContigId) {
-                        Debug(Debug::ERROR) << "ERROR: the contigs are assumed to be sorted in increasing order. This doesn't seem to be the case.\n";
+                        Debug(Debug::ERROR) << "the contigs are assumed to be sorted in increasing order. This doesn't seem to be the case.\n";
                         EXIT(EXIT_FAILURE);
                     }
                     // sort + dynamic programming to find the optimals set:
-                    int totalBitScorePlus = findoptimalsetbydp(plusStrandPotentialExons, plusStrandOptimalExonSet);
-                    int totalBitScoreMinus = findoptimalsetbydp(minusStrandPotentialExons, minusStrandOptimalExonSet);
+                    int totalBitScorePlus = findoptimalsetbydp(plusStrandPotentialExons, plusStrandOptimalExonSet, par.minIntronLength, par.minIntronLength, par.maxAaOverlap, par.setGapOpenPenalty, par.setGapExtendPenalty);
+                    int totalBitScoreMinus = findoptimalsetbydp(minusStrandPotentialExons, minusStrandOptimalExonSet, par.minIntronLength, par.minIntronLength, par.maxAaOverlap, par.setGapOpenPenalty, par.setGapExtendPenalty);
 
                     // write optimal sets to result file:
                     if (plusStrandOptimalExonSet.size() > 0) {
@@ -472,7 +479,7 @@ int collectoptimalset(int argn, const char **argv, const Command& command) {
                 
                 // push current potentialExon struct to vector:
                 size_t potentialExonAALen = (std::abs(potentialExonContigEnd - potentialExonContigStart) + 1) / 3;
-                if (potentialExonAALen >= MIN_EXON_AA_LENGTH) {
+                if (potentialExonAALen >= par.minExonAaLength) {
                     if (potentialExonStrand == PLUS) {
                         plusStrandPotentialExons.emplace_back(potentialExonMMSeqs2Key, potentialExonToProteinAlnScore, potentialExonContigStart, potentialExonContigEnd, potentialExonStrand, proteinMatchStart, proteinMatchEnd, proteinLen, potentialExonSequenceIdentity, potentialExonEvalue);
                     } else {
@@ -484,8 +491,8 @@ int collectoptimalset(int argn, const char **argv, const Command& command) {
 
             // one last time - required for the matches of the last contig against the protein
             // sort + dynamic programming to find the optimals set:
-            int totalBitScorePlus = findoptimalsetbydp(plusStrandPotentialExons, plusStrandOptimalExonSet);
-            int totalBitScoreMinus = findoptimalsetbydp(minusStrandPotentialExons, minusStrandOptimalExonSet);
+            int totalBitScorePlus = findoptimalsetbydp(plusStrandPotentialExons, plusStrandOptimalExonSet, par.minIntronLength, par.minIntronLength, par.maxAaOverlap, par.setGapOpenPenalty, par.setGapExtendPenalty);
+            int totalBitScoreMinus = findoptimalsetbydp(minusStrandPotentialExons, minusStrandOptimalExonSet, par.minIntronLength, par.minIntronLength, par.maxAaOverlap, par.setGapOpenPenalty, par.setGapExtendPenalty);
             
             // write optimal sets to result file:
             if (plusStrandOptimalExonSet.size() > 0) {
