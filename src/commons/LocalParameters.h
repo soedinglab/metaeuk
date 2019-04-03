@@ -65,6 +65,7 @@ private:
         collectoptimalset.push_back(&PARAM_MAX_AA_OVERLAP);
         collectoptimalset.push_back(&PARAM_GAP_OPEN_PENALTY);
         collectoptimalset.push_back(&PARAM_GAP_EXTEND_PENALTY);
+        collectoptimalset.push_back(&PARAM_SCORE_BIAS);
         collectoptimalset.push_back(&PARAM_THREADS);
         collectoptimalset.push_back(&PARAM_V);
 

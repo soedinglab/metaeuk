@@ -24,7 +24,7 @@ const int MINUS = -1;
 
 struct potentialExon {
     // constructor
-    potentialExon(int iMMSeqs2Key, int iAlnScore, int iContigStart, int iContigEnd, int iStrand, int iProteinMatchStart, int iProteinMatchEnd, int iProteinLen, float iPotentialExonSequenceIdentity, double iPotentialExonEval) :
+    potentialExon(int iMMSeqs2Key, int iAlnScore, int iContigStart, int iContigEnd, int iStrand, int iProteinMatchStart, int iProteinMatchEnd, int iProteinLen, float iPotentialExonSequenceIdentity, double iPotentialExonEval, const double scoreBias) :
         MMSeqs2Key(iMMSeqs2Key), alnScore(iAlnScore), contigStart(iContigStart), contigEnd(iContigEnd), strand(iStrand), proteinMatchStart(iProteinMatchStart), proteinMatchEnd(iProteinMatchEnd) {
             // update the result_t object:
             float proteinCover = float(proteinMatchEnd - proteinMatchStart + 1) / iProteinLen;
@@ -38,11 +38,17 @@ struct potentialExon {
 
             // since the search was swapped, the "db" is the potentialExon and the "q" is the protein
             potentialExonAlignemntRes.score      = iAlnScore;
+            potentialExonAlignemntRes.alnLength  = alignemntLength;
+            if (!(MathUtil::AreSame(0,scoreBias))) {
+                double addedScoreBias = alignemntLength * scoreBias;
+                double alnScoreNoBias = iAlnScore - addedScoreBias;
+                potentialExonAlignemntRes.score = (alnScoreNoBias < 0.0) ? int(alnScoreNoBias - 0.5) : int(alnScoreNoBias + 0.5);
+            }
             potentialExonAlignemntRes.qcov       = proteinCover;
             potentialExonAlignemntRes.dbcov      = 1.0;
             potentialExonAlignemntRes.seqId      = iPotentialExonSequenceIdentity;
             potentialExonAlignemntRes.eval       = iPotentialExonEval;
-            potentialExonAlignemntRes.alnLength  = alignemntLength;
+            
 
             potentialExonAlignemntRes.qStartPos  = iProteinMatchStart;
             potentialExonAlignemntRes.qEndPos    = iProteinMatchEnd;
@@ -481,9 +487,9 @@ int collectoptimalset(int argn, const char **argv, const Command& command) {
                 size_t potentialExonAALen = (std::abs(potentialExonContigEnd - potentialExonContigStart) + 1) / 3;
                 if (potentialExonAALen >= par.minExonAaLength) {
                     if (potentialExonStrand == PLUS) {
-                        plusStrandPotentialExons.emplace_back(potentialExonMMSeqs2Key, potentialExonToProteinAlnScore, potentialExonContigStart, potentialExonContigEnd, potentialExonStrand, proteinMatchStart, proteinMatchEnd, proteinLen, potentialExonSequenceIdentity, potentialExonEvalue);
+                        plusStrandPotentialExons.emplace_back(potentialExonMMSeqs2Key, potentialExonToProteinAlnScore, potentialExonContigStart, potentialExonContigEnd, potentialExonStrand, proteinMatchStart, proteinMatchEnd, proteinLen, potentialExonSequenceIdentity, potentialExonEvalue, par.scoreBias);
                     } else {
-                        minusStrandPotentialExons.emplace_back(potentialExonMMSeqs2Key, potentialExonToProteinAlnScore, potentialExonContigStart, potentialExonContigEnd, potentialExonStrand, proteinMatchStart, proteinMatchEnd, proteinLen, potentialExonSequenceIdentity, potentialExonEvalue);
+                        minusStrandPotentialExons.emplace_back(potentialExonMMSeqs2Key, potentialExonToProteinAlnScore, potentialExonContigStart, potentialExonContigEnd, potentialExonStrand, proteinMatchStart, proteinMatchEnd, proteinLen, potentialExonSequenceIdentity, potentialExonEvalue, par.scoreBias);
                     }
                 }
                 results = Util::skipLine(results);
