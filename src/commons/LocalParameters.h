@@ -51,10 +51,10 @@ private:
         Parameters(),
         PARAM_REVERSE_FRAGMENTS(PARAM_REVERSE_FRAGMENTS_ID,"--reverse-fragments", "Reverse AA Fragments", "reverse AA fragments to compute under null [0,1]", typeid(int), (void *) &reverseFragments, "^[0-1]{1}$"),
         PARAM_METAEUK_EVAL_THR(PARAM_METAEUK_EVAL_THR_ID,"--metaeuk-eval", "maximal combined evalue of an optimal set", "maximal combined evalue of an optimal set [0.0, inf]", typeid(float), (void *) &metaeukEvalueThr, "^([-+]?[0-9]*\\.?[0-9]+([eE][-+]?[0-9]+)?)|[0-9]*(\\.[0-9]+)?$"),
-        PARAM_MAX_INTRON_LENGTH(PARAM_MAX_INTRON_LENGTH_ID,"--max-intron", "Maximal intron length", "Maximal allowed intron length", typeid(size_t), (void *) &maxIntronLength, "^[0-9]+$"),
-        PARAM_MIN_INTRON_LENGTH(PARAM_MIN_INTRON_LENGTH_ID,"--min-intron", "Minimal intron length", "Minimal allowed intron length", typeid(size_t), (void *) &minIntronLength, "^[0-9]+$"),
-        PARAM_MIN_EXON_AA_LENGTH(PARAM_MIN_EXON_AA_LENGTH_ID,"--min-exon-aa", "Minimal exon length aa", "Minimal allowed exon length in amino acids", typeid(size_t), (void *) &minExonAaLength, "^[0-9]+$"),
-        PARAM_MAX_AA_OVERLAP(PARAM_MAX_AA_OVERLAP_ID,"--max-overlap", "Maximal overlap of exons", "Maximal allowed overlap of consecutive exons in amino acids", typeid(size_t), (void *) &maxAaOverlap, "^[0-9]+$"),
+        PARAM_MAX_INTRON_LENGTH(PARAM_MAX_INTRON_LENGTH_ID,"--max-intron", "Maximal intron length", "Maximal allowed intron length", typeid(int), (void *) &maxIntronLength, "^[0-9]+$"),
+        PARAM_MIN_INTRON_LENGTH(PARAM_MIN_INTRON_LENGTH_ID,"--min-intron", "Minimal intron length", "Minimal allowed intron length", typeid(int), (void *) &minIntronLength, "^[0-9]+$"),
+        PARAM_MIN_EXON_AA_LENGTH(PARAM_MIN_EXON_AA_LENGTH_ID,"--min-exon-aa", "Minimal exon length aa", "Minimal allowed exon length in amino acids", typeid(int), (void *) &minExonAaLength, "^[0-9]+$"),
+        PARAM_MAX_AA_OVERLAP(PARAM_MAX_AA_OVERLAP_ID,"--max-overlap", "Maximal overlap of exons", "Maximal allowed overlap of consecutive exons in amino acids", typeid(int), (void *) &maxAaOverlap, "^[0-9]+$"),
         PARAM_GAP_OPEN_PENALTY(PARAM_GAP_OPEN_PENALTY_ID,"--set-gap-open", "Gap open penalty", "Gap open penalty (negative) for missed target amino acids between exons", typeid(int), (void *) &setGapOpenPenalty, "^-[0-9]+$"),
         PARAM_GAP_EXTEND_PENALTY(PARAM_GAP_EXTEND_PENALTY_ID,"--set-gap-extend", "Gap extend penalty", "Gap extend penalty (negative) for missed target amino acids between exons", typeid(int), (void *) &setGapExtendPenalty, "^-[0-9]+$")
     {
