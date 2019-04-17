@@ -349,6 +349,8 @@ int collectoptimalset(int argn, const char **argv, const Command& command) {
     // analyze each entry of the result DB, this is a swapped DB
     // so the original targets play the role of queries...
     // i.e., the results are from protein --> potentialExon
+    Debug::Progress progress;
+
 #pragma omp parallel
     {
         unsigned int thread_idx = 0;
@@ -368,7 +370,7 @@ int collectoptimalset(int argn, const char **argv, const Command& command) {
         
 #pragma omp for schedule(dynamic, 100)
         for (size_t id = 0; id < resultReader.getSize(); id++) {
-            Debug::printProgress(id);
+            progress.updateProgress();
 
             unsigned int proteinID = resultReader.getDbKey(id);
 

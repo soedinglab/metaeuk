@@ -117,6 +117,7 @@ int unitesetstosequencedb(int argn, const char **argv, const Command& command) {
     DBReader<unsigned int> setMap(setsMapFilename.c_str(), setsMapIndexFilename.c_str(), par.threads, DBReader<unsigned int>::USE_INDEX|DBReader<unsigned int>::USE_DATA);
     setMap.open(DBReader<unsigned int>::LINEAR_ACCCESS);
 
+    Debug::Progress progress(optimalSetsExonRecords.getSize());
 #pragma omp parallel
     {
         unsigned int thread_idx = 0;
@@ -130,7 +131,7 @@ int unitesetstosequencedb(int argn, const char **argv, const Command& command) {
         
 #pragma omp for schedule(dynamic, 100)
         for (size_t id = 0; id < optimalSetsExonRecords.getSize(); id++) {
-            Debug::printProgress(id);
+            progress.updateProgress();
 
             unsigned int setCombinationKey = optimalSetsExonRecords.getDbKey(id);
 

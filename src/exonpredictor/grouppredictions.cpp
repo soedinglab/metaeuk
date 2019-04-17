@@ -103,6 +103,7 @@ int grouppredictions(int argn, const char **argv, const Command& command) {
     DBWriter writerGroupedPredictionsNoOverlap(par.db3.c_str(), par.db3Index.c_str(), par.threads, par.compressed, Parameters::DBTYPE_CLUSTER_RES);
     writerGroupedPredictionsNoOverlap.open();
 
+    Debug::Progress progress(contigStrandSortedMap.getSize());
 #pragma omp parallel
     {
         unsigned int thread_idx = 0;
@@ -121,7 +122,7 @@ int grouppredictions(int argn, const char **argv, const Command& command) {
         
 #pragma omp for schedule(dynamic, 100)
         for (size_t id = 0; id < contigStrandSortedMap.getSize(); id++) {
-            Debug::printProgress(id);
+            progress.updateProgress();
 
             // these will serve to verify sorted order:
             unsigned int prevLowCoord = 0;
