@@ -1,4 +1,4 @@
-# MetaEuk - fast gene discovery in large-scale eukaryotic metagenomics data
+# MetaEuk - sensitive, high-throughput gene discovery and annotation for large-scale eukaryotic metagenomics
 
 [ ![Codeship Status for soedinglab/metaeuk](https://app.codeship.com/projects/07a9f310-7bb9-0136-3e65-3e3f6cc64c07/status?branch=master)](https://app.codeship.com/projects/300789)
 
