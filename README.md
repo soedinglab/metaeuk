@@ -4,7 +4,15 @@
 
 MetaEuk is a modular toolkit designed for large-scale gene discovery and annotation in eukaryotic metagenomic contigs. Metaeuk combines the fast and sensitive homology search capabilities of [MMseqs2](https://github.com/soedinglab/MMseqs2) with a dynamic programming procedure to recover optimal exons sets. It reduces redundancies in multiple discoveries of the same gene and resolves conflicting gene predictions on the same strand. MetaEuk is GPL-licensed open source software that is implemented in C++ and available for Linux and macOS. The software is designed to run on multiple cores. MetaEuk was used to create a catalog of protein coding genes of marine eukaryotes based on Tara Oceans 912 metagenomics samples.
 
-Levy Larin E, Mirdita M and Soeding J. MetaEuk – sensitive, high-throughput gene discovery and annotation for large-scale eukaryotic metagenomics. submitted, 2019.
+Levy Karin E, Mirdita M and Soeding J. MetaEuk – sensitive, high-throughput gene discovery and annotation for large-scale eukaryotic metagenomics. submitted, 2019.
+
+## Installation
+MetaEuk can be used by compiling from source (see below) or downloading a statically compiled version. It requires a 64-bit system (check with `uname -a | grep x86_64`) with at least the SSE4.1 instruction set (check by executing `cat /proc/cpuinfo | grep sse4_1` on Linux or `sysctl -a | grep machdep.cpu.features | grep SSE4.1` on MacOS).
+     
+     # static build sse4.1
+     wget https://github.com/soedinglab/metaeuk/blob/master/statics/metaeuk_2019_04_23_sse41.tar.gz; tar xvfz metaeuk_2019_04_23_sse41.tar.gz; export PATH=$(pwd)/metaeuk/bin/:$PATH
+     # static build AVX2
+     wget https://github.com/soedinglab/metaeuk/blob/master/statics/metaeuk_2019_04_23_avx2.tar.gz; tar xvfzmetaeuk_2019_04_23_avx2.tar.gz; export PATH=$(pwd)/metaeuk/bin/:$PATH
 
 ## Input 
 MetaEuk will search for eukaryotic protein-coding genes in **contigs** based on similarity to a reference database of **proteins** or **protein profiles**. The starting point are Fasta files of sequences (you can use contigs.fna and proteins.faa from the tests/two_contigs directory as a small toy example).
