@@ -1,0 +1,25 @@
+The target set consists of a single protein:
+
+>two_exons_prot
+MTLCAGFDPNRFLPIVLDVGTNNETHRKNHQYMGLRKDRVHGEQYDIFLENVIKAIREVFPEAFIHFEDFGLKNAKRILDHYRPNIACFNDDIQGTGAVALAAIIGALHVIGALHVTKSPLTEQRIMIFGAGTAGVGIANQIVAGMVTDGLSLGKARDNLFMIDRCGLLLERHAKIATDGQKPFLKKDSDFKEVPSGDIDLETAISLIKPTVLLGCSGQPGKFTEKAIREMSKHVKHPIIFPISNPTTLM
+with two "exons":
+
+MTLCAGFDPNRFLPIVLDVGTNNETHRKNHQYMGLRKDRVHGEQYDIFLENVIKAIREVFPEAFIHFEDFGLKNAKRILDHYRPNIACFNDDIQGTGAVALAAIIGALHV
+
+and:
+
+IGALHVTKSPLTEQRIMIFGAGTAGVGIANQIVAGMVTDGLSLGKARDNLFMIDRCGLLLERHAKIATDGQKPFLKKDSDFKEVPSGDIDLETAISLIKPTVLLGCSGQPGKFTEKAIREMSKHVKHPIIFPISNPTTLM
+
+
+The test runs with --set-gap-open -1 --set-gap-extend -3  (also checks passing of these parameters)
+
+In the test there are three contigs with <intron><exon1><intron><exon2><intron> structure.
+1. The first has exactly the two coded exons.
+2. The second has exactly the two exons but the first is missing the last five AAs
+3. The third has a legal overlap of 5 AAs (the last 5 AAs of the first exons are added to the second)
+4. The fourth has an illegal overlap of 15 AAs - it will recover the second (extended) exon only: 15AAs<exon2>
+
+
+Let Y be the bitscore of (1) and X be the bitscore of the 5 AAs that overlap/miss.
+Then for (2) the score (up to rounding) is: Y + X + set-gap-open + 4*set-gap-extend = Y + X -1 -3*4
+Then for (3) the score (up to rounding) is: Y - X + set-gap-open + 4*set-gap-extend = Y - X -1 -3*4
