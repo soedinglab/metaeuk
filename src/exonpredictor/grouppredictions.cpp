@@ -127,7 +127,6 @@ int grouppredictions(int argn, const char **argv, const Command& command) {
             // these will serve to verify sorted order:
             unsigned int prevLowCoord = 0;
             unsigned int prevNumExons = 0;
-            int prevBitScore = 0;
 
             char *contigStrandSortedRecord = contigStrandSortedMap.getData(id, thread_idx);
             while (*contigStrandSortedRecord != '\0') {
@@ -154,7 +153,6 @@ int grouppredictions(int argn, const char **argv, const Command& command) {
                     // first iteration:
                     prevNumExons = numExons;
                     prevLowCoord = lowContigCoord;
-                    prevBitScore = combinedNormalizedAlnBitScore;
                 }
                 else if (prevLowCoord > lowContigCoord) {
                     Debug(Debug::ERROR) << "ERROR: Predictions are assumed to be sorted by their start position. This doesn't seem to be the case.\n";
@@ -164,14 +162,9 @@ int grouppredictions(int argn, const char **argv, const Command& command) {
                     Debug(Debug::ERROR) << "ERROR: Predictions are assumed to be reverse sub-sorted by their number of exons. This doesn't seem to be the case.\n";
                     EXIT(EXIT_FAILURE);
                 } 
-                else if ((prevLowCoord == lowContigCoord) && (prevNumExons == numExons) && (prevBitScore < combinedNormalizedAlnBitScore)) {
-                    Debug(Debug::ERROR) << "ERROR: Predictions are assumed to be reverse sub-sorted by their bitscore. This doesn't seem to be the case.\n";
-                    EXIT(EXIT_FAILURE);
-                }
                 else {
                     prevNumExons = numExons;
                     prevLowCoord = lowContigCoord;
-                    prevBitScore = combinedNormalizedAlnBitScore;
                 }
 
                 predictionToCluster.emplace_back(proteinContigStrandId, proteinMMSeqs2Key, contigMMSeqs2Key, strand, combinedNormalizedAlnBitScore, combinedEvalue, numExons, lowContigCoord, highContigCoord, exonCharptr);

@@ -45,29 +45,23 @@ fi
 
 # the CS map record contains 10 columns: proteinContigStrandId, proteinMMSeqs2Key, contigMMSeqs2Key, strand, combinedBitScore, combinedEvalue, numExons, lowContigCoord, highContigCoord, exonIDsStr.
 
-## the following three steps create a primary, secondary and tertiary order:
-
-# within each CS, sort by bitscore (decreasing order), tertiary order
-if notExists "${TMP_PATH}/dp_contig_strand_map_sorted_by_bitscore.index"; then
-    "$MMSEQS" filterdb "${TMP_PATH}/dp_contig_strand_map" "${TMP_PATH}/dp_contig_strand_map_sorted_by_bitscore" --sort-entries 2 --filter-column 5 \
-        || fail "filterdb (to sort by bitscore in decreasing order) step died"
-fi
+## the following steps create a primary and secondary orders:
 
 # within each CS, sort by number of exons (decreasing order), secondary order
-if notExists "${TMP_PATH}/dp_contig_strand_map_sorted_by_num_exons_subsorted_by_bit.index"; then
-    "$MMSEQS" filterdb "${TMP_PATH}/dp_contig_strand_map_sorted_by_bitscore" "${TMP_PATH}/dp_contig_strand_map_sorted_by_num_exons_subsorted_by_bit" --sort-entries 2 --filter-column 7 \
+if notExists "${TMP_PATH}/dp_contig_strand_map_sorted_by_num_exons.index"; then
+    "$MMSEQS" filterdb "${TMP_PATH}/dp_contig_strand_map" "${TMP_PATH}/dp_contig_strand_map_sorted_by_num_exons" --sort-entries 2 --filter-column 7 \
         || fail "filterdb (to sort by number of exons in decreasing order) step died"
 fi
 
 # within each CS, sort by start position on the contig (increasing order), primary order
-if notExists "${TMP_PATH}/dp_contig_strand_map_sorted_by_start_subsorted_by_num_and_bit.index"; then
-    "$MMSEQS" filterdb "${TMP_PATH}/dp_contig_strand_map_sorted_by_num_exons_subsorted_by_bit" "${TMP_PATH}/dp_contig_strand_map_sorted_by_start_subsorted_by_num_and_bit" --sort-entries 1 --filter-column 8 \
+if notExists "${TMP_PATH}/dp_contig_strand_map_sorted_by_start_subsorted_by_num_exons.index"; then
+    "$MMSEQS" filterdb "${TMP_PATH}/dp_contig_strand_map_sorted_by_num_exons" "${TMP_PATH}/dp_contig_strand_map_sorted_by_start_subsorted_by_num_exons" --sort-entries 1 --filter-column 8 \
         || fail "filterdb (to sort by start position on the contig in increasing order) step died"
 fi
 
 # greedy grouping of predictions based on the sorted map
 if notExists "${TMP_PATH}/grouped_predictions.index"; then
-    "$MMSEQS" grouppredictions "${TMP_PATH}/dp_contig_strand_map_sorted_by_start_subsorted_by_num_and_bit" "${TMP_PATH}/grouped_predictions" "${TMP_PATH}/grouped_predictions_no_overlap" \
+    "$MMSEQS" grouppredictions "${TMP_PATH}/dp_contig_strand_map_sorted_by_start_subsorted_by_num_exons" "${TMP_PATH}/grouped_predictions" "${TMP_PATH}/grouped_predictions_no_overlap" \
         || fail "grouppredictions step died"
 fi
 
