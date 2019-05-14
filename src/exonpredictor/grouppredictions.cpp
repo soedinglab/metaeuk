@@ -50,10 +50,10 @@ struct prediction {
         for (size_t i = 0; i < exonIdsSepStrs.size(); ++i) {
             exonIds.push_back(Util::fast_atoi<int>(exonIdsSepStrs[i].c_str()));
         }
-        // initialize cluster assignment as self (will change later):
-        clusterProteinContigStrandId = proteinContigStrandId;
-        // initialize cluster no overlap assignment as self (will change later):
-        noOverlapProteinContigStrandId = proteinContigStrandId;
+        // initialize cluster assignment:
+        isClustered = false;
+        // initialize cluster no overlap assignment:
+        isNoOverlapClustered = false;
     }
 
     // to allow sorting a vector of predictions by their E-values
@@ -81,8 +81,8 @@ struct prediction {
     unsigned int lowContigCoord;
     unsigned int highContigCoord;
     std::vector<unsigned int> exonIds;
-    unsigned int clusterProteinContigStrandId; // this will hold the cluster identifier
-    unsigned int noOverlapProteinContigStrandId; // this will hold the cluster identifier for the no overlap data structure
+    bool isClustered; // will indicate if ungrouped or not
+    bool isNoOverlapClustered; // will indicate if assigned after overlap exclusion
 };
 
 
@@ -179,25 +179,29 @@ int grouppredictions(int argn, const char **argv, const Command& command) {
             }
 
             // by this stage we have collected all TCS predictions into a vector
-            // the index i iterates over cluster representatives: 
-            for (size_t i = 0; i < predictionToCluster.size(); ++i) {
+            // the index i iterates over cluster tmp_representatives.
+            // after member collection is done, tmp_representative is replaced by the memeber with the highest bitscore
+            for (unsigned int i = 0; i < predictionToCluster.size(); ++i) {
                 // if i is already assigned - skip it, it is not a cluster representative
-                if (predictionToCluster[i].proteinContigStrandId != predictionToCluster[i].clusterProteinContigStrandId) {
+                if (predictionToCluster[i].isClustered) {
                     continue;
                 }
-                
+
+                // collect cluster members - i is the tmp_representative:
+                unsigned int clusterProteinContigStrandId = predictionToCluster[i].proteinContigStrandId;
+                int maxScore = predictionToCluster[i].combinedNormalizedAlnBitScore;
+                predictionToCluster[i].isClustered = true;
+                unsigned int repIndex = i;
+
                 // initialize the new cluster:
                 char *tmpBuff = Itoa::i32toa_sse2(static_cast<uint32_t>(predictionToCluster[i].proteinContigStrandId), TCSKeyBuff);
                 clusterBuffer.append(TCSKeyBuff, tmpBuff - TCSKeyBuff - 1);
                 clusterBuffer.append(1, '\n');
-                // push the representative into the representative vector - will be used to avoid overlaps
-                representativePredictions.emplace_back(predictionToCluster[i]);
-
-                // collect cluster members:
-                for (size_t j = (i + 1); j < predictionToCluster.size(); ++j) {
+                
+                for (unsigned int j = (i + 1); j < predictionToCluster.size(); ++j) {
                     if (predictionToCluster[j].lowContigCoord >= predictionToCluster[i].highContigCoord) {
-                        // overlap is over - no need to compare to other j - write and move to the next i
-                        goto writeClusterTCSi;
+                        // overlap is over - no need to compare to other j - finish and move to the next i
+                        break;
                     }
                     
                     bool doIandJshareAnExon = false;
@@ -212,17 +216,27 @@ int grouppredictions(int argn, const char **argv, const Command& command) {
 
                     // assign j to the cluster of i if it has a mutual exon and if it wasn't already assigned:
                     endExonComparison:
-                    if (doIandJshareAnExon && (predictionToCluster[j].proteinContigStrandId == predictionToCluster[j].clusterProteinContigStrandId)) {
-                        predictionToCluster[j].clusterProteinContigStrandId = predictionToCluster[i].proteinContigStrandId;
+                    if (doIandJshareAnExon && (! predictionToCluster[j].isClustered)) {
+                        predictionToCluster[j].isClustered = true;
 
                         tmpBuff = Itoa::i32toa_sse2(static_cast<uint32_t>(predictionToCluster[j].proteinContigStrandId), TCSKeyBuff);
                         clusterBuffer.append(TCSKeyBuff, tmpBuff - TCSKeyBuff - 1);
                         clusterBuffer.append(1, '\n');
+
+                        // if bitscore of j is better - update the cluster identifier to be j
+                        if (predictionToCluster[j].combinedNormalizedAlnBitScore > maxScore) {
+                            maxScore = predictionToCluster[j].combinedNormalizedAlnBitScore;
+                            clusterProteinContigStrandId = predictionToCluster[j].proteinContigStrandId;
+                            repIndex = j;
+                        }
                     }
                 }
 
-                writeClusterTCSi:
-                writerGroupedPredictions.writeData(clusterBuffer.c_str(), clusterBuffer.size(), predictionToCluster[i].proteinContigStrandId, thread_idx);
+                // collecting all j members for tmp_representative i is finished:
+                // push the representative into the representative vector - will be used to avoid overlaps
+                representativePredictions.emplace_back(predictionToCluster[repIndex]);
+                //write cluster TCSi:
+                writerGroupedPredictions.writeData(clusterBuffer.c_str(), clusterBuffer.size(), clusterProteinContigStrandId, thread_idx);
                 clusterBuffer.clear();
             }
 
@@ -232,10 +246,11 @@ int grouppredictions(int argn, const char **argv, const Command& command) {
             // go over sorted representatives - unassigned representatives are non-overlap representatives
             for (size_t i = 0; i < representativePredictions.size(); ++i) {
                 // if i is already assigned - skip it, it is not a non-overlap cluster representative
-                if (representativePredictions[i].proteinContigStrandId != representativePredictions[i].noOverlapProteinContigStrandId) {
+                if (representativePredictions[i].isNoOverlapClustered) {
                     continue;
                 }
                 // initialize the new cluster:
+                representativePredictions[i].isNoOverlapClustered = true;
                 char *tmpBuff = Itoa::i32toa_sse2(static_cast<uint32_t>(representativePredictions[i].proteinContigStrandId), TCSKeyBuff);
                 clusterBuffer.append(TCSKeyBuff, tmpBuff - TCSKeyBuff - 1);
                 clusterBuffer.append(1, '\n');
@@ -256,7 +271,7 @@ int grouppredictions(int argn, const char **argv, const Command& command) {
                         (representativePredictions[j].lowContigCoord < representativePredictions[i].lowContigCoord))
                         ) {
                             // i begins in the middle of j or j begins in the middle of i ==> overlap
-                            representativePredictions[j].noOverlapProteinContigStrandId = representativePredictions[i].proteinContigStrandId;
+                            representativePredictions[j].isNoOverlapClustered = true;
                             tmpBuff = Itoa::i32toa_sse2(static_cast<uint32_t>(representativePredictions[j].proteinContigStrandId), TCSKeyBuff);
                             clusterBuffer.append(TCSKeyBuff, tmpBuff - TCSKeyBuff - 1);
                             clusterBuffer.append(1, '\n');
