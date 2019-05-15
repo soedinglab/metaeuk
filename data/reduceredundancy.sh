@@ -43,6 +43,7 @@ if notExists "${TMP_PATH}/dp_contig_strand_map.index"; then
         || fail "swapdb step died"
 fi
 
+# swapdb replaces the contigStrandId with the TCS index (proteinContigStrandId)
 # the CS map record contains 10 columns: proteinContigStrandId, proteinMMSeqs2Key, contigMMSeqs2Key, strand, combinedBitScore, combinedEvalue, numExons, lowContigCoord, highContigCoord, exonIDsStr.
 
 ## the following steps create a primary and secondary orders:

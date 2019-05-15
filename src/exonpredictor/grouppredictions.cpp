@@ -137,7 +137,7 @@ int grouppredictions(int argn, const char **argv, const Command& command) {
                     EXIT(EXIT_FAILURE);
                 }
 
-                unsigned int proteinContigStrandId = Util::fast_atoi<int>(entry[0]);
+                unsigned int proteinContigStrandId = Util::fast_atoi<int>(entry[0]); // the input map is a result of swapdb which replaces the contigStrandId with the TCS index
                 unsigned int proteinMMSeqs2Key = Util::fast_atoi<int>(entry[1]);
                 unsigned int contigMMSeqs2Key = Util::fast_atoi<int>(entry[2]);
                 int strand = Util::fast_atoi<int>(entry[3]);
@@ -174,24 +174,24 @@ int grouppredictions(int argn, const char **argv, const Command& command) {
             // by this stage we have collected all TCS predictions into a vector
             // the index i iterates over cluster tmp_representatives.
             // after member collection is done, tmp_representative is replaced by the memeber with the highest bitscore
-            for (unsigned int i = 0; i < predictionToCluster.size(); ++i) {
+            for (size_t i = 0; i < predictionToCluster.size(); ++i) {
                 // if i is already assigned - skip it, it is not a cluster representative
                 if (predictionToCluster[i].isClustered) {
                     continue;
                 }
 
                 // collect cluster members - i is the tmp_representative:
-                unsigned int clusterProteinContigStrandId = predictionToCluster[i].proteinContigStrandId;
+                size_t clusterProteinContigStrandId = predictionToCluster[i].proteinContigStrandId;
                 int maxScore = predictionToCluster[i].combinedNormalizedAlnBitScore;
                 predictionToCluster[i].isClustered = true;
-                unsigned int repIndex = i;
+                size_t repIndex = i;
 
                 // initialize the new cluster:
                 char *tmpBuff = Itoa::i32toa_sse2(static_cast<uint32_t>(predictionToCluster[i].proteinContigStrandId), TCSKeyBuff);
                 clusterBuffer.append(TCSKeyBuff, tmpBuff - TCSKeyBuff - 1);
                 clusterBuffer.append(1, '\n');
                 
-                for (unsigned int j = (i + 1); j < predictionToCluster.size(); ++j) {
+                for (size_t j = (i + 1); j < predictionToCluster.size(); ++j) {
                     if (predictionToCluster[j].lowContigCoord >= predictionToCluster[i].highContigCoord) {
                         // overlap is over - no need to compare to other j - finish and move to the next i
                         break;
