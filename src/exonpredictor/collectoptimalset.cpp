@@ -269,7 +269,7 @@ void getOptimalSetContigCoords (std::vector<potentialExon> & optimalExonSet, int
 }
 
 size_t fillBufferWithMapInfo (char * mapBuffer, int proteinID, int contigID, int strand, int totalBitScore, double combinedEvalue, std::vector<potentialExon> & optimalExonSet) {
-    int contigAndStrandId = (strand == PLUS) ? (2 * contigID + strand) : (2 * contigID);
+    size_t contigAndStrandId = (strand == PLUS) ? (2 * contigID + 1) : (2 * contigID);
     int lowContigCoord;
     int highContigCoord;
     getOptimalSetContigCoords (optimalExonSet, lowContigCoord, highContigCoord);
