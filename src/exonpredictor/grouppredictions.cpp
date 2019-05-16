@@ -187,7 +187,7 @@ int grouppredictions(int argn, const char **argv, const Command& command) {
                 size_t repIndex = i;
 
                 // initialize the new cluster:
-                char *tmpBuff = Itoa::i32toa_sse2(static_cast<uint32_t>(predictionToCluster[i].proteinContigStrandId), TCSKeyBuff);
+                char *tmpBuff = Itoa::u32toa_sse2(static_cast<uint32_t>(predictionToCluster[i].proteinContigStrandId), TCSKeyBuff);
                 clusterBuffer.append(TCSKeyBuff, tmpBuff - TCSKeyBuff - 1);
                 clusterBuffer.append(1, '\n');
                 
@@ -212,7 +212,7 @@ int grouppredictions(int argn, const char **argv, const Command& command) {
                     if (doIandJshareAnExon && (! predictionToCluster[j].isClustered)) {
                         predictionToCluster[j].isClustered = true;
 
-                        tmpBuff = Itoa::i32toa_sse2(static_cast<uint32_t>(predictionToCluster[j].proteinContigStrandId), TCSKeyBuff);
+                        tmpBuff = Itoa::u32toa_sse2(static_cast<uint32_t>(predictionToCluster[j].proteinContigStrandId), TCSKeyBuff);
                         clusterBuffer.append(TCSKeyBuff, tmpBuff - TCSKeyBuff - 1);
                         clusterBuffer.append(1, '\n');
 
@@ -244,7 +244,7 @@ int grouppredictions(int argn, const char **argv, const Command& command) {
                 }
                 // initialize the new cluster:
                 representativePredictions[i].isNoOverlapClustered = true;
-                char *tmpBuff = Itoa::i32toa_sse2(static_cast<uint32_t>(representativePredictions[i].proteinContigStrandId), TCSKeyBuff);
+                char *tmpBuff = Itoa::u32toa_sse2(static_cast<uint32_t>(representativePredictions[i].proteinContigStrandId), TCSKeyBuff);
                 clusterBuffer.append(TCSKeyBuff, tmpBuff - TCSKeyBuff - 1);
                 clusterBuffer.append(1, '\n');
 
@@ -265,7 +265,7 @@ int grouppredictions(int argn, const char **argv, const Command& command) {
                         ) {
                             // i begins in the middle of j or j begins in the middle of i ==> overlap
                             representativePredictions[j].isNoOverlapClustered = true;
-                            tmpBuff = Itoa::i32toa_sse2(static_cast<uint32_t>(representativePredictions[j].proteinContigStrandId), TCSKeyBuff);
+                            tmpBuff = Itoa::u32toa_sse2(static_cast<uint32_t>(representativePredictions[j].proteinContigStrandId), TCSKeyBuff);
                             clusterBuffer.append(TCSKeyBuff, tmpBuff - TCSKeyBuff - 1);
                             clusterBuffer.append(1, '\n');
                     }

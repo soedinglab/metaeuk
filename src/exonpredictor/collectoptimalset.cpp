@@ -24,7 +24,7 @@ const int MINUS = -1;
 
 struct potentialExon {
     // constructor
-    potentialExon(int iMMSeqs2Key, int iAlnScore, int iContigStart, int iContigEnd, int iStrand, int iProteinMatchStart, int iProteinMatchEnd, int iProteinLen, float iPotentialExonSequenceIdentity, double iPotentialExonEval, const double scoreBias) :
+    potentialExon(unsigned int iMMSeqs2Key, int iAlnScore, int iContigStart, int iContigEnd, int iStrand, int iProteinMatchStart, int iProteinMatchEnd, int iProteinLen, float iPotentialExonSequenceIdentity, double iPotentialExonEval, const double scoreBias) :
         MMSeqs2Key(iMMSeqs2Key), alnScore(iAlnScore), contigStart(iContigStart), contigEnd(iContigEnd), strand(iStrand), proteinMatchStart(iProteinMatchStart), proteinMatchEnd(iProteinMatchEnd) {
             // update the result_t object:
             float proteinCover = float(proteinMatchEnd - proteinMatchStart + 1) / iProteinLen;
@@ -63,7 +63,7 @@ struct potentialExon {
     }
 
     // information extracted from MMSeqs2 local alignment
-    int MMSeqs2Key;
+    unsigned int MMSeqs2Key;
     int alnScore;
     // contig start and end refer to the first (and last) nucleotides to participate in the alignment
     // the coordinates are with respect to the contig start (5', plus strand) and are negative
@@ -264,11 +264,13 @@ void getOptimalSetContigCoords (std::vector<potentialExon> & optimalExonSet, int
     potentialExon firstExon = optimalExonSet[numExonsInOptimalSet - 1]; // the first exon is in the last place in the vector
     potentialExon lastExon = optimalExonSet[0]; // the last exon is in the 0 place in the vector
 
+    // since contigStart and contigEnd are negative on the MINUS strand, we multiply by (-1)
+    // to assure ContigCoords are always positive
     lowContigCoord = (firstExon.strand == PLUS) ? firstExon.contigStart : (-1 * lastExon.contigEnd);
     highContigCoord = (firstExon.strand == PLUS) ? lastExon.contigEnd : (-1 * firstExon.contigStart);
 }
 
-size_t fillBufferWithMapInfo (char * mapBuffer, int proteinID, int contigID, int strand, int totalBitScore, double combinedEvalue, std::vector<potentialExon> & optimalExonSet) {
+size_t fillBufferWithMapInfo (char * mapBuffer, unsigned int proteinID, unsigned int contigID, int strand, int totalBitScore, double combinedEvalue, std::vector<potentialExon> & optimalExonSet) {
     size_t contigAndStrandId = (strand == PLUS) ? (2 * contigID + 1) : (2 * contigID);
     int lowContigCoord;
     int highContigCoord;
@@ -276,7 +278,7 @@ size_t fillBufferWithMapInfo (char * mapBuffer, int proteinID, int contigID, int
     size_t numExons = optimalExonSet.size();
 
     char * basePos = mapBuffer;
-    char * tmpBuff = Itoa::i32toa_sse2(static_cast<uint32_t>(contigAndStrandId), mapBuffer);
+    char * tmpBuff = Itoa::u32toa_sse2(static_cast<uint32_t>(contigAndStrandId), mapBuffer);
     *(tmpBuff-1) = '\t';
     tmpBuff = Itoa::u32toa_sse2(static_cast<uint32_t>(proteinID), tmpBuff);
     *(tmpBuff-1) = '\t';
@@ -284,22 +286,22 @@ size_t fillBufferWithMapInfo (char * mapBuffer, int proteinID, int contigID, int
     *(tmpBuff-1) = '\t';
     tmpBuff = Itoa::i32toa_sse2(static_cast<uint32_t>(strand), tmpBuff);
     *(tmpBuff-1) = '\t';
-    tmpBuff = Itoa::i32toa_sse2(static_cast<uint32_t>(totalBitScore), tmpBuff);
+    tmpBuff = Itoa::u32toa_sse2(static_cast<uint32_t>(totalBitScore), tmpBuff);
     *(tmpBuff-1) = '\t';
     tmpBuff += sprintf(tmpBuff,"%.3E",combinedEvalue);
     tmpBuff++;
     *(tmpBuff-1) = '\t';
-    tmpBuff = Itoa::i32toa_sse2(static_cast<uint32_t>(numExons), tmpBuff);
+    tmpBuff = Itoa::u32toa_sse2(static_cast<uint32_t>(numExons), tmpBuff);
     *(tmpBuff-1) = '\t';
-    tmpBuff = Itoa::i32toa_sse2(static_cast<uint32_t>(lowContigCoord), tmpBuff);
+    tmpBuff = Itoa::u32toa_sse2(static_cast<uint32_t>(lowContigCoord), tmpBuff);
     *(tmpBuff-1) = '\t';
-    tmpBuff = Itoa::i32toa_sse2(static_cast<uint32_t>(highContigCoord), tmpBuff);
+    tmpBuff = Itoa::u32toa_sse2(static_cast<uint32_t>(highContigCoord), tmpBuff);
     *(tmpBuff-1) = '\t';
 
     // go over vector in reverse order (the last exon is in place 0 in the vector)
     for (int i = (numExons - 1); i >= 0; --i) {
-        int mmseqs2ExonId = optimalExonSet[i].MMSeqs2Key;
-        tmpBuff = Itoa::i32toa_sse2(static_cast<uint32_t>(mmseqs2ExonId), tmpBuff);
+        unsigned int mmseqs2ExonId = optimalExonSet[i].MMSeqs2Key;
+        tmpBuff = Itoa::u32toa_sse2(static_cast<uint32_t>(mmseqs2ExonId), tmpBuff);
         // write the exon separator char after each exon except for the last one:
         if (i != 0) {
             *(tmpBuff-1) = '*';
@@ -376,7 +378,7 @@ int collectoptimalset(int argn, const char **argv, const Command& command) {
 
             char *results = resultReader.getData(id, thread_idx);
             
-            int currContigId = -1;
+            unsigned int currContigId = 0;
             bool isFirstIteration = true;
 
             char exonsResultsBuffer[10000];
@@ -409,7 +411,7 @@ int collectoptimalset(int argn, const char **argv, const Command& command) {
                 int potentialExonMatchEnd = Util::fast_atoi<int>(entry[8]);
 
                 // take relavant info from potentialExon<-->contig alignment:
-                int potentialExonContigId = Util::fast_atoi<int>(entry[firstColumnOfSecondAlignemnt]);
+                unsigned int potentialExonContigId = Util::fast_atoi<int>(entry[firstColumnOfSecondAlignemnt]);
                 int potentialExonContigStartBeforeTrim = Util::fast_atoi<int>(entry[firstColumnOfSecondAlignemnt + 7]);
                 int potentialExonContigEndBeforeTrim = Util::fast_atoi<int>(entry[firstColumnOfSecondAlignemnt + 8]);
 
