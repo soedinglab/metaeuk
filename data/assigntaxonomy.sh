@@ -26,16 +26,16 @@ abspath() {
 
 # check number of input variables
 [ "$#" -ne 3 ] && echo "Please provide <metaeukBaseName> <uniprotFasta> <tmpDir>" && exit 1;
-# check if file exists
+# check if files exist
 INPUT_MAP="$(abspath "$1_dp_protein_contig_strand_map")"
 INPUT_UNITED_EXONS="$(abspath "$1_united_exons_aa")"
 INPUT_GROUPED_PREDICTIONS_REP="$(abspath "$1_grouped_predictions_rep")"
 INPUT_UNIPROT_REF_FASTA="$(abspath "$2")"
 
-[ ! -f "${INPUT_MAP}.dbtype" ] &&  echo "${INPUT_MAP}.dbtype not found!" && exit 1;
-[ ! -f "${INPUT_UNITED_EXONS}.dbtype" ] &&  echo "${INPUT_UNITED_EXONS}.dbtype not found!" && exit 1;
-[ ! -f "${INPUT_GROUPED_PREDICTIONS_REP}.dbtype" ] &&  echo "${INPUT_GROUPED_PREDICTIONS_REP}.dbtype not found!" && exit 1;
-[ ! -d "$3" ] &&  echo "tmp directory $3 not found!" && mkdir -p "$3";
+[ ! -f "${INPUT_MAP}.dbtype" ] && echo "${INPUT_MAP}.dbtype not found!" && exit 1;
+[ ! -f "${INPUT_UNITED_EXONS}.dbtype" ] && echo "${INPUT_UNITED_EXONS}.dbtype not found!" && exit 1;
+[ ! -f "${INPUT_GROUPED_PREDICTIONS_REP}.dbtype" ] && echo "${INPUT_GROUPED_PREDICTIONS_REP}.dbtype not found!" && exit 1;
+[ ! -d "$3" ] && echo "tmp directory $3 not found!" && mkdir -p "$3";
 
 TMP_PATH="$(abspath "$3")"
 
