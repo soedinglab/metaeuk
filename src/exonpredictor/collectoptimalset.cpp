@@ -336,7 +336,8 @@ int collectoptimalset(int argn, const char **argv, const Command& command) {
     double dMetaeukEvalueThr = (double)par.metaeukEvalueThr; // converting to double for precise comparisons
    
     // this key is joint to several threads so will be increamented by the __sync_fetch_and_add atomic instruction:
-    size_t globalMapKey = 0; 
+    size_t globalMapKey = 0;
+    size_t mmseqsMaxKey = UINT_MAX; // 32 bit - if changes in the future - change here
     
     std::string dbProteinContigStrandMap = par.db3 + "dp_protein_contig_strand_map";
     std::string dbProteinContigStrandMapIndex = par.db3 + "dp_protein_contig_strand_map.index";
@@ -368,7 +369,7 @@ int collectoptimalset(int argn, const char **argv, const Command& command) {
         std::vector<potentialExon> minusStrandOptimalExonSet;
         minusStrandOptimalExonSet.reserve(100);
 
-        const char *entry[255];          
+        const char *entry[255];
         
 #pragma omp for schedule(dynamic, 100)
         for (size_t id = 0; id < resultReader.getSize(); id++) {
@@ -457,6 +458,10 @@ int collectoptimalset(int argn, const char **argv, const Command& command) {
                         double combinedEvaluePlus = pow(2, log2EvaluePlus);
                         if (combinedEvaluePlus <= dMetaeukEvalueThr) {
                             size_t mapKey = __sync_fetch_and_add(&globalMapKey, 1);
+                            if (mapKey == mmseqsMaxKey) {
+                                Debug(Debug::ERROR) << "The TCS key has reached the maximal value supported by MMseqs index: " << mapKey << ". Index behavior not defined from now on\n";
+                                EXIT(EXIT_FAILURE);
+                            }
                             size_t mapCombinationLen = fillBufferWithMapInfo(mapBuffer, proteinID, currContigId, PLUS, totalBitScorePlus, combinedEvaluePlus, plusStrandOptimalExonSet);
                             mapWriter.writeData(mapBuffer, mapCombinationLen, mapKey, thread_idx);
 
@@ -471,6 +476,10 @@ int collectoptimalset(int argn, const char **argv, const Command& command) {
                         double combinedEvalueMinus = pow(2, log2EvalueMinus);
                         if (combinedEvalueMinus <= dMetaeukEvalueThr) {
                             size_t mapKey = __sync_fetch_and_add(&globalMapKey, 1);
+                            if (mapKey == mmseqsMaxKey) {
+                                Debug(Debug::ERROR) << "The TCS key has reached the maximal value supported by MMseqs index: " << mapKey << ". Index behavior not defined from now on\n";
+                                EXIT(EXIT_FAILURE);
+                            }
                             size_t mapCombinationLen = fillBufferWithMapInfo(mapBuffer, proteinID, currContigId, MINUS, totalBitScoreMinus, combinedEvalueMinus, minusStrandOptimalExonSet);
                             mapWriter.writeData(mapBuffer, mapCombinationLen, mapKey, thread_idx);
 
@@ -512,6 +521,10 @@ int collectoptimalset(int argn, const char **argv, const Command& command) {
                 double combinedEvaluePlus = pow(2, log2EvaluePlus);
                 if (combinedEvaluePlus <= dMetaeukEvalueThr) {
                     size_t mapKey = __sync_fetch_and_add(&globalMapKey, 1);
+                    if (mapKey == mmseqsMaxKey) {
+                        Debug(Debug::ERROR) << "The TCS key has reached the maximal value supported by MMseqs index: " << mapKey << ". Index behavior not defined from now on\n";
+                        EXIT(EXIT_FAILURE);
+                    }
                     size_t mapCombinationLen = fillBufferWithMapInfo(mapBuffer, proteinID, currContigId, PLUS, totalBitScorePlus, combinedEvaluePlus, plusStrandOptimalExonSet);
                     mapWriter.writeData(mapBuffer, mapCombinationLen, mapKey, thread_idx);
 
@@ -526,6 +539,10 @@ int collectoptimalset(int argn, const char **argv, const Command& command) {
                 double combinedEvalueMinus = pow(2, log2EvalueMinus);
                 if (combinedEvalueMinus <= dMetaeukEvalueThr) {
                     size_t mapKey = __sync_fetch_and_add(&globalMapKey, 1);
+                    if (mapKey == mmseqsMaxKey) {
+                        Debug(Debug::ERROR) << "The TCS key has reached the maximal value supported by MMseqs index: " << mapKey << ". Index behavior not defined from now on\n";
+                        EXIT(EXIT_FAILURE);
+                    }
                     size_t mapCombinationLen = fillBufferWithMapInfo(mapBuffer, proteinID, currContigId, MINUS, totalBitScoreMinus, combinedEvalueMinus, minusStrandOptimalExonSet);
                     mapWriter.writeData(mapBuffer, mapCombinationLen, mapKey, thread_idx);
 
