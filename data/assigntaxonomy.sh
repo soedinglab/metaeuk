@@ -40,12 +40,12 @@ INPUT_UNIPROT_REF_FASTA="$(abspath "$2")"
 TMP_PATH="$(abspath "$3")"
 
 # prepare reference taxonomy DB
-if notExists "${TMP_PATH}/uniprotDB.index"; then
+if notExists "${TMP_PATH}/uniprotDB.dbtype"; then
     "$MMSEQS" createdb "${INPUT_UNIPROT_REF_FASTA}" "${TMP_PATH}/uniprotDB" \
         || fail "createdb step died"
 fi
 
-if notExists "${TMP_PATH}/uniprotDB.index"; then
+if notExists "${TMP_PATH}/uniprotDB.dbtype"; then
     "$MMSEQS" createtaxdb "${TMP_PATH}/uniprotDB" "${TMP_PATH}" \
         || fail "createtaxdb step died"
 fi

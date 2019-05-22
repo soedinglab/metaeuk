@@ -36,21 +36,21 @@ INPUT_TARGET_PROTEINS="$(abspath "$2")"
 TMP_PATH="$(abspath "$4")"
 
 # extract coding fragments from input contigs (result in DNA)
-if notExists "${TMP_PATH}/nucl_6f.index"; then
+if notExists "${TMP_PATH}/nucl_6f.dbtype"; then
     # shellcheck disable=SC2086
     "$MMSEQS" extractorfs "${INPUT_CONTIGS}" "${TMP_PATH}/nucl_6f" ${EXTRACTORFS_PAR} \
         || fail "extractorfs step died"
 fi
 
 # write extracted orfs locations on contig in alignment format
-if notExists "${TMP_PATH}/nucl_6f_orf_aligned_to_contig.index"; then
+if notExists "${TMP_PATH}/nucl_6f_orf_aligned_to_contig.dbtype"; then
     # shellcheck disable=SC2086
     "$MMSEQS" orftocontig "${INPUT_CONTIGS}" "${TMP_PATH}/nucl_6f" "${TMP_PATH}/nucl_6f_orf_aligned_to_contig" ${THREADS_PAR} \
         || fail "orftocontig step died"
 fi
 
 # translate each coding fragment (result in AA)
-if notExists "${TMP_PATH}/aa_6f.index"; then
+if notExists "${TMP_PATH}/aa_6f.dbtype"; then
     # shellcheck disable=SC2086
     "$MMSEQS" translatenucs "${TMP_PATH}/nucl_6f" "${TMP_PATH}/aa_6f" ${TRANSLATENUCS_PAR} \
         || fail "translatenucs step died"
@@ -67,35 +67,35 @@ if [ -n "$REVERSE_FRAGMENTS" ]; then
 fi
 
 # search with each aa fragment against a target DB (result has queries as implicit keys)
-if notExists "${TMP_PATH}/search_res.index"; then
+if notExists "${TMP_PATH}/search_res.dbtype"; then
     # shellcheck disable=SC2086
     "$MMSEQS" search "${AA_FRAGS}" "${INPUT_TARGET_PROTEINS}" "${TMP_PATH}/search_res" "${TMP_PATH}/tmp_search" ${SEARCH_PAR} \
         || fail "search step died"
 fi
 
 # swap results (result has targets as implicit keys)
-if notExists "${TMP_PATH}/search_res_swap.index"; then
+if notExists "${TMP_PATH}/search_res_swap.dbtype"; then
     # shellcheck disable=SC2086
     "$MMSEQS" swapresults "${AA_FRAGS}" "${INPUT_TARGET_PROTEINS}" "${TMP_PATH}/search_res" "${TMP_PATH}/search_res_swap" ${SWAPRESULT_PAR} \
         || fail "swap step died"
 fi
 
 # join contig information to swapped results (result has additional info about the origin of the AA fragments)
-if notExists "${TMP_PATH}/search_res_swap_w_contig_info.index"; then
+if notExists "${TMP_PATH}/search_res_swap_w_contig_info.dbtype"; then
     # shellcheck disable=SC2086
     "$MMSEQS" filterdb "${TMP_PATH}/search_res_swap" "${TMP_PATH}/search_res_swap_w_contig_info" --join-db "${TMP_PATH}/nucl_6f_orf_aligned_to_contig" --filter-column 1 ${THREADS_PAR} \
         || fail "filterdb (to join contig info) step died"
 fi
 
 # sort joined swapped results by contig id
-if notExists "${TMP_PATH}/search_res_swap_w_contig_info_sorted.index"; then
+if notExists "${TMP_PATH}/search_res_swap_w_contig_info_sorted.dbtype"; then
     # shellcheck disable=SC2086
     "$MMSEQS" filterdb "${TMP_PATH}/search_res_swap_w_contig_info" "${TMP_PATH}/search_res_swap_w_contig_info_sorted" --sort-entries 1 --filter-column 11 ${THREADS_PAR} \
         || fail "filterdb (to sort by contig) step died"
 fi
 
 # for each target, with respect to each contig and each strand, find the optimal set of exons
-if notExists "${TMP_PATH}/dp_protein_contig_strand_map.index"; then
+if notExists "${TMP_PATH}/dp_protein_contig_strand_map.dbtype"; then
     # shellcheck disable=SC2086
     "$MMSEQS" collectoptimalset "${TMP_PATH}/search_res_swap_w_contig_info_sorted" "${INPUT_TARGET_PROTEINS}" "${TMP_PATH}/" ${COLLECTOPTIMALSET_PAR} \
         || fail "collectoptimalset step died"

@@ -38,7 +38,7 @@ INPUT_OPTIMAL_EXON_SETS="$(abspath "$2")"
 TMP_PATH="$(abspath "$4")"
 
 # aggregate all TCS (Target + Contig + Strand) predictions by their CS
-if notExists "${TMP_PATH}/dp_contig_strand_map.index"; then
+if notExists "${TMP_PATH}/dp_contig_strand_map.dbtype"; then
     "$MMSEQS" swapdb "${INPUT_MAP}" "${TMP_PATH}/dp_contig_strand_map" \
         || fail "swapdb step died"
 fi
@@ -49,19 +49,19 @@ fi
 ## the following steps create a primary and secondary orders:
 
 # within each CS, sort by number of exons (decreasing order), secondary order
-if notExists "${TMP_PATH}/dp_contig_strand_map_sorted_by_num_exons.index"; then
+if notExists "${TMP_PATH}/dp_contig_strand_map_sorted_by_num_exons.dbtype"; then
     "$MMSEQS" filterdb "${TMP_PATH}/dp_contig_strand_map" "${TMP_PATH}/dp_contig_strand_map_sorted_by_num_exons" --sort-entries 2 --filter-column 7 \
         || fail "filterdb (to sort by number of exons in decreasing order) step died"
 fi
 
 # within each CS, sort by start position on the contig (increasing order), primary order
-if notExists "${TMP_PATH}/dp_contig_strand_map_sorted_by_start_subsorted_by_num_exons.index"; then
+if notExists "${TMP_PATH}/dp_contig_strand_map_sorted_by_start_subsorted_by_num_exons.dbtype"; then
     "$MMSEQS" filterdb "${TMP_PATH}/dp_contig_strand_map_sorted_by_num_exons" "${TMP_PATH}/dp_contig_strand_map_sorted_by_start_subsorted_by_num_exons" --sort-entries 1 --filter-column 8 \
         || fail "filterdb (to sort by start position on the contig in increasing order) step died"
 fi
 
 # greedy grouping of predictions based on the sorted map
-if notExists "${TMP_PATH}/grouped_predictions.index"; then
+if notExists "${TMP_PATH}/grouped_predictions.dbtype"; then
     "$MMSEQS" grouppredictions "${TMP_PATH}/dp_contig_strand_map_sorted_by_start_subsorted_by_num_exons" "${TMP_PATH}/grouped_predictions" "${TMP_PATH}/grouped_predictions_no_overlap" \
         || fail "grouppredictions step died"
 fi
@@ -75,23 +75,23 @@ mv -f "${TMP_PATH}/grouped_predictions_no_overlap.dbtype" "$3_grouped_prediction
 
 
 # create a subdb of the dp files:
-if notExists "$3_dp_protein_contig_strand_map.index"; then
+if notExists "$3_dp_protein_contig_strand_map.dbtype"; then
     "$MMSEQS" createsubdb "$3_grouped_predictions" "${INPUT_MAP}" "$3_dp_protein_contig_strand_map" \
         || fail "createsubdb on INPUT_MAP step died"
 fi
 
-if notExists "$3_dp_optimal_exon_sets.index"; then
+if notExists "$3_dp_optimal_exon_sets.dbtype"; then
     "$MMSEQS" createsubdb "$3_grouped_predictions" "${INPUT_OPTIMAL_EXON_SETS}" "$3_dp_optimal_exon_sets" \
         || fail "createsubdb on INPUT_OPTIMAL_EXON_SETS step died"
 fi
 
 # create a subdb of the dp files (no overlap):
-if notExists "$3_no_overlap_dp_protein_contig_strand_map.index"; then
+if notExists "$3_no_overlap_dp_protein_contig_strand_map.dbtype"; then
     "$MMSEQS" createsubdb "$3_grouped_predictions_no_overlap" "${INPUT_MAP}" "$3_no_overlap_dp_protein_contig_strand_map" \
         || fail "createsubdb on INPUT_MAP step died"
 fi
 
-if notExists "$3_no_overlap_dp_optimal_exon_sets.index"; then
+if notExists "$3_no_overlap_dp_optimal_exon_sets.dbtype"; then
     "$MMSEQS" createsubdb "$3_grouped_predictions_no_overlap" "${INPUT_OPTIMAL_EXON_SETS}" "$3_no_overlap_dp_optimal_exon_sets" \
         || fail "createsubdb on INPUT_OPTIMAL_EXON_SETS step died"
 fi
