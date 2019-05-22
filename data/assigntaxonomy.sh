@@ -32,9 +32,9 @@ INPUT_UNITED_EXONS="$(abspath "$1_united_exons_aa")"
 INPUT_GROUPED_PREDICTIONS_REP="$(abspath "$1_grouped_predictions_rep")"
 INPUT_UNIPROT_REF_FASTA="$(abspath "$2")"
 
-[ ! -f "${INPUT_MAP}" ] &&  echo "${INPUT_MAP} not found!" && exit 1;
-[ ! -f "${INPUT_UNITED_EXONS}" ] &&  echo "${INPUT_UNITED_EXONS} not found!" && exit 1;
-[ ! -f "${INPUT_GROUPED_PREDICTIONS_REP}" ] &&  echo "${INPUT_GROUPED_PREDICTIONS_REP} not found!" && exit 1;
+[ ! -f "${INPUT_MAP}.dbtype" ] &&  echo "${INPUT_MAP}.dbtype not found!" && exit 1;
+[ ! -f "${INPUT_UNITED_EXONS}.dbtype" ] &&  echo "${INPUT_UNITED_EXONS}.dbtype not found!" && exit 1;
+[ ! -f "${INPUT_GROUPED_PREDICTIONS_REP}.dbtype" ] &&  echo "${INPUT_GROUPED_PREDICTIONS_REP}.dbtype not found!" && exit 1;
 [ ! -d "$3" ] &&  echo "tmp directory $3 not found!" && mkdir -p "$3";
 
 TMP_PATH="$(abspath "$3")"

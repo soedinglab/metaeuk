@@ -30,8 +30,8 @@ abspath() {
 INPUT_MAP="$(abspath "$1")"
 INPUT_OPTIMAL_EXON_SETS="$(abspath "$2")"
 
-[ ! -f "${INPUT_MAP}" ] &&  echo "${INPUT_MAP} not found!" && exit 1;
-[ ! -f "${INPUT_OPTIMAL_EXON_SETS}" ] &&  echo "${INPUT_OPTIMAL_EXON_SETS} not found!" && exit 1;
+[ ! -f "${INPUT_MAP}.dbtype" ] &&  echo "${INPUT_MAP}.dbtype not found!" && exit 1;
+[ ! -f "${INPUT_OPTIMAL_EXON_SETS}.dbtype" ] &&  echo "${INPUT_OPTIMAL_EXON_SETS}.dbtype not found!" && exit 1;
 [ ! -d "$4" ] &&  echo "tmp directory $2 not found!" && mkdir -p "$4";
 
 

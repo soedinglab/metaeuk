@@ -27,10 +27,10 @@ abspath() {
 # check number of input variables
 [ "$#" -ne 6 ] && echo "Please provide <contigsDB> <proteinsDB> <dp_protein_contig_strand_map> <dp_optimal_exon_sets> <o:unitedexonsBasename> <tmpDir>" && exit 1;
 # check if file exists
-[ ! -f "$1" ] &&  echo "$1 not found!" && exit 1;
-[ ! -f "$2" ] &&  echo "$2 not found!" && exit 1;
-[ ! -f "$3" ] &&  echo "$3 not found!" && exit 1;
-[ ! -f "$4" ] &&  echo "$4 not found!" && exit 1;
+[ ! -f "$1.dbtype" ] &&  echo "$1.dbtype not found!" && exit 1;
+[ ! -f "$2.dbtype" ] &&  echo "$2.dbtype not found!" && exit 1;
+[ ! -f "$3.dbtype" ] &&  echo "$3.dbtype not found!" && exit 1;
+[ ! -f "$4.dbtype" ] &&  echo "$4.dbtype not found!" && exit 1;
 
 INPUT_CONTIGS="$(abspath "$1")"
 INPUT_TARGET_PROTEINS="$(abspath "$2")"
