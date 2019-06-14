@@ -59,7 +59,7 @@ If there are homologies in referenceDB (e.g., T1 is highly similar to T2), the s
     
     metaeuk reduceredundancy predExResult_dp_protein_contig_strand_map predExResult_dp_optimal_exon_sets redRedResult tempFolder
     
-Upon completion, it will output: redRedResult_dp_protein_contig_strand_map redRedResult_dp_optimal_exon_sets, and  redRedResult_grouped_predictions. The first two contain information about the **TCS** representatives. The third, maps from the representative to all **TCS** predictions that share an exon with it.
+Upon completion, it will output: redRedResult_dp_protein_contig_strand_map, redRedResult_dp_optimal_exon_sets, and  redRedResult_grouped_predictions. The first two contain information about the **TCS** representatives. The third, maps from the representative to all **TCS** predictions that share an exon with it.
 In addition, it will output: redRedResult_no_overlap_dp_protein_contig_strand_map redRedResult_no_overlap_dp_optimal_exon_sets, and  redRedResult_grouped_predictions_no_overlap. The first two contain information about the **TCS** representatives after resolving overlaps. The third, maps from the representative to all **TCS** representatives that overlap it (excluded).
 
 
