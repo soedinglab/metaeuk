@@ -6,6 +6,8 @@ MetaEuk is a modular toolkit designed for large-scale gene discovery and annotat
 
 Levy Karin E, Mirdita M and Soeding J. MetaEuk – sensitive, high-throughput gene discovery and annotation for large-scale eukaryotic metagenomics. submitted, 2019.
 
+<p align="center"><img src="https://github.com/soedinglab/metaeuk/blob/master/imgs/MetaEuk.png" height="250"/></p>
+
 ## Installation
 MetaEuk can be used by compiling from source (see below) or downloading a statically compiled version. It requires a 64-bit system (check with `uname -a | grep x86_64`) with at least the SSE4.1 instruction set (check by executing `cat /proc/cpuinfo | grep sse4_1` on Linux or `sysctl -a | grep machdep.cpu.features | grep SSE4.1` on MacOS).
      
