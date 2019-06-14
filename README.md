@@ -50,7 +50,7 @@ This module will extract all putative protein fragments from each contig (**C**)
     
     metaeuk predictexons contigsDB referenceDB predExResult tempFolder --metaeuk-eval 0.0001 -e 100 --min-length 40
     
-Since this step involves a search, it is the most time-demanding of all analyses steps. Upon completion, it will output: predExResult_dp_protein_contig_strand_map predExResult_dp_optimal_exon_sets. These contain information about each of the **TCS** prediction and its exons.
+Since this step involves a search, it is the most time-demanding of all analyses steps. Upon completion, it will output: predExResult_dp_protein_contig_strand_map and predExResult_dp_optimal_exon_sets. These contain information about each of the **TCS** prediction and its exons.
 
 
 ### Reducing redundancy:
