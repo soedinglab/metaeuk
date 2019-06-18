@@ -38,6 +38,7 @@ TMP_PATH="$(abspath "$4")"
 
 # aggregate all TCS (Target + Contig + Strand) predictions by their CS
 if notExists "${TMP_PATH}/dp_contig_strand_map.dbtype"; then
+    # shellcheck disable=SC2086
     "$MMSEQS" swapdb "${INPUT_MAP}" "${TMP_PATH}/dp_contig_strand_map" ${SWAPDB_PAR} \
         || fail "swapdb step died"
 fi
