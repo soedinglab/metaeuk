@@ -74,6 +74,7 @@ private:
         predictexonsworkflow = combineList(predictexonsworkflow, collectoptimalset);
         predictexonsworkflow.push_back(&PARAM_REVERSE_FRAGMENTS);
 
+        reduceredundancyworkflow = combineList(reduceredundancyworkflow, swapdb);
         reduceredundancyworkflow.push_back(&PARAM_THREADS);
         reduceredundancyworkflow.push_back(&PARAM_REMOVE_TMP_FILES);
 

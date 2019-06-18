@@ -21,6 +21,7 @@ int reduceredundancy(int argc, const char **argv, const Command& command) {
     }
 
     CommandCaller cmd;
+    cmd.addVariable("SWAPDB_PAR", par.createParameterString(par.swapdb).c_str());
     cmd.addVariable("REMOVE_TMP", par.removeTmpFiles ? "TRUE" : NULL);
     cmd.addVariable("THREADS_PAR", par.createParameterString(par.onlythreads).c_str());
 
