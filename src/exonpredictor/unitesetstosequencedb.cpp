@@ -45,7 +45,7 @@ void reverseComplement (const std::string & seq, std::string & revCompSeq) {
 
 int unitesetstosequencedb(int argn, const char **argv, const Command& command) {
     LocalParameters& par = LocalParameters::getLocalInstance();
-    par.parseParameters(argn, argv, command, 5, true, true);
+    par.parseParameters(argn, argv, command, true, 0, 0);
 
     // db1 = contigsDB (data + header):
     std::string contigsDBFilename = par.db1;

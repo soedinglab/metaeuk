@@ -88,7 +88,7 @@ struct prediction {
 
 int grouppredictions(int argn, const char **argv, const Command& command) {
     LocalParameters& par = LocalParameters::getLocalInstance();
-    par.parseParameters(argn, argv, command, 3, true, true);
+    par.parseParameters(argn, argv, command, true, 0, 0);
 
     // Terminology: CS = Contig & Strand combination, TCS = Target & Contig & Strand (i.e. -  a prediction identifier)
     // db1 = a map from CS to all its TCS predictions, ordered by their start on the contig, reverse subordered by # exons 

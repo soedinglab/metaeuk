@@ -7,7 +7,7 @@
 
 int unitetoseqdbs(int argc, const char **argv, const Command& command) {
     LocalParameters& par = LocalParameters::getLocalInstance();
-    par.parseParameters(argc, argv, command, 6);
+    par.parseParameters(argc, argv, command, true, 0, 0);
 
     // check if temp dir exists and if not, try to create it:
     if (FileUtil::directoryExists(par.db6.c_str()) == false){

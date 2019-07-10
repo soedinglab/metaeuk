@@ -316,7 +316,7 @@ size_t fillBufferWithMapInfo (char * mapBuffer, unsigned int proteinID, unsigned
 
 int collectoptimalset(int argn, const char **argv, const Command& command) {
     LocalParameters& par = LocalParameters::getLocalInstance();
-    par.parseParameters(argn, argv, command, 3, true, true);
+    par.parseParameters(argn, argv, command, true, 0, 0);
 
     if (par.minExonAaLength < par.maxAaOverlap) {
         Debug(Debug::ERROR) << "minExonAaLength was set to be smaller than maxAaOverlap. This can cause trouble for very short exons...\n";
