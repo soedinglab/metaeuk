@@ -88,58 +88,58 @@ jobs:
           targetPath: $(Build.SourcesDirectory)/build/build_avx2/src/metaeuk
           artifactName: metaeuk-darwin-avx2
 
-  - job: build_windows_2019
-    displayName: Windows 2019
-    pool:
-      vmImage: 'windows-2019'
-    variables:
-      CYGWIN_ROOT: $(System.Workfolder)\cygwin
-      CYGWIN_MIRROR: http://cygwin.mirror.constant.com
-    timeoutInMinutes: 120
-    steps:
-      - powershell: git config --global core.autocrlf false
-        displayName: core.autocrlf false
-      - checkout: self
-        submodules: true
-      - script: |
-          choco install cygwin --params="/InstallDir:%CYGWIN_ROOT%"
-        displayName: Install Cygwin
-      - script: |
-          %CYGWIN_ROOT%\cygwinsetup.exe -qnNdO -R "%CYGWIN_ROOT%" -s "%CYGWIN_MIRROR%" -g -P ^
-          bash,^
-          xxd,^
-          cmake,^
-          make,^
-          gcc-core,^
-          gcc-g++,^
-          zlib-devel,^
-          libbz2-devel,^
-          busybox-standalone,^
-          git,^
-          binutils,^
-          wget,^
-          perl
-        displayName: Install Dependencies
-      - script: |
-          %CYGWIN_ROOT%\bin\bash.exe -cl "${BUILD_SOURCESDIRECTORY}/lib/mmseqs/util/build_windows.sh $(cygpath ${BUILD_SOURCESDIRECTORY}) $(cygpath ${BUILD_SOURCESDIRECTORY}/build) metaeuk"
-        displayName: Build MetaEuk
-      - task: "ArchiveFiles@2"
-        inputs:
-          rootFolderOrFile: $(Build.SourcesDirectory)\build\metaeuk
-          archiveFile: $(Build.SourcesDirectory)\metaeuk-win64.zip
-          includeRootFolder: true
-          archiveType: zip
-      - task: PublishPipelineArtifact@0
-        inputs:
-          targetPath: $(Build.SourcesDirectory)\metaeuk-win64.zip
-          artifactName: metaeuk-win64
-      - script: |
-          %BUILD_SOURCESDIRECTORY%\build\metaeuk\metaeuk.bat version
-        displayName: Setup Busybox
-      - script: |
-          %CYGWIN_ROOT%\bin\bash.exe -cl "cd ${BUILD_SOURCESDIRECTORY}/tests && ./run.sh $(cygpath ${BUILD_SOURCESDIRECTORY}/build/metaeuk/bin/metaeuk.exe)"
-        displayName: Run Regression Suite
-        condition: eq(variables['regression'], 1)
+  # - job: build_windows_2019
+  #   displayName: Windows 2019
+  #   pool:
+  #     vmImage: 'windows-2019'
+  #   variables:
+  #     CYGWIN_ROOT: $(System.Workfolder)\cygwin
+  #     CYGWIN_MIRROR: http://cygwin.mirror.constant.com
+  #   timeoutInMinutes: 120
+  #   steps:
+  #     - powershell: git config --global core.autocrlf false
+  #       displayName: core.autocrlf false
+  #     - checkout: self
+  #       submodules: true
+  #     - script: |
+  #         choco install cygwin --params="/InstallDir:%CYGWIN_ROOT%"
+  #       displayName: Install Cygwin
+  #     - script: |
+  #         %CYGWIN_ROOT%\cygwinsetup.exe -qnNdO -R "%CYGWIN_ROOT%" -s "%CYGWIN_MIRROR%" -g -P ^
+  #         bash,^
+  #         xxd,^
+  #         cmake,^
+  #         make,^
+  #         gcc-core,^
+  #         gcc-g++,^
+  #         zlib-devel,^
+  #         libbz2-devel,^
+  #         busybox-standalone,^
+  #         git,^
+  #         binutils,^
+  #         wget,^
+  #         perl
+  #       displayName: Install Dependencies
+  #     - script: |
+  #         %CYGWIN_ROOT%\bin\bash.exe -cl "${BUILD_SOURCESDIRECTORY}/lib/mmseqs/util/build_windows.sh $(cygpath ${BUILD_SOURCESDIRECTORY}) $(cygpath ${BUILD_SOURCESDIRECTORY}/build) metaeuk"
+  #       displayName: Build MetaEuk
+  #     - task: "ArchiveFiles@2"
+  #       inputs:
+  #         rootFolderOrFile: $(Build.SourcesDirectory)\build\metaeuk
+  #         archiveFile: $(Build.SourcesDirectory)\metaeuk-win64.zip
+  #         includeRootFolder: true
+  #         archiveType: zip
+  #     - task: PublishPipelineArtifact@0
+  #       inputs:
+  #         targetPath: $(Build.SourcesDirectory)\metaeuk-win64.zip
+  #         artifactName: metaeuk-win64
+  #     - script: |
+  #         %BUILD_SOURCESDIRECTORY%\build\metaeuk\metaeuk.bat version
+  #       displayName: Setup Busybox
+  #     - script: |
+  #         %CYGWIN_ROOT%\bin\bash.exe -cl "cd ${BUILD_SOURCESDIRECTORY}/tests && ./run.sh $(cygpath ${BUILD_SOURCESDIRECTORY}/build/metaeuk/bin/metaeuk.exe)"
+  #       displayName: Run Regression Suite
+  #       condition: eq(variables['regression'], 1)
 
   - job: upload_artifacts
     displayName: Upload Artifacts
@@ -149,7 +149,7 @@ jobs:
     dependsOn:
       - build_macos_1014
       - build_ubuntu_1604
-      - build_windows_2019
+      # - build_windows_2019
     steps:
       - script: |
           cd "${BUILD_SOURCESDIRECTORY}"
@@ -206,19 +206,19 @@ jobs:
           archiveType: tar
       - script:
           rm "${BUILD_SOURCESDIRECTORY}/metaeuk/bin/metaeuk"
-      - task: DownloadPipelineArtifact@1
-        inputs:
-          artifactName: metaeuk-win64
-          targetPath: $(Build.SourcesDirectory)
-      - script: |
-          unzip "${BUILD_SOURCESDIRECTORY}/metaeuk-win64.zip"
-          chmod +x metaeuk/metaeuk.bat metaeuk/bin/*
-      - task: ArchiveFiles@2
-        inputs:
-          rootFolderOrFile: $(Build.SourcesDirectory)/metaeuk
-          archiveFile: $(Build.SourcesDirectory)/metaeuk-win64.zip
-          includeRootFolder: true
-          archiveType: zip
+      # - task: DownloadPipelineArtifact@1
+      #   inputs:
+      #     artifactName: metaeuk-win64
+      #     targetPath: $(Build.SourcesDirectory)
+      # - script: |
+      #     unzip "${BUILD_SOURCESDIRECTORY}/metaeuk-win64.zip"
+      #     chmod +x metaeuk/metaeuk.bat metaeuk/bin/*
+      # - task: ArchiveFiles@2
+      #   inputs:
+      #     rootFolderOrFile: $(Build.SourcesDirectory)/metaeuk
+      #     archiveFile: $(Build.SourcesDirectory)/metaeuk-win64.zip
+      #     includeRootFolder: true
+      #     archiveType: zip
       - task: DownloadSecureFile@1
         inputs:
           secureFile: azure_upload_metaeuk
