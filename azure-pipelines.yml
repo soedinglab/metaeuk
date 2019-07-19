@@ -28,13 +28,14 @@ jobs:
           MPI: 1
 
     steps:
+      - checkout: self
+        submodules: true
       - script: |
           sudo apt-get update
           sudo apt-get -y install mpi-default-dev mpi-default-bin
         displayName: Install Dependencies
         condition: eq(variables['MPI'], 1)
       - script: |
-          git submodule update --init
           mkdir build && cd build
           if [ "${STATIC}" -eq "1" ]; then
               cmake -DCMAKE_BUILD_TYPE=RelWithDebInfo -DBUILD_SHARED_LIBS=OFF \
@@ -64,6 +65,8 @@ jobs:
     pool:
       vmImage: 'macOS-10.14'
     steps:
+      - checkout: self
+        submodules: true
       - script: |
           brew install cmake gcc@9 zlib bzip2 coreutils
         displayName: Install Dependencies
@@ -97,6 +100,7 @@ jobs:
       - powershell: git config --global core.autocrlf false
         displayName: core.autocrlf false
       - checkout: self
+        submodules: true
       - script: |
           choco install cygwin --params="/InstallDir:%CYGWIN_ROOT%"
         displayName: Install Cygwin
