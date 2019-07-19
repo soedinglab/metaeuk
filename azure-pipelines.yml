@@ -152,7 +152,7 @@ jobs:
           mkdir metaeuk
           cp -f README.md LICENCE.md metaeuk
           mkdir metaeuk/bin
-  - task: DownloadPipelineArtifact@1
+      - task: DownloadPipelineArtifact@1
         inputs:
           artifactName: metaeuk-darwin-sse41
           targetPath: $(Build.SourcesDirectory)/metaeuk/bin
