@@ -12,9 +12,9 @@ Levy Karin E, Mirdita M and Soeding J. MetaEuk – sensitive, high-throughput ge
 MetaEuk can be used by compiling from source (see below) or downloading a statically compiled version. It requires a 64-bit system (check with `uname -a | grep x86_64`) with at least the SSE4.1 instruction set (check by executing `cat /proc/cpuinfo | grep sse4_1` on Linux or `sysctl -a | grep machdep.cpu.features | grep SSE4.1` on MacOS).
      
      # static build sse4.1
-     wget https://github.com/soedinglab/metaeuk/blob/master/statics/metaeuk_2019_04_23_sse41.tar.gz; tar xvfz metaeuk_2019_04_23_sse41.tar.gz; export PATH=$(pwd)/metaeuk/bin/:$PATH
+     wget https://mmseqs.com/metaeuk/metaeuk-linux-sse41.tar.gz; tar xvfz metaeuk-linux-sse41.tar.gz; export PATH=$(pwd)/metaeuk/bin/:$PATH
      # static build AVX2
-     wget https://github.com/soedinglab/metaeuk/blob/master/statics/metaeuk_2019_04_23_avx2.tar.gz; tar xvfzmetaeuk_2019_04_23_avx2.tar.gz; export PATH=$(pwd)/metaeuk/bin/:$PATH
+     wget https://mmseqs.com/metaeuk/metaeuk-linux-avx2.tar.gz; tar xvfz metaeuk-linux-avx2.tar.gz; export PATH=$(pwd)/metaeuk/bin/:$PATH
 
 ## Input 
 MetaEuk will search for eukaryotic protein-coding genes in **contigs** based on similarity to a reference database of **proteins** or **protein profiles**. The starting point are Fasta files of sequences (you can use contigs.fna and proteins.faa from the tests/two_contigs directory as a small toy example).
@@ -115,6 +115,6 @@ Compiling MetaEuk from source has the advantage that it will be optimized to the
       CXX="$(brew --prefix)/bin/g++-8" cmake -DCMAKE_BUILD_TYPE=RELEASE -DCMAKE_INSTALL_PREFIX=. ..
 
 ## Hardware requirements
-MetaEuk needs roughly 1 byte of memory per residue to work efficiently. MetaEuk will scale its memory consumption based on the available main memory of the machine. MetaEuk needs a CPU with at least the SSE4.1 instruction set to run. 
+MetaEuk will scale its memory consumption based on the available main memory of the machine. MetaEuk needs a CPU with at least the SSE4.1 instruction set to run. 
 
 
