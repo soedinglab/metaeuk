@@ -69,7 +69,7 @@ jobs:
         displayName: Install Dependencies
       - script: |
           cd ${BUILD_SOURCESDIRECTORY}
-          CC=gcc-9 CXX=g++-9 ./util/build_osx.sh . build metaeuk
+          CC=gcc-9 CXX=g++-9 ./util/lib/mmseqs/build_osx.sh . build metaeuk
         displayName: Build MetaEuk
       - script: |
           cd ${BUILD_SOURCESDIRECTORY}/tests
@@ -117,7 +117,7 @@ jobs:
           perl
         displayName: Install Dependencies
       - script: |
-          %CYGWIN_ROOT%\bin\bash.exe -cl "${BUILD_SOURCESDIRECTORY}/util/build_windows.sh $(cygpath ${BUILD_SOURCESDIRECTORY}) $(cygpath ${BUILD_SOURCESDIRECTORY}/build) metaeuk"
+          %CYGWIN_ROOT%\bin\bash.exe -cl "${BUILD_SOURCESDIRECTORY}/util/lib/mmseqs/build_windows.sh $(cygpath ${BUILD_SOURCESDIRECTORY}) $(cygpath ${BUILD_SOURCESDIRECTORY}/build) metaeuk"
         displayName: Build MetaEuk
       - task: "ArchiveFiles@2"
         inputs:
