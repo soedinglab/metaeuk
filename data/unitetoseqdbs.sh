@@ -50,12 +50,8 @@ if notExists "${UNITED_EXONS_NAME}.dbtype"; then
     # translate sequence DB to AAs
     if notExists "${UNITED_EXONS_NAME}_aa.dbtype"; then
         # shellcheck disable=SC2086
-        UNITED_EXONS_FILESIZE="$(stat -c%s "${UNITED_EXONS_NAME}")"
-        if (( "${UNITED_EXONS_FILESIZE}" > 0 )); then
-            # shellcheck disable=SC2086
-            "$MMSEQS" translatenucs "${UNITED_EXONS_NAME}" "${UNITED_EXONS_NAME}_aa" ${TRANSLATENUCS_PAR} \
+        "$MMSEQS" translatenucs "${UNITED_EXONS_NAME}" "${UNITED_EXONS_NAME}_aa" ${TRANSLATENUCS_PAR} \
             || fail "translatenucs step died"
-        fi
     fi
 fi
 
