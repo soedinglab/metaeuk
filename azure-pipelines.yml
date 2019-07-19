@@ -107,6 +107,6 @@ jobs:
           chmod 700 ~/.ssh && chmod 600 ~/.ssh/id_rsa
           ssh-keyscan -t rsa uniclust.mmseqs.com >> ~/.ssh/known_hosts
           cd "${BUILD_SOURCESDIRECTORY}"
-          ssh codeship@uniclust.mmseqs.com "mkdir -p \"/home/mirdita/repositories/metaeuk/archive/${BUILD_SOURCEVERSION}\""
-          scp metaeuk-linux-sse41.tar.gz metaeuk-linux-avx2.tar.gz codeship@uniclust.mmseqs.com:"/home/mirdita/repositories/metaeuk/archive/${BUILD_SOURCEVERSION}"
+          ssh codeship@uniclust.mmseqs.com "mkdir -p \"/home/mirdita/repositories/mmseqs-webserver/archive/${BUILD_SOURCEVERSION}\""
+          scp metaeuk-linux-sse41.tar.gz metaeuk-linux-avx2.tar.gz codeship@uniclust.mmseqs.com:"/home/mirdita/repositories/mmseqs-webserver/archive/${BUILD_SOURCEVERSION}"
           ssh codeship@uniclust.mmseqs.com "update-latest-metaeuk.sh \"${BUILD_SOURCEVERSION}\""
