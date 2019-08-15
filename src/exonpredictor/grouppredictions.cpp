@@ -173,7 +173,7 @@ int grouppredictions(int argn, const char **argv, const Command& command) {
 
             // by this stage we have collected all TCS predictions into a vector
             // the index i iterates over cluster tmp_representatives.
-            // after member collection is done, tmp_representative is replaced by the memeber with the highest bitscore
+            // after member collection is done, tmp_representative is replaced by the member with the highest bitscore
             for (size_t i = 0; i < predictionToCluster.size(); ++i) {
                 // if i is already assigned - skip it, it is not a cluster representative
                 if (predictionToCluster[i].isClustered) {
