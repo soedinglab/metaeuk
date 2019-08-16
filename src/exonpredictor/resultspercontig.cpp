@@ -154,7 +154,7 @@ int resultspercontig(int argc, const char **argv, const Command &command) {
             }
 
             unsigned int contigKey = i;
-            size_t contigId = qContigDbr.sequenceReader->getId(contigKey);
+            //size_t contigId = qContigDbr.sequenceReader->getId(contigKey);
 
             //unsigned int qLen = std::max(qContigDbr.sequenceReader->getSeqLens(contigId), static_cast<size_t>(2)) - 2;
             unsigned int *orfKeys = &contigLookup[contigOffsets[i]];
