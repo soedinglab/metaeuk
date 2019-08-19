@@ -164,7 +164,7 @@ int resultspercontig(int argc, const char **argv, const Command &command) {
                 }
                 
                 Matcher::result_t orfToContig = Orf::getFromDatabase(orfsHeaderId, contigsReader, orfHeadersReader, thread_idx);
-                // hack orfToContig to retain the orf key and not the contig key (that we will have as the db key)
+                // hack orfToContig to retain the orf key and not the contig key (the contig will serve as the final db key)
                 orfToContig.dbKey = orfKey;
 
                 size_t orfId = alnDbr.getId(orfKey);

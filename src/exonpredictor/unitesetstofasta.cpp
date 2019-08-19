@@ -56,7 +56,7 @@ void reverseComplement (const std::string & seq, std::string & revCompSeq) {
 }
 
 void preparePredDataAndHeader (const prediction & pred, const std::vector<Matcher::result_t> & exons, 
-                                    const std::string proteinHeaderAccession, const std::string contigHeaderAccession, 
+                                    const std::string targetHeaderAcc, const std::string contigHeaderAcc, 
                                     const char* contigData, std::ostringstream& joinedHeaderStream, std::ostringstream& joinedExonsStream) {
     
     // clear streams:
@@ -64,7 +64,7 @@ void preparePredDataAndHeader (const prediction & pred, const std::vector<Matche
     joinedExonsStream.str("");
 
     // initialize header:
-    joinedHeaderStream << proteinHeaderAccession << "|" << contigHeaderAccession << "|";
+    joinedHeaderStream << targetHeaderAcc << "|" << contigHeaderAcc << "|";
     if (pred.strand == PLUS) {
         joinedHeaderStream << "+|";
     } else {
@@ -76,8 +76,8 @@ void preparePredDataAndHeader (const prediction & pred, const std::vector<Matche
     // add all exons:
     int lastTargetPosMatched = -1;
     for (size_t i = 0; i < exons.size(); ++i) {
-        int proteinMatchStart = exons[i].qStartPos;
-        int proteinMatchEnd = exons[i].qEndPos;
+        int targetMatchStart = exons[i].qStartPos;
+        int targetMatchEnd = exons[i].qEndPos;
         
         int exonContigStart = exons[i].dbStartPos;
         int exonContigEnd = exons[i].dbEndPos;
@@ -93,8 +93,8 @@ void preparePredDataAndHeader (const prediction & pred, const std::vector<Matche
         // in order to avoid target overlaps, we remove a few codons from the start of the current exon if needed:
         int exonAdjustedContigStart = exonContigStart;
         int exonAdjustedNucleotideLen = exonNucleotideLen;
-        if (lastTargetPosMatched >= proteinMatchStart) {
-            int diffInAAs = lastTargetPosMatched - proteinMatchStart + 1;
+        if (lastTargetPosMatched >= targetMatchStart) {
+            int diffInAAs = lastTargetPosMatched - targetMatchStart + 1;
             exonAdjustedContigStart += (3 * diffInAAs * pred.strand);
             exonAdjustedNucleotideLen -= (3 * diffInAAs);
         }
@@ -102,8 +102,8 @@ void preparePredDataAndHeader (const prediction & pred, const std::vector<Matche
 
         // extract the segment from the contig:
         std::string exonContigSeq(&contigData[lowContigCoord], (size_t)exonAdjustedNucleotideLen);
-        // update the last AA of the protein that was matched:
-        lastTargetPosMatched = proteinMatchEnd;
+        // update the last AA of the target that was matched:
+        lastTargetPosMatched = targetMatchEnd;
 
         // write the header and data to streams:
         joinedHeaderStream << "|" << abs(exonContigStart) << "[" << abs(exonAdjustedContigStart) << "]:";
@@ -133,9 +133,9 @@ int unitesetstofasta(int argn, const char **argv, const Command& command) {
     DBReader<unsigned int> contigsHeaders(par.hdr1.c_str(), par.hdr1Index.c_str(), par.threads, DBReader<unsigned int>::USE_INDEX|DBReader<unsigned int>::USE_DATA);
     contigsHeaders.open(DBReader<unsigned int>::NOSORT);
 
-    // db2 = proteinsDB (only the header is used)
-    DBReader<unsigned int> proteinsHeaders(par.hdr2.c_str(), par.hdr2Index.c_str(), par.threads, DBReader<unsigned int>::USE_INDEX|DBReader<unsigned int>::USE_DATA);
-    proteinsHeaders.open(DBReader<unsigned int>::NOSORT);
+    // db2 = targetsDB (only the header is used)
+    DBReader<unsigned int> targetsHeaders(par.hdr2.c_str(), par.hdr2Index.c_str(), par.threads, DBReader<unsigned int>::USE_INDEX|DBReader<unsigned int>::USE_DATA);
+    targetsHeaders.open(DBReader<unsigned int>::NOSORT);
 
     // db3 = predictions per contig
     DBReader<unsigned int> predsPerContig(par.db3.c_str(), par.db3Index.c_str(), par.threads, DBReader<unsigned int>::USE_INDEX|DBReader<unsigned int>::USE_DATA);
@@ -181,7 +181,7 @@ int unitesetstofasta(int argn, const char **argv, const Command& command) {
             // get contig data and header:
             const char* contigData = contigsData.getDataByDBKey(contigKey, thread_idx);
             const char* contigHeader = contigsHeaders.getDataByDBKey(contigKey, thread_idx);
-            std::string contigHeaderAccession = Util::parseFastaHeader(contigHeader);
+            std::string contigHeaderAcc = Util::parseFastaHeader(contigHeader);
 
             // process a specific contig
             while (*results != '\0') {
@@ -210,11 +210,11 @@ int unitesetstofasta(int argn, const char **argv, const Command& command) {
                         EXIT(EXIT_FAILURE);
                     }
                     
-                    const char* proteinHeader = proteinsHeaders.getDataByDBKey(currTargetKey, thread_idx);
-                    std::string proteinHeaderAccession = Util::parseFastaHeader(proteinHeader);
+                    const char* targetHeader = targetsHeaders.getDataByDBKey(currTargetKey, thread_idx);
+                    std::string targetHeaderAcc = Util::parseFastaHeader(targetHeader);
                     
                     if (plusStrandExons.size() > 0) {
-                        preparePredDataAndHeader(plusPred, plusStrandExons, proteinHeaderAccession, contigHeaderAccession, contigData, joinedHeaderStream, joinedExonsStream);
+                        preparePredDataAndHeader(plusPred, plusStrandExons, targetHeaderAcc, contigHeaderAcc, contigData, joinedHeaderStream, joinedExonsStream);
                         std::string result = ">" + joinedHeaderStream.str();
                         writer.writeData(result.c_str(), result.size(), 0, thread_idx, false, false);
                         result = joinedExonsStream.str();
@@ -233,7 +233,7 @@ int unitesetstofasta(int argn, const char **argv, const Command& command) {
                         }
                     }
                     if (minusStrandExons.size() > 0) {
-                        preparePredDataAndHeader(minusPred, minusStrandExons, proteinHeaderAccession, contigHeaderAccession, contigData, joinedHeaderStream, joinedExonsStream);
+                        preparePredDataAndHeader(minusPred, minusStrandExons, targetHeaderAcc, contigHeaderAcc, contigData, joinedHeaderStream, joinedExonsStream);
                         std::string result = ">" + joinedHeaderStream.str();
                         writer.writeData(result.c_str(), result.size(), 0, thread_idx, false, false);
                         result = joinedExonsStream.str();
@@ -272,10 +272,10 @@ int unitesetstofasta(int argn, const char **argv, const Command& command) {
             }
 
             // handle the last target for the current contig:
-            const char* proteinHeader = proteinsHeaders.getDataByDBKey(currTargetKey, thread_idx);
-            std::string proteinHeaderAccession = Util::parseFastaHeader(proteinHeader);
+            const char* targetHeader = targetsHeaders.getDataByDBKey(currTargetKey, thread_idx);
+            std::string targetHeaderAcc = Util::parseFastaHeader(targetHeader);
             if (plusStrandExons.size() > 0) {
-                preparePredDataAndHeader(plusPred, plusStrandExons, proteinHeaderAccession, contigHeaderAccession, contigData, joinedHeaderStream, joinedExonsStream);
+                preparePredDataAndHeader(plusPred, plusStrandExons, targetHeaderAcc, contigHeaderAcc, contigData, joinedHeaderStream, joinedExonsStream);
                 std::string result = ">" + joinedHeaderStream.str();
                 writer.writeData(result.c_str(), result.size(), 0, thread_idx, false, false);
                 result = joinedExonsStream.str();
@@ -294,7 +294,7 @@ int unitesetstofasta(int argn, const char **argv, const Command& command) {
                 }
             }
             if (minusStrandExons.size() > 0) {
-                preparePredDataAndHeader(minusPred, minusStrandExons, proteinHeaderAccession, contigHeaderAccession, contigData, joinedHeaderStream, joinedExonsStream);
+                preparePredDataAndHeader(minusPred, minusStrandExons, targetHeaderAcc, contigHeaderAcc, contigData, joinedHeaderStream, joinedExonsStream);
                 std::string result = ">" + joinedHeaderStream.str();
                 writer.writeData(result.c_str(), result.size(), 0, thread_idx, false, false);
                 result = joinedExonsStream.str();
@@ -312,19 +312,17 @@ int unitesetstofasta(int argn, const char **argv, const Command& command) {
                     writer.writeData(result.c_str(), result.size(), 0, thread_idx, false, false);
                 }
             }
-
             // move to another contig:
             plusStrandExons.clear();
             minusStrandExons.clear();
         }
     }
-    //writer.writeIndexEntry(0, 0, 0, 0);
     writer.close(true);
     FileUtil::remove(par.db4Index.c_str());
  
     contigsData.close();
     contigsHeaders.close();
-    proteinsHeaders.close();
+    targetsHeaders.close();
     predsPerContig.close();
 
     return EXIT_SUCCESS;

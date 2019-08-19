@@ -25,14 +25,14 @@ abspath() {
 }
 
 # check number of input variables
-[ "$#" -ne 4 ] && echo "Please provide <contigsDB> <targetDB> <outPredictionsDB> <tmpDir>" && exit 1;
+[ "$#" -ne 4 ] && echo "Please provide <i:contigsDB> <i:targetsDB> <o:predictexonsBaseName> <tmpDir>" && exit 1;
 # check if files exist
 [ ! -f "$1.dbtype" ] && echo "$1.dbtype not found!" && exit 1;
 [ ! -f "$2.dbtype" ] && echo "$2.dbtype not found!" && exit 1;
 [ ! -d "$4" ] && echo "tmp directory $4 not found!" && mkdir -p "$4";
 
 INPUT_CONTIGS="$(abspath "$1")"
-INPUT_TARGET_PROTEINS="$(abspath "$2")"
+INPUT_TARGETS="$(abspath "$2")"
 TMP_PATH="$(abspath "$4")"
 
 # extract coding fragments from input contigs (result in DNA)
@@ -59,10 +59,10 @@ if [ -n "$REVERSE_FRAGMENTS" ]; then
     echo "Will base search on ${AA_FRAGS}"
 fi
 
-# search with each aa fragment against a target DB (result has queries as implicit keys)
+# search with each aa fragment ("stop-to-stop" orf) against a target DB
 if notExists "${TMP_PATH}/search_res.dbtype"; then
     # shellcheck disable=SC2086
-    "$MMSEQS" search "${AA_FRAGS}" "${INPUT_TARGET_PROTEINS}" "${TMP_PATH}/search_res" "${TMP_PATH}/tmp_search" ${SEARCH_PAR} \
+    "$MMSEQS" search "${AA_FRAGS}" "${INPUT_TARGETS}" "${TMP_PATH}/search_res" "${TMP_PATH}/tmp_search" ${SEARCH_PAR} \
         || fail "search step died"
 fi
 
@@ -76,7 +76,7 @@ fi
 # for each target, with respect to each contig and each strand, find the optimal set of exons
 if notExists "${TMP_PATH}/dp_predictions.dbtype"; then
     # shellcheck disable=SC2086
-    "$MMSEQS" collectoptimalset "${TMP_PATH}/search_res_by_contig" "${INPUT_TARGET_PROTEINS}" "${TMP_PATH}/dp_predictions" ${COLLECTOPTIMALSET_PAR} \
+    "$MMSEQS" collectoptimalset "${TMP_PATH}/search_res_by_contig" "${INPUT_TARGETS}" "${TMP_PATH}/dp_predictions" ${COLLECTOPTIMALSET_PAR} \
         || fail "collectoptimalset step died"
 fi
 
