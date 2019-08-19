@@ -20,7 +20,10 @@ struct compareByTarget {
         if (lhs.first.dbKey < rhs.first.dbKey) {
             return true;
         }
-        // if a contig hits the same target with two orfs - sort by orf id
+        if (lhs.first.dbKey > rhs.first.dbKey) {
+            return false;
+        }
+        // if a contig hits the same target with two orfs - sort by orf key
         if (lhs.second.dbKey < rhs.second.dbKey) {
             return true;
         }
@@ -32,10 +35,6 @@ int resultspercontig(int argc, const char **argv, const Command &command) {
     Parameters &par = Parameters::getInstance();
     par.parseParameters(argc, argv, command, true, 0, 0);
 
-    const bool touch = par.preloadMode != Parameters::PRELOAD_MODE_MMAP;
-    IndexReader qContigDbr(par.db1.c_str(), par.threads, IndexReader::SRC_SEQUENCES, (touch) ? (IndexReader::PRELOAD_INDEX) : 0, DBReader<unsigned int>::USE_INDEX);
-    IndexReader qOrfDbr(par.db2.c_str(), par.threads, IndexReader::HEADERS, (touch) ? (IndexReader::PRELOAD_INDEX | IndexReader::PRELOAD_DATA) : 0);
-
     // contig length is needed for computation:
     DBReader<unsigned int> contigsReader(par.db1.c_str(), par.db1Index.c_str(), par.threads, DBReader<unsigned int>::USE_INDEX|DBReader<unsigned int>::USE_DATA);
     contigsReader.open(DBReader<unsigned int>::NOSORT);
@@ -44,7 +43,7 @@ int resultspercontig(int argc, const char **argv, const Command &command) {
     DBReader<unsigned int> orfHeadersReader(par.hdr2.c_str(), par.hdr2Index.c_str(), par.threads, DBReader<unsigned int>::USE_INDEX|DBReader<unsigned int>::USE_DATA);
     orfHeadersReader.open(DBReader<unsigned int>::LINEAR_ACCCESS);
 
-    //IndexReader tSourceDbr(par.db3.c_str(), par.threads, IndexReader::HEADERS, (touch) ? (IndexReader::PRELOAD_INDEX | IndexReader::PRELOAD_DATA) : 0);
+    // input target to orf alignment
     DBReader<unsigned int> alnDbr(par.db3.c_str(), par.db3Index.c_str(), par.threads, DBReader<unsigned int>::USE_INDEX|DBReader<unsigned int>::USE_DATA);
     alnDbr.open(DBReader<unsigned int>::LINEAR_ACCCESS);
 
@@ -58,6 +57,9 @@ int resultspercontig(int argc, const char **argv, const Command &command) {
     if (alnDbr.getSize() <= totalThreads) {
         localThreads = alnDbr.getSize();
     }
+
+    DBWriter resultWriter(par.db4.c_str(), par.db4Index.c_str(), localThreads, par.compressed, Parameters::DBTYPE_ALIGNMENT_RES);
+    resultWriter.open();
 
     // Compute mapping from contig -> orf[] from orf[]->contig in headers
     unsigned int *contigLookup = NULL;
@@ -76,20 +78,20 @@ int resultspercontig(int argc, const char **argv, const Command &command) {
 #endif
 #pragma omp for schedule(dynamic, 10)
         for (size_t i = 0; i <= maxOrfKey; ++i) {
-            size_t queryId = qOrfDbr.sequenceReader->getId(i);
+            size_t queryId = orfHeadersReader.getId(i);
             if (queryId == UINT_MAX) {
                 orfLookup[i] = UINT_MAX;
                 continue;
             }
-            unsigned int queryKey = qOrfDbr.sequenceReader->getDbKey(queryId);
-            char *header = qOrfDbr.sequenceReader->getData(queryId, thread_idx);
+            unsigned int queryKey = orfHeadersReader.getDbKey(queryId);
+            char *header = orfHeadersReader.getData(queryId, thread_idx);
             Orf::SequenceLocation qloc = Orf::parseOrfHeader(header);
             unsigned int id = (qloc.id != UINT_MAX) ? qloc.id : queryKey;
             orfLookup[i] = id;
         }
     }
     Debug(Debug::INFO) << "Computing contig offsets\n";
-    maxContigKey = qContigDbr.sequenceReader->getLastKey();
+    maxContigKey = contigsReader.getLastKey();
     unsigned int *contigSizes = new unsigned int[maxContigKey + 2]();
 #pragma omp parallel for schedule(static) num_threads(localThreads)
     for (size_t i = 0; i <= maxOrfKey ; ++i) {
@@ -104,8 +106,8 @@ int resultspercontig(int argc, const char **argv, const Command &command) {
 
     contigExists = new char[maxContigKey + 1]();
 #pragma omp parallel for schedule(static) num_threads(localThreads)
-    for (size_t i = 0; i < qContigDbr.sequenceReader->getSize(); ++i) {
-        contigExists[qContigDbr.sequenceReader->getDbKey(i)] = 1;
+    for (size_t i = 0; i < contigsReader.getSize(); ++i) {
+        contigExists[contigsReader.getDbKey(i)] = 1;
     }
 
     Debug(Debug::INFO) << "Computing contig lookup\n";
@@ -125,9 +127,6 @@ int resultspercontig(int argc, const char **argv, const Command &command) {
     }
     contigOffsets[0] = 0;
     Debug(Debug::INFO) << "Time for contig lookup: " << timer.lap() << "\n";
-
-    DBWriter resultWriter(par.db4.c_str(), par.db4Index.c_str(), localThreads, par.compressed, Parameters::DBTYPE_ALIGNMENT_RES);
-    resultWriter.open();
 
     size_t entryCount = maxContigKey + 1;
     Debug::Progress progress(entryCount);
@@ -154,23 +153,25 @@ int resultspercontig(int argc, const char **argv, const Command &command) {
             }
 
             unsigned int contigKey = i;
-            //size_t contigId = qContigDbr.sequenceReader->getId(contigKey);
-
-            //unsigned int qLen = std::max(qContigDbr.sequenceReader->getSeqLens(contigId), static_cast<size_t>(2)) - 2;
             unsigned int *orfKeys = &contigLookup[contigOffsets[i]];
             size_t orfCount = contigOffsets[i + 1] - contigOffsets[i];
             for (unsigned int j = 0; j < orfCount; ++j) {
                 unsigned int orfKey = orfKeys[j];
+       
+                size_t orfsHeaderId = orfHeadersReader.getId(orfKey);
+                if (orfsHeaderId == UINT_MAX) {
+                    continue;
+                }
+                
+                Matcher::result_t orfToContig = Orf::getFromDatabase(orfsHeaderId, contigsReader, orfHeadersReader, thread_idx);
+                // hack orfToContig to retain the orf key and not the contig key (that we will have as the db key)
+                orfToContig.dbKey = orfKey;
+
                 size_t orfId = alnDbr.getId(orfKey);
                 // this is needed when alnDbr does not contain all identifiers of the queryDB
                 if (orfId == UINT_MAX) {
                     continue;
                 }
-                
-                Matcher::result_t orfToContig = Orf::getFromDatabase(orfKey, contigsReader, orfHeadersReader, thread_idx);
-                // hack orfToContig to retain the orf key and not the contig key (that we will have as the db key)
-                orfToContig.dbKey = orfKey;
-
                 char *data = alnDbr.getData(orfId, thread_idx);
                 while (*data != '\0') {
                     results.emplace_back(std::make_pair(Matcher::parseAlignmentRecord(data, true), orfToContig));
@@ -212,10 +213,9 @@ int resultspercontig(int argc, const char **argv, const Command &command) {
     if (contigExists != NULL) {
         delete[] contigExists;
     }
-    alnDbr.close();
-
-    contigsReader.close();
     orfHeadersReader.close();
+    contigsReader.close();
+    alnDbr.close();
 
     return EXIT_SUCCESS;
 }

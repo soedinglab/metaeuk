@@ -20,7 +20,7 @@ public:
     std::vector<MMseqsParameter*> collectoptimalset;
     std::vector<MMseqsParameter*> reduceredundancyworkflow;
     std::vector<MMseqsParameter*> assigntaxonomyworkflow;
-    std::vector<MMseqsParameter*> unitetoseqdbsworkflow;
+    std::vector<MMseqsParameter*> unitesetstofasta;
 
     PARAMETER(PARAM_REVERSE_FRAGMENTS)
     int reverseFragments;
@@ -46,6 +46,9 @@ public:
     PARAMETER(PARAM_GAP_EXTEND_PENALTY)
     int setGapExtendPenalty;
 
+    PARAMETER(PARAM_SHOULD_TRANSLATE)
+    int shouldTranslate;
+
 private:
     LocalParameters() : 
         Parameters(),
@@ -56,7 +59,8 @@ private:
         PARAM_MIN_EXON_AA_LENGTH(PARAM_MIN_EXON_AA_LENGTH_ID,"--min-exon-aa", "Minimal exon length aa", "Minimal allowed exon length in amino acids", typeid(int), (void *) &minExonAaLength, "^[0-9]+$"),
         PARAM_MAX_AA_OVERLAP(PARAM_MAX_AA_OVERLAP_ID,"--max-overlap", "Maximal overlap of exons", "Maximal allowed overlap of consecutive exons in amino acids", typeid(int), (void *) &maxAaOverlap, "^[0-9]+$"),
         PARAM_GAP_OPEN_PENALTY(PARAM_GAP_OPEN_PENALTY_ID,"--set-gap-open", "Gap open penalty", "Gap open penalty (negative) for missed target amino acids between exons", typeid(int), (void *) &setGapOpenPenalty, "^-[0-9]+$"),
-        PARAM_GAP_EXTEND_PENALTY(PARAM_GAP_EXTEND_PENALTY_ID,"--set-gap-extend", "Gap extend penalty", "Gap extend penalty (negative) for missed target amino acids between exons", typeid(int), (void *) &setGapExtendPenalty, "^-[0-9]+$")
+        PARAM_GAP_EXTEND_PENALTY(PARAM_GAP_EXTEND_PENALTY_ID,"--set-gap-extend", "Gap extend penalty", "Gap extend penalty (negative) for missed target amino acids between exons", typeid(int), (void *) &setGapExtendPenalty, "^-[0-9]+$"),
+        PARAM_SHOULD_TRANSLATE(PARAM_SHOULD_TRANSLATE_ID,"--translate", "translate codons to AAs", "translate the joint exons coding sequence to amino acids [0,1]", typeid(int), (void *) &shouldTranslate, "^[0-1]{1}$")
     {
         collectoptimalset.push_back(&PARAM_METAEUK_EVAL_THR);
         collectoptimalset.push_back(&PARAM_MAX_INTRON_LENGTH);
@@ -67,6 +71,7 @@ private:
         collectoptimalset.push_back(&PARAM_GAP_EXTEND_PENALTY);
         collectoptimalset.push_back(&PARAM_SCORE_BIAS);
         collectoptimalset.push_back(&PARAM_THREADS);
+        unitesetstofasta.push_back(&PARAM_COMPRESSED);
         collectoptimalset.push_back(&PARAM_V);
 
         // predictexonsworkflow = combineList(extractorfs, translatenucs); // available through searchworkflow
@@ -81,8 +86,11 @@ private:
         assigntaxonomyworkflow.push_back(&PARAM_THREADS);
         assigntaxonomyworkflow.push_back(&PARAM_REMOVE_TMP_FILES);
 
-        unitetoseqdbsworkflow.push_back(&PARAM_THREADS);
-        unitetoseqdbsworkflow.push_back(&PARAM_REMOVE_TMP_FILES);
+        unitesetstofasta.push_back(&PARAM_SHOULD_TRANSLATE);
+        unitesetstofasta.push_back(&PARAM_TRANSLATION_TABLE);
+        unitesetstofasta.push_back(&PARAM_THREADS);
+        unitesetstofasta.push_back(&PARAM_COMPRESSED);
+        unitesetstofasta.push_back(&PARAM_V);
         
         // default value 0 means no reverse of AA fragments
         reverseFragments = 0;
@@ -95,6 +103,9 @@ private:
         maxAaOverlap = 10; // should be smaller than minExonAaLength
         setGapOpenPenalty = -1;
         setGapExtendPenalty = -1;
+
+        // default value 0 means no transaltion to AAs
+        shouldTranslate = 0;
     }
     LocalParameters(LocalParameters const&);
     ~LocalParameters() {};

@@ -25,7 +25,7 @@ abspath() {
 }
 
 # check number of input variables
-[ "$#" -ne 4 ] && echo "Please provide <contigsDB> <proteinsDB> <predictexonsBaseName> <tmpDir>" && exit 1;
+[ "$#" -ne 4 ] && echo "Please provide <contigsDB> <targetDB> <outPredictionsDB> <tmpDir>" && exit 1;
 # check if files exist
 [ ! -f "$1.dbtype" ] && echo "$1.dbtype not found!" && exit 1;
 [ ! -f "$2.dbtype" ] && echo "$2.dbtype not found!" && exit 1;
@@ -42,13 +42,6 @@ if notExists "${TMP_PATH}/nucl_6f.dbtype"; then
         || fail "extractorfs step died"
 fi
 
-# write extracted orfs locations on contig in alignment format
-if notExists "${TMP_PATH}/nucl_6f_orf_aligned_to_contig.dbtype"; then
-    # shellcheck disable=SC2086
-    "$MMSEQS" orftocontig "${INPUT_CONTIGS}" "${TMP_PATH}/nucl_6f" "${TMP_PATH}/nucl_6f_orf_aligned_to_contig" ${THREADS_PAR} \
-        || fail "orftocontig step died"
-fi
-
 # translate each coding fragment (result in AA)
 if notExists "${TMP_PATH}/aa_6f.dbtype"; then
     # shellcheck disable=SC2086
@@ -56,7 +49,7 @@ if notExists "${TMP_PATH}/aa_6f.dbtype"; then
         || fail "translatenucs step died"
 fi
 
-# when running in null mode (to assess evalues), we reverse the AA fragments:
+# when running in null mode (to assess evalues), reverse the AA fragments:
 AA_FRAGS="${TMP_PATH}/aa_6f"
 if [ -n "$REVERSE_FRAGMENTS" ]; then
     # shellcheck disable=SC2086
@@ -73,43 +66,22 @@ if notExists "${TMP_PATH}/search_res.dbtype"; then
         || fail "search step died"
 fi
 
-# swap results (result has targets as implicit keys)
-if notExists "${TMP_PATH}/search_res_swap.dbtype"; then
+# augment the search results with contig info and write a double alignment format where contigs are keys
+if notExists "${TMP_PATH}/search_res_by_contig.dbtype"; then
     # shellcheck disable=SC2086
-    "$MMSEQS" swapresults "${AA_FRAGS}" "${INPUT_TARGET_PROTEINS}" "${TMP_PATH}/search_res" "${TMP_PATH}/search_res_swap" ${SWAPRESULT_PAR} \
-        || fail "swap step died"
-fi
-
-# join contig information to swapped results (result has additional info about the origin of the AA fragments)
-if notExists "${TMP_PATH}/search_res_swap_w_contig_info.dbtype"; then
-    # shellcheck disable=SC2086
-    "$MMSEQS" filterdb "${TMP_PATH}/search_res_swap" "${TMP_PATH}/search_res_swap_w_contig_info" --join-db "${TMP_PATH}/nucl_6f_orf_aligned_to_contig" --filter-column 1 ${THREADS_PAR} \
-        || fail "filterdb (to join contig info) step died"
-fi
-
-# sort joined swapped results by contig id
-if notExists "${TMP_PATH}/search_res_swap_w_contig_info_sorted.dbtype"; then
-    # shellcheck disable=SC2086
-    "$MMSEQS" filterdb "${TMP_PATH}/search_res_swap_w_contig_info" "${TMP_PATH}/search_res_swap_w_contig_info_sorted" --sort-entries 1 --filter-column 11 ${THREADS_PAR} \
-        || fail "filterdb (to sort by contig) step died"
+    "$MMSEQS" resultspercontig "${INPUT_CONTIGS}" "${TMP_PATH}/nucl_6f" "${TMP_PATH}/search_res" "${TMP_PATH}/search_res_by_contig" ${THREADS_PAR} \
+        || fail "resultspercontig step died"
 fi
 
 # for each target, with respect to each contig and each strand, find the optimal set of exons
-if notExists "${TMP_PATH}/dp_protein_contig_strand_map.dbtype"; then
+if notExists "${TMP_PATH}/dp_predictions.dbtype"; then
     # shellcheck disable=SC2086
-    "$MMSEQS" collectoptimalset "${TMP_PATH}/search_res_swap_w_contig_info_sorted" "${INPUT_TARGET_PROTEINS}" "${TMP_PATH}/" ${COLLECTOPTIMALSET_PAR} \
+    "$MMSEQS" collectoptimalset "${TMP_PATH}/search_res_by_contig" "${INPUT_TARGET_PROTEINS}" "${TMP_PATH}/dp_predictions" ${COLLECTOPTIMALSET_PAR} \
         || fail "collectoptimalset step died"
 fi
 
 # post processing
-mv -f "${TMP_PATH}/dp_protein_contig_strand_map" "$3_dp_protein_contig_strand_map" || fail "Could not move result to $3_dp_protein_contig_strand_map"
-mv -f "${TMP_PATH}/dp_protein_contig_strand_map.index" "$3_dp_protein_contig_strand_map.index" || fail "Could not move result to $3_dp_protein_contig_strand_map.index"
-mv -f "${TMP_PATH}/dp_protein_contig_strand_map.dbtype" "$3_dp_protein_contig_strand_map.dbtype" || fail "Could not move result to $3_dp_protein_contig_strand_map.dbtype"
-
-mv -f "${TMP_PATH}/dp_optimal_exon_sets" "$3_dp_optimal_exon_sets" || fail "Could not move result to $3_dp_optimal_exon_sets"
-mv -f "${TMP_PATH}/dp_optimal_exon_sets.index" "$3_dp_optimal_exon_sets.index" || fail "Could not move result to $3_dp_optimal_exon_sets.index"
-mv -f "${TMP_PATH}/dp_optimal_exon_sets.dbtype" "$3_dp_optimal_exon_sets.dbtype" || fail "Could not move result to $3_dp_optimal_exon_sets.dbtype"
-
+"$MMSEQS" mvdb "${TMP_PATH}/dp_predictions" "$3" || fail "Could not move result to $3"
 
 if [ -n "$REMOVE_TMP" ]; then
     echo "Removing temporary files from ${TMP_PATH}"

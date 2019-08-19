@@ -24,10 +24,10 @@ const int MINUS = -1;
 
 struct potentialExon {
     // constructor
-    potentialExon(unsigned int iMMSeqs2Key, int iAlnScore, int iContigStart, int iContigEnd, int iStrand, int iProteinMatchStart, int iProteinMatchEnd, int iProteinLen, float iPotentialExonSequenceIdentity, double iPotentialExonEval, const double scoreBias) :
-        MMSeqs2Key(iMMSeqs2Key), alnScore(iAlnScore), contigStart(iContigStart), contigEnd(iContigEnd), strand(iStrand), proteinMatchStart(iProteinMatchStart), proteinMatchEnd(iProteinMatchEnd) {
+    potentialExon(unsigned int iMMSeqs2Key, int iAlnScore, int iContigStart, int iContigEnd, int iStrand, int iTargetMatchStart, int iTargetMatchEnd, int iTargetLen, float iPotentialExonSequenceIdentity, double iPotentialExonEval, const double scoreBias) :
+        MMSeqs2Key(iMMSeqs2Key), alnScore(iAlnScore), contigStart(iContigStart), contigEnd(iContigEnd), strand(iStrand), targetMatchStart(iTargetMatchStart), targetMatchEnd(iTargetMatchEnd) {
             // update the result_t object:
-            float proteinCover = float(proteinMatchEnd - proteinMatchStart + 1) / iProteinLen;
+            float proteinCover = float(targetMatchEnd - targetMatchStart + 1) / iTargetLen;
             int potentialExonLengthInNucleotides = iContigEnd - iContigStart + 1;
             int alignemntLength = potentialExonLengthInNucleotides / 3;
             if ((potentialExonLengthInNucleotides % 3 != 0) || ((alignemntLength * 3) != potentialExonLengthInNucleotides)) {
@@ -36,7 +36,7 @@ struct potentialExon {
                 EXIT(EXIT_FAILURE);
             }
 
-            // since the search was swapped, the "db" is the potentialExon and the "q" is the protein
+            // since the search was swapped, the "db" is the potentialExon and the "q" is the target
             potentialExonAlignemntRes.score      = iAlnScore;
             potentialExonAlignemntRes.alnLength  = alignemntLength;
             if (!(MathUtil::AreSame(0,scoreBias))) {
@@ -50,9 +50,9 @@ struct potentialExon {
             potentialExonAlignemntRes.eval       = iPotentialExonEval;
             
 
-            potentialExonAlignemntRes.qStartPos  = iProteinMatchStart;
-            potentialExonAlignemntRes.qEndPos    = iProteinMatchEnd;
-            potentialExonAlignemntRes.qLen       = iProteinLen;
+            potentialExonAlignemntRes.qStartPos  = iTargetMatchStart;
+            potentialExonAlignemntRes.qEndPos    = iTargetMatchEnd;
+            potentialExonAlignemntRes.qLen       = iTargetLen;
 
             potentialExonAlignemntRes.dbKey      = iMMSeqs2Key;
             potentialExonAlignemntRes.dbStartPos = iContigStart;
@@ -71,8 +71,8 @@ struct potentialExon {
     int contigStart;
     int contigEnd;
     int strand;
-    int proteinMatchStart;
-    int proteinMatchEnd;
+    int targetMatchStart;
+    int targetMatchEnd;
 
     // will assist in printing to result file:
     Matcher::result_t potentialExonAlignemntRes;
@@ -94,7 +94,7 @@ struct potentialExon {
 
     std::string potentialExonToStr() {
         std::stringstream ss;
-        ss << "MMSeqs2Key: " << MMSeqs2Key << ", alnScore: " << alnScore << ", contigStart: " << contigStart << ", contigEnd: " << contigEnd << ", proteinMatchStart: " << proteinMatchStart << ", proteinMatchEnd: " << proteinMatchEnd;
+        ss << "MMSeqs2Key: " << MMSeqs2Key << ", alnScore: " << alnScore << ", contigStart: " << contigStart << ", contigEnd: " << contigEnd << ", targetMatchStart: " << targetMatchStart << ", targetMatchEnd: " << targetMatchEnd;
         return (ss.str());
     }
 };
@@ -139,7 +139,7 @@ bool isPairCompatible(const potentialExon & firstPotentialExonOnContig, const po
     }
 
     // check overlap on target:
-    int diffAAs = secondPotentialExonOnContig.proteinMatchStart - firstPotentialExonOnContig.proteinMatchEnd - 1;
+    int diffAAs = secondPotentialExonOnContig.targetMatchStart - firstPotentialExonOnContig.targetMatchEnd - 1;
     // if diffAAs is negative - there is some target overlap:
     if (diffAAs < 0) {
         size_t diffAAsAbs = abs(diffAAs);
@@ -150,7 +150,7 @@ bool isPairCompatible(const potentialExon & firstPotentialExonOnContig, const po
     }
 
     // check contig order is as target order:
-    if (secondPotentialExonOnContig.proteinMatchStart < firstPotentialExonOnContig.proteinMatchStart) {
+    if (secondPotentialExonOnContig.targetMatchStart < firstPotentialExonOnContig.targetMatchStart) {
         return false;
     }
 
@@ -159,7 +159,7 @@ bool isPairCompatible(const potentialExon & firstPotentialExonOnContig, const po
 
 int getPenaltyForProtCoords(const potentialExon & prevPotentialExon, const potentialExon & currPotentialExon, const int setGapOpenPenalty, const int setGapExtendPenalty) {
     // this function is called on a compatible pair
-    int diffAAs = currPotentialExon.proteinMatchStart - prevPotentialExon.proteinMatchEnd - 1;
+    int diffAAs = currPotentialExon.targetMatchStart - prevPotentialExon.targetMatchEnd - 1;
     if (diffAAs < 0) {
         // legal overlap that should be penalized:
         // by default setGapOpenPenalty = setGapExtendPenalty so this is linear penalty
@@ -246,20 +246,7 @@ int findoptimalsetbydp(std::vector<potentialExon> & potentialExonCandidates, std
     return (bestPathScore);
 }
 
-size_t fillBufferWithExonsResults (std::vector<potentialExon> & optimalExonSet, char * allExonResultsBuffer) {
-
-    int numExonsInOptimalSet = optimalExonSet.size();
-    size_t numCharsWritten = 0;
-    // go over vector in reverse order (the last exon is in place 0 in the vector)
-    for (int i = (numExonsInOptimalSet - 1); i >= 0; --i) {
-        size_t exonResLen = Matcher::resultToBuffer(&allExonResultsBuffer[numCharsWritten], optimalExonSet[i].potentialExonAlignemntRes, false);
-        numCharsWritten += exonResLen;
-    }
-    return (numCharsWritten);
-}
-
 void getOptimalSetContigCoords (std::vector<potentialExon> & optimalExonSet, int & lowContigCoord, int & highContigCoord) {
-
     int numExonsInOptimalSet = optimalExonSet.size();
     potentialExon firstExon = optimalExonSet[numExonsInOptimalSet - 1]; // the first exon is in the last place in the vector
     potentialExon lastExon = optimalExonSet[0]; // the last exon is in the 0 place in the vector
@@ -270,47 +257,47 @@ void getOptimalSetContigCoords (std::vector<potentialExon> & optimalExonSet, int
     highContigCoord = (firstExon.strand == PLUS) ? lastExon.contigEnd : (-1 * firstExon.contigStart);
 }
 
-size_t fillBufferWithMapInfo (char * mapBuffer, unsigned int proteinID, unsigned int contigID, int strand, int totalBitScore, double combinedEvalue, std::vector<potentialExon> & optimalExonSet) {
-    size_t contigAndStrandId = (strand == PLUS) ? (2 * contigID + 1) : (2 * contigID);
+size_t fillPredictionBuffer (char * predictionBuffer, unsigned int targetKey, int strand, int totalBitScore, double combinedEvalue, std::vector<potentialExon> & optimalExonSet) {
+    // the buffer contains one or more lines
+    // each line starts with the prediciotns fields: targetKey, contigKey, strand, sumBitScore, ...
+    // then each line contains a single exon information
     int lowContigCoord;
     int highContigCoord;
     getOptimalSetContigCoords (optimalExonSet, lowContigCoord, highContigCoord);
     size_t numExons = optimalExonSet.size();
 
-    char * basePos = mapBuffer;
-    char * tmpBuff = Itoa::u32toa_sse2(static_cast<uint32_t>(contigAndStrandId), mapBuffer);
-    *(tmpBuff-1) = '\t';
-    tmpBuff = Itoa::u32toa_sse2(static_cast<uint32_t>(proteinID), tmpBuff);
-    *(tmpBuff-1) = '\t';
-    tmpBuff = Itoa::u32toa_sse2(static_cast<uint32_t>(contigID), tmpBuff);
-    *(tmpBuff-1) = '\t';
-    tmpBuff = Itoa::i32toa_sse2(static_cast<uint32_t>(strand), tmpBuff);
-    *(tmpBuff-1) = '\t';
-    tmpBuff = Itoa::u32toa_sse2(static_cast<uint32_t>(totalBitScore), tmpBuff);
-    *(tmpBuff-1) = '\t';
-    tmpBuff += sprintf(tmpBuff,"%.3E",combinedEvalue);
-    tmpBuff++;
-    *(tmpBuff-1) = '\t';
-    tmpBuff = Itoa::u32toa_sse2(static_cast<uint32_t>(numExons), tmpBuff);
-    *(tmpBuff-1) = '\t';
-    tmpBuff = Itoa::u32toa_sse2(static_cast<uint32_t>(lowContigCoord), tmpBuff);
-    *(tmpBuff-1) = '\t';
-    tmpBuff = Itoa::u32toa_sse2(static_cast<uint32_t>(highContigCoord), tmpBuff);
-    *(tmpBuff-1) = '\t';
+    char * basePos = predictionBuffer;
+    char * tmpBuff = basePos;
 
     // go over vector in reverse order (the last exon is in place 0 in the vector)
     for (int i = (numExons - 1); i >= 0; --i) {
-        unsigned int mmseqs2ExonId = optimalExonSet[i].MMSeqs2Key;
-        tmpBuff = Itoa::u32toa_sse2(static_cast<uint32_t>(mmseqs2ExonId), tmpBuff);
-        // write the exon separator char after each exon except for the last one:
-        if (i != 0) {
-            *(tmpBuff-1) = '*';
-        }
+        // add the columns that are joint for all exons
+        tmpBuff = Itoa::u32toa_sse2(static_cast<uint32_t>(targetKey), tmpBuff);
+        *(tmpBuff-1) = '\t';
+        tmpBuff = Itoa::i32toa_sse2(static_cast<uint32_t>(strand), tmpBuff);
+        *(tmpBuff-1) = '\t';
+        tmpBuff = Itoa::u32toa_sse2(static_cast<uint32_t>(totalBitScore), tmpBuff);
+        *(tmpBuff-1) = '\t';
+        tmpBuff += sprintf(tmpBuff, "%.3E", combinedEvalue);
+        tmpBuff++;
+        *(tmpBuff-1) = '\t';
+        tmpBuff = Itoa::u32toa_sse2(static_cast<uint32_t>(numExons), tmpBuff);
+        *(tmpBuff-1) = '\t';
+        tmpBuff = Itoa::u32toa_sse2(static_cast<uint32_t>(lowContigCoord), tmpBuff);
+        *(tmpBuff-1) = '\t';
+        tmpBuff = Itoa::u32toa_sse2(static_cast<uint32_t>(highContigCoord), tmpBuff);
+        *(tmpBuff-1) = '\t';
+
+        // add the exon information
+        size_t len = Matcher::resultToBuffer(tmpBuff, optimalExonSet[i].potentialExonAlignemntRes, false);
+        tmpBuff += len;
+
+        // add a new line after each exon
+        *(tmpBuff-1) = '\n';
     }
 
-    *(tmpBuff-1) = '\n';
+    // close the buffer
     *(tmpBuff) = '\0';
-
     return (tmpBuff - basePos);
 }
 
@@ -323,36 +310,20 @@ int collectoptimalset(int argn, const char **argv, const Command& command) {
         EXIT(EXIT_FAILURE);
     }
 
-    DBReader<unsigned int> resultReader(par.db1.c_str(), par.db1Index.c_str(), par.threads, DBReader<unsigned int>::USE_INDEX|DBReader<unsigned int>::USE_DATA);
-    resultReader.open(DBReader<unsigned int>::LINEAR_ACCCESS);
+    DBReader<unsigned int> resultPerContigReader(par.db1.c_str(), par.db1Index.c_str(), par.threads, DBReader<unsigned int>::USE_INDEX|DBReader<unsigned int>::USE_DATA);
+    resultPerContigReader.open(DBReader<unsigned int>::LINEAR_ACCCESS);
 
-    std::string proteinsDBIndexFilename(par.db2);
-    proteinsDBIndexFilename.append(".index");
-    DBReader<unsigned int> proteinsData(par.db2.c_str(), proteinsDBIndexFilename.c_str(), par.threads, DBReader<unsigned int>::USE_INDEX|DBReader<unsigned int>::USE_DATA);
-    proteinsData.open(DBReader<unsigned int>::NOSORT);
+    DBReader<unsigned int> targetsData(par.db2.c_str(), par.db2Index.c_str(), par.threads, DBReader<unsigned int>::USE_INDEX);
+    targetsData.open(DBReader<unsigned int>::NOSORT);
     // get number of AAs in target DB for an E-Value computation
-    size_t totNumOfAAsInTargetDb = proteinsData.getAminoAcidDBSize(); // method now returns db size for proteins and for profiles by checking dbtype
-    proteinsData.close();
+    size_t totNumOfAAsInTargetDb = targetsData.getAminoAcidDBSize(); // method now returns db size for proteins and for profiles by checking dbtype
+    targetsData.close();
     double dMetaeukEvalueThr = (double)par.metaeukEvalueThr; // converting to double for precise comparisons
-   
-    // this key is joint to several threads so will be increamented by the __sync_fetch_and_add atomic instruction:
-    size_t globalMapKey = 0;
-    size_t mmseqsMaxKey = UINT_MAX; // 32 bit - if changes in the future - change here
-    
-    std::string dbProteinContigStrandMap = par.db3 + "dp_protein_contig_strand_map";
-    std::string dbProteinContigStrandMapIndex = par.db3 + "dp_protein_contig_strand_map.index";
-    DBWriter mapWriter(dbProteinContigStrandMap.c_str(), dbProteinContigStrandMapIndex.c_str(), par.threads, par.compressed, Parameters::DBTYPE_GENERIC_DB);
-    mapWriter.open();
 
-    std::string dbOptimalExons = par.db3 + "dp_optimal_exon_sets";
-    std::string dbOptimalExonsIndex = par.db3 + "dp_optimal_exon_sets.index";
-    DBWriter optimalExonsWriter(dbOptimalExons.c_str(), dbOptimalExonsIndex.c_str(), par.threads, par.compressed, Parameters::DBTYPE_GENERIC_DB);
-    optimalExonsWriter.open();
+    DBWriter predWriter(par.db3.c_str(), par.db3Index.c_str(), par.threads, par.compressed, Parameters::DBTYPE_GENERIC_DB);
+    predWriter.open();
 
-    // analyze each entry of the result DB, this is a swapped DB
-    // so the original targets play the role of queries...
-    // i.e., the results are from protein --> potentialExon
-    Debug::Progress progress;
+    Debug::Progress progress(resultPerContigReader.getSize());
 
 #pragma omp parallel
     {
@@ -372,47 +343,49 @@ int collectoptimalset(int argn, const char **argv, const Command& command) {
         const char *entry[255];
         
 #pragma omp for schedule(dynamic, 100)
-        for (size_t id = 0; id < resultReader.getSize(); id++) {
+        for (size_t id = 0; id < resultPerContigReader.getSize(); id++) {
             progress.updateProgress();
 
-            unsigned int proteinID = resultReader.getDbKey(id);
+            unsigned int contigKey = resultPerContigReader.getDbKey(id);
 
-            char *results = resultReader.getData(id, thread_idx);
+            char *results = resultPerContigReader.getData(id, thread_idx);
             
-            unsigned int currContigId = 0;
+            unsigned int currTargetKey = 0;
             bool isFirstIteration = true;
 
-            char exonsResultsBuffer[10000];
-            char mapBuffer[10000]; 
-            
+            // this buffer will hold a single prediction with all its exons
+            // 20 columns * num_exons = 40 * 100
+            char predictionBuffer[5000]; 
+
+            // keep track of offset when a contig starts
+            predWriter.writeStart(thread_idx);
+
+            // process a specific contig
             while (*results != '\0') {
                 const size_t columns = Util::getWordsOfLine(results, entry, 255);
 
-                // the structure of entry is a concatentaion of two alignemnts
-                // the first alignemnt is with respect to protein<-->potentialExon
-                // the second alignemnt is with respect to potentialExon<-->contig
-                // the number of columns can be 20 or 22 (depending on the "-a" option)
+                // each line is a concatentaion of two alignemnts
+                // the first alignemnt is with respect to target<-->potentialExon
+                // the second alignemnt is with respect to potentialExon<-->contig (constructed to contain potentialExonId)
                 size_t firstColumnOfSecondAlignemnt = 10;
-                if (columns == 22) {
-                    firstColumnOfSecondAlignemnt = 11;
-                }
-                if (columns < 20) {
-                    Debug(Debug::ERROR) << "there should be at least 20 columns in the input file. This doesn't seem to be the case.\n";
+                if (columns != 20) {
+                    Debug(Debug::ERROR) << "there should be 20 columns in the input file. This doesn't seem to be the case.\n";
                     EXIT(EXIT_FAILURE);
                 }
 
-                unsigned int potentialExonMMSeqs2Key = Util::fast_atoi<int>(entry[0]);
-                int potentialExonToProteinAlnScore = Util::fast_atoi<int>(entry[1]);
+                unsigned int targetKey = Util::fast_atoi<int>(entry[0]);
+                int potentialExonToTargetAlnScore = Util::fast_atoi<int>(entry[1]);
                 double potentialExonSequenceIdentity = atof(entry[2]);
                 double potentialExonEvalue = atof(entry[3]);
-                int proteinMatchStart =  Util::fast_atoi<int>(entry[4]);
-                int proteinMatchEnd = Util::fast_atoi<int>(entry[5]);
-                int proteinLen = Util::fast_atoi<int>(entry[6]);
-                int potentialExonMatchStart = Util::fast_atoi<int>(entry[7]);
-                int potentialExonMatchEnd = Util::fast_atoi<int>(entry[8]);
+                int potentialExonMatchStart = Util::fast_atoi<int>(entry[4]);
+                int potentialExonMatchEnd = Util::fast_atoi<int>(entry[5]);
+                int targetMatchStart = Util::fast_atoi<int>(entry[7]);
+                int targetMatchEnd = Util::fast_atoi<int>(entry[8]);
+                int targetLen = Util::fast_atoi<int>(entry[9]);
 
                 // take relavant info from potentialExon<-->contig alignment:
-                unsigned int potentialExonContigId = Util::fast_atoi<int>(entry[firstColumnOfSecondAlignemnt]);
+                // the potentialExonId is there thanks to a hack by resultstocontig.cpp
+                unsigned int potentialExonId = Util::fast_atoi<int>(entry[firstColumnOfSecondAlignemnt]);
                 int potentialExonContigStartBeforeTrim = Util::fast_atoi<int>(entry[firstColumnOfSecondAlignemnt + 7]);
                 int potentialExonContigEndBeforeTrim = Util::fast_atoi<int>(entry[firstColumnOfSecondAlignemnt + 8]);
 
@@ -427,7 +400,7 @@ int collectoptimalset(int argn, const char **argv, const Command& command) {
                     potentialExonContigEnd = potentialExonContigStartBeforeTrim + (potentialExonMatchEnd * 3) + 2;
                     potentialExonStrand = PLUS;
                 }
-                // mimus strand:
+                // minus strand:
                 else {
                     // multiplying by minus allows carrying out same logic as with plus strand:
                     potentialExonContigStart = -1 * (potentialExonContigStartBeforeTrim - (potentialExonMatchStart * 3));
@@ -436,14 +409,14 @@ int collectoptimalset(int argn, const char **argv, const Command& command) {
                 }
 
                 if (isFirstIteration) {
-                    currContigId = potentialExonContigId;
+                    currTargetKey = targetKey;
                     isFirstIteration = false;
                 }
 
-                // after collecting all the exons on the current contig - find optimal set on each strand:
-                if (potentialExonContigId != currContigId) {
-                    if (potentialExonContigId < currContigId) {
-                        Debug(Debug::ERROR) << "the contigs are assumed to be sorted in increasing order. This doesn't seem to be the case.\n";
+                // after collecting all the exons for the current target - find optimal set on each strand:
+                if (targetKey != currTargetKey) {
+                    if (targetKey < currTargetKey) {
+                        Debug(Debug::ERROR) << "the targets are assumed to be sorted in increasing order. This doesn't seem to be the case.\n";
                         EXIT(EXIT_FAILURE);
                     }
                     // sort + dynamic programming to find the optimals set:
@@ -457,16 +430,8 @@ int collectoptimalset(int argn, const char **argv, const Command& command) {
                         double log2EvaluePlus = log2(totNumOfAAsInTargetDb) + log2(2) - totalBitScorePlus;
                         double combinedEvaluePlus = pow(2, log2EvaluePlus);
                         if (combinedEvaluePlus <= dMetaeukEvalueThr) {
-                            size_t mapKey = __sync_fetch_and_add(&globalMapKey, 1);
-                            if (mapKey == mmseqsMaxKey) {
-                                Debug(Debug::ERROR) << "The TCS key has reached the maximal value supported by MMseqs index: " << mapKey << ". Index behavior not defined from now on\n";
-                                EXIT(EXIT_FAILURE);
-                            }
-                            size_t mapCombinationLen = fillBufferWithMapInfo(mapBuffer, proteinID, currContigId, PLUS, totalBitScorePlus, combinedEvaluePlus, plusStrandOptimalExonSet);
-                            mapWriter.writeData(mapBuffer, mapCombinationLen, mapKey, thread_idx);
-
-                            size_t exonsResultsLen = fillBufferWithExonsResults (plusStrandOptimalExonSet, exonsResultsBuffer); 
-                            optimalExonsWriter.writeData(exonsResultsBuffer, exonsResultsLen, mapKey, thread_idx);
+                            size_t mapCombinationLen = fillPredictionBuffer(predictionBuffer, currTargetKey, PLUS, totalBitScorePlus, combinedEvaluePlus, plusStrandOptimalExonSet);
+                            predWriter.writeAdd(predictionBuffer, mapCombinationLen, thread_idx);
                         }
                     }
                     if (minusStrandOptimalExonSet.size() > 0) {
@@ -475,40 +440,32 @@ int collectoptimalset(int argn, const char **argv, const Command& command) {
                         double log2EvalueMinus = log2(totNumOfAAsInTargetDb) + log2(2) - totalBitScoreMinus;
                         double combinedEvalueMinus = pow(2, log2EvalueMinus);
                         if (combinedEvalueMinus <= dMetaeukEvalueThr) {
-                            size_t mapKey = __sync_fetch_and_add(&globalMapKey, 1);
-                            if (mapKey == mmseqsMaxKey) {
-                                Debug(Debug::ERROR) << "The TCS key has reached the maximal value supported by MMseqs index: " << mapKey << ". Index behavior not defined from now on\n";
-                                EXIT(EXIT_FAILURE);
-                            }
-                            size_t mapCombinationLen = fillBufferWithMapInfo(mapBuffer, proteinID, currContigId, MINUS, totalBitScoreMinus, combinedEvalueMinus, minusStrandOptimalExonSet);
-                            mapWriter.writeData(mapBuffer, mapCombinationLen, mapKey, thread_idx);
-
-                            size_t exonsResultsLen = fillBufferWithExonsResults (minusStrandOptimalExonSet, exonsResultsBuffer); 
-                            optimalExonsWriter.writeData(exonsResultsBuffer, exonsResultsLen, mapKey, thread_idx);
+                            size_t mapCombinationLen = fillPredictionBuffer(predictionBuffer, currTargetKey, MINUS, totalBitScoreMinus, combinedEvalueMinus, minusStrandOptimalExonSet);
+                            predWriter.writeAdd(predictionBuffer, mapCombinationLen, thread_idx);
                         }
                     }
 
-                    // empty vectors:
+                    // empty vectors between targets:
                     plusStrandPotentialExons.clear();
                     minusStrandPotentialExons.clear();
                     plusStrandOptimalExonSet.clear();
                     minusStrandOptimalExonSet.clear();
-                    currContigId = potentialExonContigId;
+                    currTargetKey = targetKey;
                 }
                 
                 // push current potentialExon struct to vector:
                 size_t potentialExonAALen = (std::abs(potentialExonContigEnd - potentialExonContigStart) + 1) / 3;
                 if (potentialExonAALen >= par.minExonAaLength) {
                     if (potentialExonStrand == PLUS) {
-                        plusStrandPotentialExons.emplace_back(potentialExonMMSeqs2Key, potentialExonToProteinAlnScore, potentialExonContigStart, potentialExonContigEnd, potentialExonStrand, proteinMatchStart, proteinMatchEnd, proteinLen, potentialExonSequenceIdentity, potentialExonEvalue, par.scoreBias);
+                        plusStrandPotentialExons.emplace_back(potentialExonId, potentialExonToTargetAlnScore, potentialExonContigStart, potentialExonContigEnd, potentialExonStrand, targetMatchStart, targetMatchEnd, targetLen, potentialExonSequenceIdentity, potentialExonEvalue, par.scoreBias);
                     } else {
-                        minusStrandPotentialExons.emplace_back(potentialExonMMSeqs2Key, potentialExonToProteinAlnScore, potentialExonContigStart, potentialExonContigEnd, potentialExonStrand, proteinMatchStart, proteinMatchEnd, proteinLen, potentialExonSequenceIdentity, potentialExonEvalue, par.scoreBias);
+                        minusStrandPotentialExons.emplace_back(potentialExonId, potentialExonToTargetAlnScore, potentialExonContigStart, potentialExonContigEnd, potentialExonStrand, targetMatchStart, targetMatchEnd, targetLen, potentialExonSequenceIdentity, potentialExonEvalue, par.scoreBias);
                     }
                 }
                 results = Util::skipLine(results);
             }
 
-            // one last time - required for the matches of the last contig against the protein
+            // one last time - required for the matches of the contig against the last target
             // sort + dynamic programming to find the optimals set:
             int totalBitScorePlus = findoptimalsetbydp(plusStrandPotentialExons, plusStrandOptimalExonSet, par.minIntronLength, par.maxIntronLength, par.maxAaOverlap, par.setGapOpenPenalty, par.setGapExtendPenalty);
             int totalBitScoreMinus = findoptimalsetbydp(minusStrandPotentialExons, minusStrandOptimalExonSet, par.minIntronLength, par.maxIntronLength, par.maxAaOverlap, par.setGapOpenPenalty, par.setGapExtendPenalty);
@@ -520,16 +477,8 @@ int collectoptimalset(int argn, const char **argv, const Command& command) {
                 double log2EvaluePlus = log2(totNumOfAAsInTargetDb) + log2(2) - totalBitScorePlus;
                 double combinedEvaluePlus = pow(2, log2EvaluePlus);
                 if (combinedEvaluePlus <= dMetaeukEvalueThr) {
-                    size_t mapKey = __sync_fetch_and_add(&globalMapKey, 1);
-                    if (mapKey == mmseqsMaxKey) {
-                        Debug(Debug::ERROR) << "The TCS key has reached the maximal value supported by MMseqs index: " << mapKey << ". Index behavior not defined from now on\n";
-                        EXIT(EXIT_FAILURE);
-                    }
-                    size_t mapCombinationLen = fillBufferWithMapInfo(mapBuffer, proteinID, currContigId, PLUS, totalBitScorePlus, combinedEvaluePlus, plusStrandOptimalExonSet);
-                    mapWriter.writeData(mapBuffer, mapCombinationLen, mapKey, thread_idx);
-
-                    size_t exonsResultsLen = fillBufferWithExonsResults (plusStrandOptimalExonSet, exonsResultsBuffer); 
-                    optimalExonsWriter.writeData(exonsResultsBuffer, exonsResultsLen, mapKey, thread_idx);
+                    size_t mapCombinationLen = fillPredictionBuffer(predictionBuffer, currTargetKey, PLUS, totalBitScorePlus, combinedEvaluePlus, plusStrandOptimalExonSet);
+                    predWriter.writeAdd(predictionBuffer, mapCombinationLen, thread_idx);
                 }
             }
             if (minusStrandOptimalExonSet.size() > 0) {
@@ -538,20 +487,14 @@ int collectoptimalset(int argn, const char **argv, const Command& command) {
                 double log2EvalueMinus = log2(totNumOfAAsInTargetDb) + log2(2) - totalBitScoreMinus;
                 double combinedEvalueMinus = pow(2, log2EvalueMinus);
                 if (combinedEvalueMinus <= dMetaeukEvalueThr) {
-                    size_t mapKey = __sync_fetch_and_add(&globalMapKey, 1);
-                    if (mapKey == mmseqsMaxKey) {
-                        Debug(Debug::ERROR) << "The TCS key has reached the maximal value supported by MMseqs index: " << mapKey << ". Index behavior not defined from now on\n";
-                        EXIT(EXIT_FAILURE);
-                    }
-                    size_t mapCombinationLen = fillBufferWithMapInfo(mapBuffer, proteinID, currContigId, MINUS, totalBitScoreMinus, combinedEvalueMinus, minusStrandOptimalExonSet);
-                    mapWriter.writeData(mapBuffer, mapCombinationLen, mapKey, thread_idx);
-
-                    size_t exonsResultsLen = fillBufferWithExonsResults (minusStrandOptimalExonSet, exonsResultsBuffer); 
-                    optimalExonsWriter.writeData(exonsResultsBuffer, exonsResultsLen, mapKey, thread_idx);
+                    size_t mapCombinationLen = fillPredictionBuffer(predictionBuffer, currTargetKey, MINUS, totalBitScoreMinus, combinedEvalueMinus, minusStrandOptimalExonSet);
+                    predWriter.writeAdd(predictionBuffer, mapCombinationLen, thread_idx);
                 }
             }
+            // close the contig entry with a null byte
+            predWriter.writeEnd(contigKey, thread_idx);
 
-            // empty vectors (between protein records):
+            // empty vectors between contigs:
             plusStrandPotentialExons.clear();
             minusStrandPotentialExons.clear();
             plusStrandOptimalExonSet.clear();
@@ -559,15 +502,8 @@ int collectoptimalset(int argn, const char **argv, const Command& command) {
         }
     }
 
-    // cleanup
-    mapWriter.close(true);
-    optimalExonsWriter.close(true);
-    resultReader.close();
-    
-    Debug(Debug::INFO) << "\nDone.\n";
+    predWriter.close(true);
+    resultPerContigReader.close();
 
     return EXIT_SUCCESS;
 }
-
-
-

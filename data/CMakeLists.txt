@@ -4,7 +4,6 @@ set(COMPILED_RESOURCES
         predictexons.sh
         reduceredundancy.sh
         assigntaxonomy.sh
-        unitetoseqdbs.sh
         )
 
 set(GENERATED_OUTPUT_HEADERS "")
