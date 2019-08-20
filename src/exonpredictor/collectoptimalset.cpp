@@ -223,7 +223,7 @@ int collectoptimalset(int argn, const char **argv, const Command& command) {
             bool isFirstIteration = true;
 
             // this buffer will hold a single prediction with all its exons
-            // 20 columns * num_exons = 40 * 100
+            // 17 columns * num_exons = 40 * 100
             char predictionBuffer[5000]; 
 
             // keep track of offset when a contig starts
@@ -266,8 +266,8 @@ int collectoptimalset(int argn, const char **argv, const Command& command) {
                         double combinedEvaluePlus = pow(2, log2EvaluePlus);
                         if (combinedEvaluePlus <= dMetaeukEvalueThr) {
                             Prediction predToWrite(currTargetKey, PLUS, totalBitScorePlus, combinedEvaluePlus, plusStrandOptimalExonSet);
-                            size_t mapCombinationLen = Prediction::predictionToBuffer(predictionBuffer, predToWrite);
-                            predWriter.writeAdd(predictionBuffer, mapCombinationLen, thread_idx);
+                            size_t predLen = Prediction::predictionToBuffer(predictionBuffer, predToWrite);
+                            predWriter.writeAdd(predictionBuffer, predLen, thread_idx);
                         }
                     }
                     if (minusStrandOptimalExonSet.size() > 0) {
@@ -277,8 +277,8 @@ int collectoptimalset(int argn, const char **argv, const Command& command) {
                         double combinedEvalueMinus = pow(2, log2EvalueMinus);
                         if (combinedEvalueMinus <= dMetaeukEvalueThr) {
                             Prediction predToWrite(currTargetKey, MINUS, totalBitScoreMinus, combinedEvalueMinus, minusStrandOptimalExonSet);
-                            size_t mapCombinationLen = Prediction::predictionToBuffer(predictionBuffer, predToWrite);
-                            predWriter.writeAdd(predictionBuffer, mapCombinationLen, thread_idx);
+                            size_t predLen = Prediction::predictionToBuffer(predictionBuffer, predToWrite);
+                            predWriter.writeAdd(predictionBuffer, predLen, thread_idx);
                         }
                     }
 
@@ -315,8 +315,8 @@ int collectoptimalset(int argn, const char **argv, const Command& command) {
                 double combinedEvaluePlus = pow(2, log2EvaluePlus);
                 if (combinedEvaluePlus <= dMetaeukEvalueThr) {
                     Prediction predToWrite(currTargetKey, PLUS, totalBitScorePlus, combinedEvaluePlus, plusStrandOptimalExonSet);
-                    size_t mapCombinationLen = Prediction::predictionToBuffer(predictionBuffer, predToWrite);
-                    predWriter.writeAdd(predictionBuffer, mapCombinationLen, thread_idx);
+                    size_t predLen = Prediction::predictionToBuffer(predictionBuffer, predToWrite);
+                    predWriter.writeAdd(predictionBuffer, predLen, thread_idx);
                 }
             }
             if (minusStrandOptimalExonSet.size() > 0) {
@@ -326,8 +326,8 @@ int collectoptimalset(int argn, const char **argv, const Command& command) {
                 double combinedEvalueMinus = pow(2, log2EvalueMinus);
                 if (combinedEvalueMinus <= dMetaeukEvalueThr) {
                     Prediction predToWrite(currTargetKey, MINUS, totalBitScoreMinus, combinedEvalueMinus, minusStrandOptimalExonSet);
-                    size_t mapCombinationLen = Prediction::predictionToBuffer(predictionBuffer, predToWrite);
-                    predWriter.writeAdd(predictionBuffer, mapCombinationLen, thread_idx);
+                    size_t predLen = Prediction::predictionToBuffer(predictionBuffer, predToWrite);
+                    predWriter.writeAdd(predictionBuffer, predLen, thread_idx);
                 }
             }
             // close the contig entry with a null byte
