@@ -1,10 +1,10 @@
 #include <string>
 #include <vector>
+#include <algorithm>
 #include <sstream>
 #include <sys/time.h>
 
 #include "LocalParameters.h"
-#include "Matcher.h"
 #include "DBReader.h"
 #include "DBWriter.h"
 #include "Debug.h"
@@ -15,6 +15,7 @@
 #include <queue>
 #include <string.h>
 #include "itoa.h"
+#include "PredictionParser.h"
 
 #ifdef OPENMP
 #include <omp.h>
@@ -22,88 +23,156 @@
 
 const size_t EXPECTED_NUM_PREDICTIONS = 100000;
 
-struct prediction {
-    // constructor
-    prediction(unsigned int iProteinContigStrandId, unsigned int iProteinMMSeqs2Key, unsigned int iContigMMSeqs2Key, 
-                int iStrand, int iCombinedNormalizedAlnBitScore, double iCombinedEvalue, unsigned int iNumExons, unsigned int iLowContigCoord, 
-                unsigned int iHighContigCoord, const char * iExonCharptr) : proteinContigStrandId(iProteinContigStrandId), proteinMMSeqs2Key(iProteinMMSeqs2Key), 
-                contigMMSeqs2Key(iContigMMSeqs2Key), strand(iStrand),
-                combinedNormalizedAlnBitScore(iCombinedNormalizedAlnBitScore), combinedEvalue(iCombinedEvalue),
-                numExons(iNumExons), lowContigCoord(iLowContigCoord), highContigCoord(iHighContigCoord) {
+void clusterPredictions (std::vector<Prediction> &contigPredictions, std::vector<Prediction> &repContigPredictions) {
+    // the index i iterates over cluster tmp_representatives.
+    // after member collection is done, tmp_representative is replaced by the member with the highest bitscore
+    for (size_t i = 0; i < contigPredictions.size(); ++i) {
+        // if i is already assigned - skip it, it is not a cluster representative
+        if (contigPredictions[i].isClustered) {
+            continue;
+        }
+
+        // collect cluster members - i is the tmp_representative:
+        size_t finalClusterId = contigPredictions[i].targetKey;
+        contigPredictions[i].clusterId = contigPredictions[i].targetKey;
+        unsigned int maxScore = contigPredictions[i].totalBitscore;
+        contigPredictions[i].isClustered = true;
+        size_t max_j = i;
         
-        // parsing exon info: 20317*20995*21701*21720*21753*21795\n
-        // first replace the "\n" with "\0" to avoid potentially super long strings in split
-        char exonIdsCharArr[2001];
-        size_t indExonIdsCharArr = 0;
-        while (*iExonCharptr != '\n') {
-            if (indExonIdsCharArr == 2000) {
-                Debug(Debug::ERROR) << "ERROR: exonIdsCharArr is too small to hold the exons.\n";
-                EXIT(EXIT_FAILURE);
+        for (size_t j = (i + 1); j < contigPredictions.size(); ++j) {
+            if (contigPredictions[j].lowContigCoord >= contigPredictions[i].highContigCoord) {
+                // overlap is over - no need to compare to other j - finish and move to the next i
+                break;
             }
-            exonIdsCharArr[indExonIdsCharArr] = *iExonCharptr;
-            iExonCharptr++;
-            indExonIdsCharArr++;
+            
+            bool doIandJshareAnExon = false;
+            for (size_t exon_id_i = 0; exon_id_i < contigPredictions[i].optimalExonSet.size(); ++exon_id_i) {
+                for (size_t exon_id_j = 0; exon_id_j < contigPredictions[j].optimalExonSet.size(); ++exon_id_j) {
+                    if (contigPredictions[i].optimalExonSet[exon_id_i].exonKey == contigPredictions[j].optimalExonSet[exon_id_j].exonKey) {
+                        doIandJshareAnExon = true;
+                        goto endExonComparison;
+                    }
+                }
+            }
+
+            // assign j to the cluster of i if it has a mutual exon and if it wasn't already assigned:
+            endExonComparison:
+            if (doIandJshareAnExon && (! contigPredictions[j].isClustered)) {
+                contigPredictions[j].isClustered = true;
+                // tmp representative is i:
+                contigPredictions[j].clusterId = contigPredictions[i].targetKey;
+
+                // if bitscore of j is better - update the cluster identifier to be the target key of j
+                if (contigPredictions[j].totalBitscore > maxScore) {
+                    maxScore = contigPredictions[j].totalBitscore;
+                    finalClusterId = contigPredictions[j].targetKey;
+                }
+
+                // will be used to assign the finalClusterId later
+                if (max_j < j) {
+                    max_j = j;
+                }
+            }
         }
-        exonIdsCharArr[indExonIdsCharArr] = '\0';
 
-        std::vector<std::string> exonIdsSepStrs = Util::split(exonIdsCharArr, "*");
-        for (size_t i = 0; i < exonIdsSepStrs.size(); ++i) {
-            exonIds.push_back(Util::fast_atoi<int>(exonIdsSepStrs[i].c_str()));
+        // collecting all j members for tmp_representative i is finished.
+        // assign finalClusterId (target key of best scoring representative)
+        for (size_t j = i; j <= max_j; ++j) {
+            if (contigPredictions[j].clusterId == contigPredictions[i].targetKey) {
+                contigPredictions[j].clusterId = finalClusterId;
+            }
+            // if by now the clusterId is equal to finalClusterId --> this is a representative
+            if (contigPredictions[j].clusterId == contigPredictions[j].targetKey) {
+                repContigPredictions.emplace_back(contigPredictions[j]);
+            }
         }
-        // initialize cluster assignment:
-        isClustered = false;
-        // initialize cluster no overlap assignment:
-        isNoOverlapClustered = false;
     }
+}
 
-    // to allow sorting a vector of predictions by their E-values
-    static bool comparePredictionsByEvalue (const prediction & aPrediction, const prediction & anotherPrediction) {
-        if(aPrediction.combinedEvalue < anotherPrediction.combinedEvalue)
-            return true;
-        if(aPrediction.combinedEvalue > anotherPrediction.combinedEvalue)
-            return false;
-        // the following lines will break even cases in a consistent way
-        if(aPrediction.lowContigCoord < anotherPrediction.lowContigCoord)
-            return true;
-        if(aPrediction.lowContigCoord > anotherPrediction.lowContigCoord)
-            return false;
-        // this line will not be reached...
-        return false;
+void excludeSameStrandOverlaps (std::vector<Prediction> &repContigPredictions) {
+    // sort vector by E-value:
+    std::stable_sort(repContigPredictions.begin(), repContigPredictions.end(), Prediction::comparePredictionsByEvalue);
+    // go over sorted representatives - unassigned representatives are non-overlap representatives
+    for (size_t i = 0; i < repContigPredictions.size(); ++i) {
+        // if i is already assigned - skip it, it is not a non-overlap cluster representative
+        if (repContigPredictions[i].isNoOverlapClustered) {
+            continue;
+        }
+        // initialize the new cluster:
+        repContigPredictions[i].isNoOverlapClustered = true;
+        repContigPredictions[i].noOverlapClusterId = repContigPredictions[i].targetKey;
+
+        // collect cluster members:
+        for (size_t j = (i + 1); j < repContigPredictions.size(); ++j) {
+            if (
+                ((repContigPredictions[j].highContigCoord < repContigPredictions[i].highContigCoord) && 
+                (repContigPredictions[j].highContigCoord > repContigPredictions[i].lowContigCoord)) ||
+
+                ((repContigPredictions[j].lowContigCoord < repContigPredictions[i].highContigCoord) && 
+                (repContigPredictions[j].lowContigCoord > repContigPredictions[i].lowContigCoord)) ||
+
+                ((repContigPredictions[j].highContigCoord < repContigPredictions[i].highContigCoord) && 
+                (repContigPredictions[j].lowContigCoord > repContigPredictions[i].lowContigCoord)) ||
+
+                ((repContigPredictions[j].highContigCoord > repContigPredictions[i].highContigCoord) && 
+                (repContigPredictions[j].lowContigCoord < repContigPredictions[i].lowContigCoord))
+                ) {
+                    // i begins in the middle of j or j begins in the middle of i ==> overlap
+                    repContigPredictions[j].isNoOverlapClustered = true;
+                    repContigPredictions[j].noOverlapClusterId = repContigPredictions[i].targetKey;
+            }
+        }
     }
+}
 
-    unsigned int proteinContigStrandId;
-    unsigned int proteinMMSeqs2Key;
-    unsigned int contigMMSeqs2Key;
-    int strand;
-    int combinedNormalizedAlnBitScore;
-    double combinedEvalue;
-    unsigned int numExons;
-    unsigned int lowContigCoord;
-    unsigned int highContigCoord;
-    std::vector<unsigned int> exonIds;
-    bool isClustered; // will indicate if ungrouped or not
-    bool isNoOverlapClustered; // will indicate if assigned after overlap exclusion
-};
+size_t repPredsToBuff (std::vector<Prediction> &repContigPredictions, char * repPredsBuff, bool excludeStrandOverlap) {
+    // fills the buffer with lines of DP format (17 columns)
+    char * basePos = repPredsBuff;
+    char * tmpBuff = basePos;
+    for (size_t i = 0; i < repContigPredictions.size(); ++i) {
+        // if same strand overlaps are not allowed, skip predictions that were worse than another representatives
+        if ((excludeStrandOverlap == true) && (repContigPredictions[i].noOverlapClusterId != repContigPredictions[i].targetKey)) {
+            continue;
+        }
+        size_t predLen = Prediction::predictionToBuffer(tmpBuff, repContigPredictions[i]);
+        tmpBuff += predLen;
+    }
+    // close buffer
+    *(tmpBuff) = '\0';
+    return (tmpBuff - basePos);
+}
+
+
+void writeRepPredsInDPFormat (std::vector<Prediction> &repContigPredictions, char * predBuff, bool excludeStrandOverlap,
+                                DBWriter &repWriter, unsigned int thread_idx) {
+    for (size_t i = 0; i < repContigPredictions.size(); ++i) {
+        // if same strand overlaps are not allowed, skip predictions that were worse than another representatives
+        if ((excludeStrandOverlap == true) && (repContigPredictions[i].noOverlapClusterId != repContigPredictions[i].targetKey)) {
+            continue;
+        }
+        size_t predLen = Prediction::predictionToBuffer(predBuff, repContigPredictions[i]);
+        repWriter.writeAdd(predBuff, predLen, thread_idx);
+    }
+}
 
 
 int grouppredictions(int argn, const char **argv, const Command& command) {
     LocalParameters& par = LocalParameters::getLocalInstance();
     par.parseParameters(argn, argv, command, true, 0, 0);
 
-    // Terminology: CS = Contig & Strand combination, TCS = Target & Contig & Strand (i.e. -  a prediction identifier)
-    // db1 = a map from CS to all its TCS predictions, ordered by their start on the contig, reverse subordered by # exons 
-    DBReader<unsigned int> contigStrandSortedMap(par.db1.c_str(), par.db1Index.c_str(), par.threads, DBReader<unsigned int>::USE_INDEX|DBReader<unsigned int>::USE_DATA);
-    contigStrandSortedMap.open(DBReader<unsigned int>::LINEAR_ACCCESS);
+    // db1 = input, predictions per contig
+    DBReader<unsigned int> predsPerContig(par.db1.c_str(), par.db1Index.c_str(), par.threads, DBReader<unsigned int>::USE_INDEX|DBReader<unsigned int>::USE_DATA);
+    predsPerContig.open(DBReader<unsigned int>::LINEAR_ACCCESS);
 
-    // db2 = output, cluster format: TCS representative to all TCSs that share an exon with it
-    DBWriter writerGroupedPredictions(par.db2.c_str(), par.db2Index.c_str(), par.threads, par.compressed, Parameters::DBTYPE_CLUSTER_RES);
+    // db2 = output, DP format of representative predictions
+    DBWriter writerGroupedPredictions(par.db2.c_str(), par.db2Index.c_str(), par.threads, par.compressed, Parameters::DBTYPE_GENERIC_DB);
     writerGroupedPredictions.open();
 
-    // db3 = output, cluster format: TCS representative to all TCS representatives that overlap it
-    DBWriter writerGroupedPredictionsNoOverlap(par.db3.c_str(), par.db3Index.c_str(), par.threads, par.compressed, Parameters::DBTYPE_CLUSTER_RES);
+    // db3 = output, DP format of representative predictions after excluding overlaps
+    DBWriter writerGroupedPredictionsNoOverlap(par.db3.c_str(), par.db3Index.c_str(), par.threads, par.compressed, Parameters::DBTYPE_GENERIC_DB);
     writerGroupedPredictionsNoOverlap.open();
 
-    Debug::Progress progress(contigStrandSortedMap.getSize());
+    Debug::Progress progress(predsPerContig.getSize());
 #pragma omp parallel
     {
         unsigned int thread_idx = 0;
@@ -111,182 +180,110 @@ int grouppredictions(int argn, const char **argv, const Command& command) {
         thread_idx = static_cast<unsigned int>(omp_get_thread_num());
 #endif
         // per thread variables
-        std::vector<prediction> predictionToCluster;
-        predictionToCluster.reserve(EXPECTED_NUM_PREDICTIONS);
-        std::vector<prediction> representativePredictions;
-        representativePredictions.reserve(EXPECTED_NUM_PREDICTIONS);
         const char *entry[255];
-        char TCSKeyBuff[128];
-        std::string clusterBuffer;
-        clusterBuffer.reserve(10000);  
-        
+
+        std::vector<Prediction> plusContigPredictions;
+        plusContigPredictions.reserve(EXPECTED_NUM_PREDICTIONS);
+        std::vector<Prediction> plusContigRepPreds;
+
+        std::vector<Prediction> minusContigPredictions;
+        minusContigPredictions.reserve(EXPECTED_NUM_PREDICTIONS);
+        std::vector<Prediction> minusContigRepPreds;
+
+        char predictionBuffer[5000];
+
 #pragma omp for schedule(dynamic, 100)
-        for (size_t id = 0; id < contigStrandSortedMap.getSize(); id++) {
+        for (size_t id = 0; id < predsPerContig.getSize(); id++) {
             progress.updateProgress();
 
-            // these will serve to verify sorted order:
-            unsigned int prevLowCoord = 0;
-            unsigned int prevNumExons = 0;
+            unsigned int contigKey = predsPerContig.getDbKey(id);
 
-            char *contigStrandSortedRecord = contigStrandSortedMap.getData(id, thread_idx);
-            while (*contigStrandSortedRecord != '\0') {
-                const size_t contigStrandSortedColumns = Util::getWordsOfLine(contigStrandSortedRecord, entry, 255);
-
-                if (contigStrandSortedColumns != 10) {
-                    Debug(Debug::ERROR) << "ERROR: the sorted contig+strand map record should contain 10 columns: proteinContigStrandId, proteinMMSeqs2Key, contigMMSeqs2Key, strand, combinedBitScore, combinedEvalue, numExons, lowContigCoord, highContigCoord, exonIDsStr. This doesn't seem to be the case.\n";
-                    EXIT(EXIT_FAILURE);
-                }
-
-                unsigned int proteinContigStrandId = Util::fast_atoi<int>(entry[0]); // the input map is a result of swapdb which replaces the contigStrandId with the TCS index
-                unsigned int proteinMMSeqs2Key = Util::fast_atoi<int>(entry[1]);
-                unsigned int contigMMSeqs2Key = Util::fast_atoi<int>(entry[2]);
-                int strand = Util::fast_atoi<int>(entry[3]);
-                int combinedNormalizedAlnBitScore = Util::fast_atoi<int>(entry[4]);
-                double combinedEvalue = atof(entry[5]);
-                unsigned int numExons = Util::fast_atoi<int>(entry[6]);
-                unsigned int lowContigCoord = Util::fast_atoi<int>(entry[7]);
-                unsigned int highContigCoord = Util::fast_atoi<int>(entry[8]);
-                const char * exonCharptr = entry[9];
-
-                // verify sorted order:
-                if (prevNumExons == 0) {
-                    // first iteration:
-                    prevNumExons = numExons;
-                    prevLowCoord = lowContigCoord;
-                }
-                else if (prevLowCoord > lowContigCoord) {
-                    Debug(Debug::ERROR) << "ERROR: Predictions are assumed to be sorted by their start position. This doesn't seem to be the case.\n";
-                    EXIT(EXIT_FAILURE);
-                }
-                else if ((prevLowCoord == lowContigCoord) && (prevNumExons < numExons)) {
-                    Debug(Debug::ERROR) << "ERROR: Predictions are assumed to be reverse sub-sorted by their number of exons. This doesn't seem to be the case.\n";
-                    EXIT(EXIT_FAILURE);
-                } 
-                else {
-                    prevNumExons = numExons;
-                    prevLowCoord = lowContigCoord;
-                }
-
-                predictionToCluster.emplace_back(proteinContigStrandId, proteinMMSeqs2Key, contigMMSeqs2Key, strand, combinedNormalizedAlnBitScore, combinedEvalue, numExons, lowContigCoord, highContigCoord, exonCharptr);
-                contigStrandSortedRecord = Util::skipLine(contigStrandSortedRecord);
-            }
-
-            // by this stage we have collected all TCS predictions into a vector
-            // the index i iterates over cluster tmp_representatives.
-            // after member collection is done, tmp_representative is replaced by the member with the highest bitscore
-            for (size_t i = 0; i < predictionToCluster.size(); ++i) {
-                // if i is already assigned - skip it, it is not a cluster representative
-                if (predictionToCluster[i].isClustered) {
-                    continue;
-                }
-
-                // collect cluster members - i is the tmp_representative:
-                size_t clusterProteinContigStrandId = predictionToCluster[i].proteinContigStrandId;
-                int maxScore = predictionToCluster[i].combinedNormalizedAlnBitScore;
-                predictionToCluster[i].isClustered = true;
-                size_t repIndex = i;
-
-                // initialize the new cluster:
-                char *tmpBuff = Itoa::u32toa_sse2(static_cast<uint32_t>(predictionToCluster[i].proteinContigStrandId), TCSKeyBuff);
-                clusterBuffer.append(TCSKeyBuff, tmpBuff - TCSKeyBuff - 1);
-                clusterBuffer.append(1, '\n');
-                
-                for (size_t j = (i + 1); j < predictionToCluster.size(); ++j) {
-                    if (predictionToCluster[j].lowContigCoord >= predictionToCluster[i].highContigCoord) {
-                        // overlap is over - no need to compare to other j - finish and move to the next i
-                        break;
-                    }
-                    
-                    bool doIandJshareAnExon = false;
-                    for (size_t exon_id_i = 0; exon_id_i < predictionToCluster[i].exonIds.size(); ++exon_id_i) {
-                        for (size_t exon_id_j = 0; exon_id_j < predictionToCluster[j].exonIds.size(); ++exon_id_j) {
-                            if (predictionToCluster[i].exonIds[exon_id_i] == predictionToCluster[j].exonIds[exon_id_j]) {
-                                doIandJshareAnExon = true;
-                                goto endExonComparison;
-                            }
-                        }
-                    }
-
-                    // assign j to the cluster of i if it has a mutual exon and if it wasn't already assigned:
-                    endExonComparison:
-                    if (doIandJshareAnExon && (! predictionToCluster[j].isClustered)) {
-                        predictionToCluster[j].isClustered = true;
-
-                        tmpBuff = Itoa::u32toa_sse2(static_cast<uint32_t>(predictionToCluster[j].proteinContigStrandId), TCSKeyBuff);
-                        clusterBuffer.append(TCSKeyBuff, tmpBuff - TCSKeyBuff - 1);
-                        clusterBuffer.append(1, '\n');
-
-                        // if bitscore of j is better - update the cluster identifier to be j
-                        if (predictionToCluster[j].combinedNormalizedAlnBitScore > maxScore) {
-                            maxScore = predictionToCluster[j].combinedNormalizedAlnBitScore;
-                            clusterProteinContigStrandId = predictionToCluster[j].proteinContigStrandId;
-                            repIndex = j;
-                        }
-                    }
-                }
-
-                // collecting all j members for tmp_representative i is finished:
-                // push the representative into the representative vector - will be used to avoid overlaps
-                representativePredictions.emplace_back(predictionToCluster[repIndex]);
-                //write cluster TCSi:
-                writerGroupedPredictions.writeData(clusterBuffer.c_str(), clusterBuffer.size(), clusterProteinContigStrandId, thread_idx);
-                clusterBuffer.clear();
-            }
-
-            // output representatives with no overlap in coords:
-            // sort vector by E-value:
-            std::stable_sort(representativePredictions.begin(), representativePredictions.end(), prediction::comparePredictionsByEvalue);
-            // go over sorted representatives - unassigned representatives are non-overlap representatives
-            for (size_t i = 0; i < representativePredictions.size(); ++i) {
-                // if i is already assigned - skip it, it is not a non-overlap cluster representative
-                if (representativePredictions[i].isNoOverlapClustered) {
-                    continue;
-                }
-                // initialize the new cluster:
-                representativePredictions[i].isNoOverlapClustered = true;
-                char *tmpBuff = Itoa::u32toa_sse2(static_cast<uint32_t>(representativePredictions[i].proteinContigStrandId), TCSKeyBuff);
-                clusterBuffer.append(TCSKeyBuff, tmpBuff - TCSKeyBuff - 1);
-                clusterBuffer.append(1, '\n');
-
-                // collect cluster members:
-                for (size_t j = (i + 1); j < representativePredictions.size(); ++j) {
-                    if (
-                        ((representativePredictions[j].highContigCoord < representativePredictions[i].highContigCoord) && 
-                        (representativePredictions[j].highContigCoord > representativePredictions[i].lowContigCoord)) ||
-
-                        ((representativePredictions[j].lowContigCoord < representativePredictions[i].highContigCoord) && 
-                        (representativePredictions[j].lowContigCoord > representativePredictions[i].lowContigCoord)) ||
-
-                        ((representativePredictions[j].highContigCoord < representativePredictions[i].highContigCoord) && 
-                        (representativePredictions[j].lowContigCoord > representativePredictions[i].lowContigCoord)) ||
-
-                        ((representativePredictions[j].highContigCoord > representativePredictions[i].highContigCoord) && 
-                        (representativePredictions[j].lowContigCoord < representativePredictions[i].lowContigCoord))
-                        ) {
-                            // i begins in the middle of j or j begins in the middle of i ==> overlap
-                            representativePredictions[j].isNoOverlapClustered = true;
-                            tmpBuff = Itoa::u32toa_sse2(static_cast<uint32_t>(representativePredictions[j].proteinContigStrandId), TCSKeyBuff);
-                            clusterBuffer.append(TCSKeyBuff, tmpBuff - TCSKeyBuff - 1);
-                            clusterBuffer.append(1, '\n');
-                    }
-                }
-
-                writerGroupedPredictionsNoOverlap.writeData(clusterBuffer.c_str(), clusterBuffer.size(), representativePredictions[i].proteinContigStrandId, thread_idx);
-                clusterBuffer.clear();
-            }
+            char *results = predsPerContig.getData(id, thread_idx);
             
-            // empty predictions vectors so the same thread can process another CS combination:
-            predictionToCluster.clear();
-            representativePredictions.clear();
-        }        
+            // for verifying legal input
+            unsigned int prevTargetKey = 0;
+            // for predictions collection
+            unsigned int prevTargetKeyPlus = 0;
+            unsigned int prevTargetKeyMinus = 0;
+            bool isFirstIterationPlus = true;
+            bool isFirstIterationMinus = true;
+
+            // keep track of offset when a contig starts
+            writerGroupedPredictions.writeStart(thread_idx);
+            writerGroupedPredictionsNoOverlap.writeStart(thread_idx);
+
+            // process a specific contig
+            while (*results != '\0') {
+                const size_t columns = Util::getWordsOfLine(results, entry, 255);
+                // each line informs of a prediction and a single exon
+                // the first 7 columns describe the entire prediction
+                // the last 10 columns describe a single exon
+                if (columns != 17) {
+                    Debug(Debug::ERROR) << "There should be 17 columns in the input file. This doesn't seem to be the case.\n";
+                    EXIT(EXIT_FAILURE);
+                }
+
+                unsigned int targetKey = Prediction::getTargetKey(entry);
+                int strand = Prediction::getStrand(entry);
+
+                // verify legal input
+                if (prevTargetKey > targetKey) {
+                    Debug(Debug::ERROR) << "Predictions are assumed to be sorted by their target keys. This doesn't seem to be the case.\n";
+                    EXIT(EXIT_FAILURE);
+                }
+                prevTargetKey = targetKey;
+
+                if (strand == PLUS) {
+                    if ((isFirstIterationPlus == true) || (prevTargetKeyPlus != targetKey)) {
+                        plusContigPredictions.emplace_back(Prediction());
+                        plusContigPredictions.back().setByDPRes(entry);
+                        isFirstIterationPlus = false;
+                    }
+                    // add the exon key
+                    plusContigPredictions.back().addExon(entry);
+                    prevTargetKeyPlus = targetKey;
+                } else {
+                    if ((isFirstIterationMinus == true) || (prevTargetKeyMinus != targetKey)) {
+                        minusContigPredictions.emplace_back(Prediction());
+                        minusContigPredictions.back().setByDPRes(entry);
+                        isFirstIterationMinus = false;
+                    }
+                    // add the exon key
+                    minusContigPredictions.back().addExon(entry);
+                    prevTargetKeyMinus = targetKey;
+                }
+
+                results = Util::skipLine(results);
+            }
+
+            // finished collecting all preds from current contig
+            clusterPredictions(plusContigPredictions, plusContigRepPreds);
+            excludeSameStrandOverlaps(plusContigRepPreds);
+
+            clusterPredictions(minusContigPredictions, minusContigRepPreds);
+            excludeSameStrandOverlaps(minusContigRepPreds);
+
+            // write
+            writeRepPredsInDPFormat(plusContigRepPreds, predictionBuffer, false, writerGroupedPredictions, thread_idx);
+            writeRepPredsInDPFormat(plusContigRepPreds, predictionBuffer, true, writerGroupedPredictionsNoOverlap, thread_idx);
+
+            writeRepPredsInDPFormat(minusContigRepPreds, predictionBuffer, false, writerGroupedPredictions, thread_idx);
+            writeRepPredsInDPFormat(minusContigRepPreds, predictionBuffer, true, writerGroupedPredictionsNoOverlap, thread_idx);
+
+            // close the contig entry with a null byte
+            writerGroupedPredictions.writeEnd(contigKey, thread_idx);
+            writerGroupedPredictionsNoOverlap.writeEnd(contigKey, thread_idx);
+
+            // move to another contig:
+            plusContigPredictions.clear();
+            minusContigPredictions.clear();
+            plusContigRepPreds.clear();
+            minusContigRepPreds.clear();
+        }
     }
-   
     // cleanup
     writerGroupedPredictions.close(true);
     writerGroupedPredictionsNoOverlap.close(true);
-    contigStrandSortedMap.close();
-    
-    Debug(Debug::INFO) << "\nDone.\n";
-
+    //contigStrandSortedMap.close();
     return EXIT_SUCCESS;
 }
