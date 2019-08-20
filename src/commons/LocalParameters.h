@@ -60,7 +60,7 @@ private:
         PARAM_MAX_AA_OVERLAP(PARAM_MAX_AA_OVERLAP_ID,"--max-overlap", "Maximal overlap of exons", "Maximal allowed overlap of consecutive exons in amino acids", typeid(int), (void *) &maxAaOverlap, "^[0-9]+$"),
         PARAM_GAP_OPEN_PENALTY(PARAM_GAP_OPEN_PENALTY_ID,"--set-gap-open", "Gap open penalty", "Gap open penalty (negative) for missed target amino acids between exons", typeid(int), (void *) &setGapOpenPenalty, "^-[0-9]+$"),
         PARAM_GAP_EXTEND_PENALTY(PARAM_GAP_EXTEND_PENALTY_ID,"--set-gap-extend", "Gap extend penalty", "Gap extend penalty (negative) for missed target amino acids between exons", typeid(int), (void *) &setGapExtendPenalty, "^-[0-9]+$"),
-        PARAM_SHOULD_TRANSLATE(PARAM_SHOULD_TRANSLATE_ID,"--translate", "translate codons to AAs", "translate the joint exons coding sequence to amino acids [0,1]", typeid(int), (void *) &shouldTranslate, "^[0-1]{1}$")
+        PARAM_SHOULD_TRANSLATE(PARAM_SHOULD_TRANSLATE_ID,"--protein", "translate codons to AAs", "translate the joint exons coding sequence to amino acids [0,1]", typeid(int), (void *) &shouldTranslate, "^[0-1]{1}$")
     {
         collectoptimalset.push_back(&PARAM_METAEUK_EVAL_THR);
         collectoptimalset.push_back(&PARAM_MAX_INTRON_LENGTH);

@@ -1,5 +1,5 @@
 #include "LocalParameters.h"
-#include "Matcher.h"
+#include "PredictionParser.h"
 #include "DBReader.h"
 #include "DBWriter.h"
 #include "Debug.h"
@@ -16,37 +16,6 @@
 #include <omp.h>
 #endif
 
-const int PLUS = 1;
-const int MINUS = -1;
-
-struct prediction {
-    prediction() {
-        targetKey = 0;
-        strand = PLUS;
-        totalBitscore = 0;
-        combinedEvalue = 1;
-        numExons = 0;
-        lowContigCoord = 0;
-        highContigCoord = 0;
-    }
-    void FillPrediction(const char** entry) {
-        targetKey = Util::fast_atoi<int>(entry[0]);
-        strand = Util::fast_atoi<int>(entry[1]);
-        totalBitscore = Util::fast_atoi<int>(entry[2]);
-        combinedEvalue = atof(entry[3]);
-        numExons = Util::fast_atoi<int>(entry[4]);
-        lowContigCoord = Util::fast_atoi<int>(entry[5]);
-        highContigCoord = Util::fast_atoi<int>(entry[6]);
-    }
-    unsigned int targetKey;
-    int strand;
-    unsigned int totalBitscore;
-    double combinedEvalue;
-    unsigned int numExons;
-    unsigned int lowContigCoord;
-    unsigned int highContigCoord;
-};
-
 void reverseComplement (const std::string & seq, std::string & revCompSeq) {
     size_t seqLength = revCompSeq.size();
     for(size_t i = 0; i < seqLength; ++i) {
@@ -55,8 +24,7 @@ void reverseComplement (const std::string & seq, std::string & revCompSeq) {
     }
 }
 
-void preparePredDataAndHeader (const prediction & pred, const std::vector<Matcher::result_t> & exons, 
-                                    const std::string targetHeaderAcc, const std::string contigHeaderAcc, 
+void preparePredDataAndHeader (const Prediction & pred, const std::string targetHeaderAcc, const std::string contigHeaderAcc, 
                                     const char* contigData, std::ostringstream& joinedHeaderStream, std::ostringstream& joinedExonsStream) {
     
     // clear streams:
@@ -75,13 +43,13 @@ void preparePredDataAndHeader (const prediction & pred, const std::vector<Matche
 
     // add all exons:
     int lastTargetPosMatched = -1;
-    for (size_t i = 0; i < exons.size(); ++i) {
-        int targetMatchStart = exons[i].qStartPos;
-        int targetMatchEnd = exons[i].qEndPos;
+    for (size_t i = 0; i < pred.optimalExonSet.size(); ++i) {
+        int targetMatchStart = pred.optimalExonSet[i].targetMatchStart;
+        int targetMatchEnd = pred.optimalExonSet[i].targetMatchEnd;
         
-        int exonContigStart = exons[i].dbStartPos;
-        int exonContigEnd = exons[i].dbEndPos;
-        int exonNucleotideLen = exons[i].dbLen;
+        int exonContigStart = pred.optimalExonSet[i].contigStart;
+        int exonContigEnd = pred.optimalExonSet[i].contigEnd;
+        int exonNucleotideLen = pred.optimalExonSet[i].nucleotideLen;
 
         if (pred.strand == MINUS) {
             if ((exonContigStart > 0) || (exonContigEnd > 0)) {
@@ -159,11 +127,8 @@ int unitesetstofasta(int argn, const char **argv, const Command& command) {
         std::ostringstream joinedExonsStream;
         const char *entry[255];
 
-        prediction plusPred;
-        std::vector<Matcher::result_t> plusStrandExons;
-
-        prediction minusPred;
-        std::vector<Matcher::result_t> minusStrandExons;
+        Prediction plusPred;
+        Prediction minusPred;
 
         char translatedSeqBuff[Parameters::MAX_SEQ_LEN];
         
@@ -188,15 +153,14 @@ int unitesetstofasta(int argn, const char **argv, const Command& command) {
                 const size_t columns = Util::getWordsOfLine(results, entry, 255);
                 // each line informs of a prediction and a single exon
                 // the first 7 columns describe the entire prediction
-                // the last 10 colums describe a single exon
-                size_t firstColumnOfExon = 7;
+                // the last 10 columns describe a single exon
                 if (columns != 17) {
-                    Debug(Debug::ERROR) << "there should be 17 columns in the input file. This doesn't seem to be the case.\n";
+                    Debug(Debug::ERROR) << "There should be 17 columns in the input file. This doesn't seem to be the case.\n";
                     EXIT(EXIT_FAILURE);
                 }
 
-                unsigned int targetKey = Util::fast_atoi<int>(entry[0]);
-                int strand = Util::fast_atoi<int>(entry[1]);
+                unsigned int targetKey = Prediction::getTargetKey(entry);
+                int strand = Prediction::getStrand(entry);
 
                 if (isFirstIteration) {
                     currTargetKey = targetKey;
@@ -206,15 +170,15 @@ int unitesetstofasta(int argn, const char **argv, const Command& command) {
                 // after collecting all the exons for the current target:
                 if (targetKey != currTargetKey) {
                     if (targetKey < currTargetKey) {
-                        Debug(Debug::ERROR) << "the targets are assumed to be sorted in increasing order. This doesn't seem to be the case.\n";
+                        Debug(Debug::ERROR) << "The targets are assumed to be sorted in increasing order. This doesn't seem to be the case.\n";
                         EXIT(EXIT_FAILURE);
                     }
                     
                     const char* targetHeader = targetsHeaders.getDataByDBKey(currTargetKey, thread_idx);
                     std::string targetHeaderAcc = Util::parseFastaHeader(targetHeader);
                     
-                    if (plusStrandExons.size() > 0) {
-                        preparePredDataAndHeader(plusPred, plusStrandExons, targetHeaderAcc, contigHeaderAcc, contigData, joinedHeaderStream, joinedExonsStream);
+                    if (plusPred.optimalExonSet.size() > 0) {
+                        preparePredDataAndHeader(plusPred, targetHeaderAcc, contigHeaderAcc, contigData, joinedHeaderStream, joinedExonsStream);
                         std::string result = ">" + joinedHeaderStream.str();
                         writer.writeData(result.c_str(), result.size(), 0, thread_idx, false, false);
                         result = joinedExonsStream.str();
@@ -232,8 +196,8 @@ int unitesetstofasta(int argn, const char **argv, const Command& command) {
                             writer.writeData(result.c_str(), result.size(), 0, thread_idx, false, false);
                         }
                     }
-                    if (minusStrandExons.size() > 0) {
-                        preparePredDataAndHeader(minusPred, minusStrandExons, targetHeaderAcc, contigHeaderAcc, contigData, joinedHeaderStream, joinedExonsStream);
+                    if (minusPred.optimalExonSet.size() > 0) {
+                        preparePredDataAndHeader(minusPred, targetHeaderAcc, contigHeaderAcc, contigData, joinedHeaderStream, joinedExonsStream);
                         std::string result = ">" + joinedHeaderStream.str();
                         writer.writeData(result.c_str(), result.size(), 0, thread_idx, false, false);
                         result = joinedExonsStream.str();
@@ -253,20 +217,20 @@ int unitesetstofasta(int argn, const char **argv, const Command& command) {
                     }
                     
                     // move to another target:
-                    plusStrandExons.clear();
-                    minusStrandExons.clear();
+                    plusPred.clearPred();
+                    minusPred.clearPred();
                     currTargetKey = targetKey;
                 }
                 
                 // add exon from same target:
                 if (strand == PLUS) {
                     // these fields remain constant between exons of the same prediction
-                    plusPred.FillPrediction(entry);
-                    plusStrandExons.emplace_back(Matcher::parseAlignmentRecord(entry[firstColumnOfExon], true));
+                    plusPred.setByDPRes(entry);
+                    plusPred.addExon(entry);
                 } else {
                     // these fields remain constant between exons of the same prediction
-                    minusPred.FillPrediction(entry);
-                    minusStrandExons.emplace_back(Matcher::parseAlignmentRecord(entry[firstColumnOfExon], true));
+                    minusPred.setByDPRes(entry);
+                    minusPred.addExon(entry);
                 }
                 results = Util::skipLine(results);
             }
@@ -274,8 +238,8 @@ int unitesetstofasta(int argn, const char **argv, const Command& command) {
             // handle the last target for the current contig:
             const char* targetHeader = targetsHeaders.getDataByDBKey(currTargetKey, thread_idx);
             std::string targetHeaderAcc = Util::parseFastaHeader(targetHeader);
-            if (plusStrandExons.size() > 0) {
-                preparePredDataAndHeader(plusPred, plusStrandExons, targetHeaderAcc, contigHeaderAcc, contigData, joinedHeaderStream, joinedExonsStream);
+            if (plusPred.optimalExonSet.size() > 0) {
+                preparePredDataAndHeader(plusPred, targetHeaderAcc, contigHeaderAcc, contigData, joinedHeaderStream, joinedExonsStream);
                 std::string result = ">" + joinedHeaderStream.str();
                 writer.writeData(result.c_str(), result.size(), 0, thread_idx, false, false);
                 result = joinedExonsStream.str();
@@ -293,8 +257,8 @@ int unitesetstofasta(int argn, const char **argv, const Command& command) {
                     writer.writeData(result.c_str(), result.size(), 0, thread_idx, false, false);
                 }
             }
-            if (minusStrandExons.size() > 0) {
-                preparePredDataAndHeader(minusPred, minusStrandExons, targetHeaderAcc, contigHeaderAcc, contigData, joinedHeaderStream, joinedExonsStream);
+            if (minusPred.optimalExonSet.size() > 0) {
+                preparePredDataAndHeader(minusPred, targetHeaderAcc, contigHeaderAcc, contigData, joinedHeaderStream, joinedExonsStream);
                 std::string result = ">" + joinedHeaderStream.str();
                 writer.writeData(result.c_str(), result.size(), 0, thread_idx, false, false);
                 result = joinedExonsStream.str();
@@ -313,8 +277,8 @@ int unitesetstofasta(int argn, const char **argv, const Command& command) {
                 }
             }
             // move to another contig:
-            plusStrandExons.clear();
-            minusStrandExons.clear();
+            plusPred.clearPred();
+            minusPred.clearPred();
         }
     }
     writer.close(true);
