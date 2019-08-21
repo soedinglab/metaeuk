@@ -251,13 +251,14 @@ int reduceredundancy(int argn, const char **argv, const Command& command) {
             clusterPredictions(minusContigPredictions, minusContigRepPreds);
             excludeSameStrandOverlaps(minusContigRepPreds);
 
-            // write PLUS
+            // write clusters
             writePredsClusters(plusContigPredictions, predictionBuffer, writerRepToMembers, thread_idx);
-            writeRepPredsInDPFormat(plusContigRepPreds, predictionBuffer, par.overlapAllowed, writerGroupedPredictions, thread_idx);
-
-            // write MINUS
             writePredsClusters(minusContigPredictions, predictionBuffer, writerRepToMembers, thread_idx);
-            writeRepPredsInDPFormat(minusContigRepPreds, predictionBuffer, par.overlapAllowed, writerGroupedPredictions, thread_idx);
+
+            // join representatives from both strands and sort by targetKey to comply with expectd order of DP format
+            plusContigRepPreds.insert(plusContigRepPreds.end(), minusContigRepPreds.begin(), minusContigRepPreds.end());
+            std::stable_sort(plusContigRepPreds.begin(), plusContigRepPreds.end(), Prediction::comparePredictionsByTarget);
+            writeRepPredsInDPFormat(plusContigRepPreds, predictionBuffer, par.overlapAllowed, writerGroupedPredictions, thread_idx);
 
             // close the contig entry with a null byte
             writerRepToMembers.writeEnd(contigKey, thread_idx);

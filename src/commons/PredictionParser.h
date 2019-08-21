@@ -275,6 +275,21 @@ class Prediction {
         return false;
     }
 
+    // to allow sorting a vector of contig predictions by their targetKey and strand
+    static bool comparePredictionsByTarget (const Prediction & aPrediction, const Prediction & anotherPrediction) {
+        if(aPrediction.targetKey < anotherPrediction.targetKey)
+            return true;
+        if(aPrediction.targetKey > anotherPrediction.targetKey)
+            return false;
+        // the following lines will break even cases in a consistent way (MINUS before PLUS)
+        if(aPrediction.strand < anotherPrediction.strand)
+            return true;
+        if(aPrediction.strand > anotherPrediction.strand)
+            return false;
+        // this line will not be reached...
+        return false;
+    }
+
     static size_t predictionToBuffer (char * predictionBuffer, const Prediction & prediction) {
         char * basePos = predictionBuffer;
         char * tmpBuff = basePos;
