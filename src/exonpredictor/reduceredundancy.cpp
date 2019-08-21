@@ -271,7 +271,7 @@ int reduceredundancy(int argn, const char **argv, const Command& command) {
             minusContigRepPreds.clear();
         }
     }
-    writerRepToMembers.close(true);
-    writerGroupedPredictions.close(true);
+    writerRepToMembers.close();
+    writerGroupedPredictions.close();
     return EXIT_SUCCESS;
 }

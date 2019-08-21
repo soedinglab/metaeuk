@@ -341,7 +341,7 @@ int collectoptimalset(int argn, const char **argv, const Command& command) {
         }
     }
 
-    predWriter.close(true);
+    predWriter.close();
     resultPerContigReader.close();
     return EXIT_SUCCESS;
 }
