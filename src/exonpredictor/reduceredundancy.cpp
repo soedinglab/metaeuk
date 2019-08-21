@@ -157,8 +157,8 @@ int reduceredundancy(int argn, const char **argv, const Command& command) {
     writerGroupedPredictions.open();
 
     // db3 = output, grouping of predictions: T,S of representatives to T,S of prediction
-    DBWriter writerRepToMemebers(par.db3.c_str(), par.db3Index.c_str(), par.threads, par.compressed, Parameters::DBTYPE_GENERIC_DB);
-    writerRepToMemebers.open();
+    DBWriter writerRepToMembers(par.db3.c_str(), par.db3Index.c_str(), par.threads, par.compressed, Parameters::DBTYPE_GENERIC_DB);
+    writerRepToMembers.open();
 
     Debug::Progress progress(predsPerContig.getSize());
 #pragma omp parallel
@@ -197,7 +197,7 @@ int reduceredundancy(int argn, const char **argv, const Command& command) {
             bool isFirstIterationMinus = true;
 
             // keep track of offset when a contig starts
-            writerRepToMemebers.writeStart(thread_idx);
+            writerRepToMembers.writeStart(thread_idx);
             writerGroupedPredictions.writeStart(thread_idx);
 
             // process a specific contig
@@ -252,15 +252,15 @@ int reduceredundancy(int argn, const char **argv, const Command& command) {
             excludeSameStrandOverlaps(minusContigRepPreds);
 
             // write PLUS
-            writePredsClusters(plusContigPredictions, predictionBuffer, writerRepToMemebers, thread_idx);
+            writePredsClusters(plusContigPredictions, predictionBuffer, writerRepToMembers, thread_idx);
             writeRepPredsInDPFormat(plusContigRepPreds, predictionBuffer, par.overlapAllowed, writerGroupedPredictions, thread_idx);
 
             // write MINUS
-            writePredsClusters(minusContigPredictions, predictionBuffer, writerRepToMemebers, thread_idx);
+            writePredsClusters(minusContigPredictions, predictionBuffer, writerRepToMembers, thread_idx);
             writeRepPredsInDPFormat(minusContigRepPreds, predictionBuffer, par.overlapAllowed, writerGroupedPredictions, thread_idx);
 
             // close the contig entry with a null byte
-            writerRepToMemebers.writeEnd(contigKey, thread_idx);
+            writerRepToMembers.writeEnd(contigKey, thread_idx);
             writerGroupedPredictions.writeEnd(contigKey, thread_idx);
 
             // move to another contig:
@@ -270,7 +270,7 @@ int reduceredundancy(int argn, const char **argv, const Command& command) {
             minusContigRepPreds.clear();
         }
     }
-    writerRepToMemebers.close(true);
+    writerRepToMembers.close(true);
     writerGroupedPredictions.close(true);
     return EXIT_SUCCESS;
 }
