@@ -26,8 +26,8 @@ Read [here](https://github.com/soedinglab/mmseqs2/wiki#how-to-create-a-target-pr
 
       predictexons      	Predict eukaryotic exons based on protein similarity
       reduceredundancy  	A greedy approach to group metaeuk predictions which share an exon
-      unitesetstofasta   Create a fasta output from optimal exon sets
-      groupstoacc        Create a TSV output from representative to member
+      unitesetstofasta  	Create a fasta output from optimal exon sets
+      groupstoacc     	Create a TSV output from representative to member
 
 
 ### Important parameters: 
