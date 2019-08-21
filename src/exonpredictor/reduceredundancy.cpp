@@ -68,7 +68,7 @@ void clusterPredictions (std::vector<Prediction> &contigPredictions, std::vector
                     finalClusterId = contigPredictions[j].targetKey;
                 }
 
-                // will be used to assign the finalClusterId later
+                // will be used to assign finalClusterId later
                 if (max_j < j) {
                     max_j = j;
                 }
@@ -125,29 +125,11 @@ void excludeSameStrandOverlaps (std::vector<Prediction> &repContigPredictions) {
     }
 }
 
-size_t repPredsToBuff (std::vector<Prediction> &repContigPredictions, char * repPredsBuff, bool excludeStrandOverlap) {
-    // fills the buffer with lines of DP format (17 columns)
-    char * basePos = repPredsBuff;
-    char * tmpBuff = basePos;
-    for (size_t i = 0; i < repContigPredictions.size(); ++i) {
-        // if same strand overlaps are not allowed, skip predictions that were worse than another representatives
-        if ((excludeStrandOverlap == true) && (repContigPredictions[i].noOverlapClusterId != repContigPredictions[i].targetKey)) {
-            continue;
-        }
-        size_t predLen = Prediction::predictionToBuffer(tmpBuff, repContigPredictions[i]);
-        tmpBuff += predLen;
-    }
-    // close buffer
-    *(tmpBuff) = '\0';
-    return (tmpBuff - basePos);
-}
-
-
-void writeRepPredsInDPFormat (std::vector<Prediction> &repContigPredictions, char * predBuff, bool excludeStrandOverlap,
+void writeRepPredsInDPFormat (std::vector<Prediction> &repContigPredictions, char * predBuff, bool allowOverlaps,
                                 DBWriter &repWriter, unsigned int thread_idx) {
     for (size_t i = 0; i < repContigPredictions.size(); ++i) {
         // if same strand overlaps are not allowed, skip predictions that were worse than another representatives
-        if ((excludeStrandOverlap == true) && (repContigPredictions[i].noOverlapClusterId != repContigPredictions[i].targetKey)) {
+        if ((allowOverlaps == false) && (repContigPredictions[i].noOverlapClusterId != repContigPredictions[i].targetKey)) {
             continue;
         }
         size_t predLen = Prediction::predictionToBuffer(predBuff, repContigPredictions[i]);
@@ -155,8 +137,14 @@ void writeRepPredsInDPFormat (std::vector<Prediction> &repContigPredictions, cha
     }
 }
 
+void writePredsClusters (std::vector<Prediction> &predictions, char * predBuff, DBWriter &repWriter, unsigned int thread_idx) {
+    for (size_t i = 0; i < predictions.size(); ++i) {
+        size_t predLen = Prediction::predictionClusterToBuffer(predBuff, predictions[i]);
+        repWriter.writeAdd(predBuff, predLen, thread_idx);
+    }
+}
 
-int grouppredictions(int argn, const char **argv, const Command& command) {
+int reduceredundancy(int argn, const char **argv, const Command& command) {
     LocalParameters& par = LocalParameters::getLocalInstance();
     par.parseParameters(argn, argv, command, true, 0, 0);
 
@@ -164,13 +152,13 @@ int grouppredictions(int argn, const char **argv, const Command& command) {
     DBReader<unsigned int> predsPerContig(par.db1.c_str(), par.db1Index.c_str(), par.threads, DBReader<unsigned int>::USE_INDEX|DBReader<unsigned int>::USE_DATA);
     predsPerContig.open(DBReader<unsigned int>::LINEAR_ACCCESS);
 
-    // db2 = output, DP format of representative predictions
+    // db2 = output, DP format of representative predictions (par.overlapAllowed will exclude overlaps by default)
     DBWriter writerGroupedPredictions(par.db2.c_str(), par.db2Index.c_str(), par.threads, par.compressed, Parameters::DBTYPE_GENERIC_DB);
     writerGroupedPredictions.open();
 
-    // db3 = output, DP format of representative predictions after excluding overlaps
-    DBWriter writerGroupedPredictionsNoOverlap(par.db3.c_str(), par.db3Index.c_str(), par.threads, par.compressed, Parameters::DBTYPE_GENERIC_DB);
-    writerGroupedPredictionsNoOverlap.open();
+    // db3 = output, grouping of predictions: T,S of representatives to T,S of prediction
+    DBWriter writerRepToMemebers(par.db3.c_str(), par.db3Index.c_str(), par.threads, par.compressed, Parameters::DBTYPE_GENERIC_DB);
+    writerRepToMemebers.open();
 
     Debug::Progress progress(predsPerContig.getSize());
 #pragma omp parallel
@@ -209,8 +197,8 @@ int grouppredictions(int argn, const char **argv, const Command& command) {
             bool isFirstIterationMinus = true;
 
             // keep track of offset when a contig starts
+            writerRepToMemebers.writeStart(thread_idx);
             writerGroupedPredictions.writeStart(thread_idx);
-            writerGroupedPredictionsNoOverlap.writeStart(thread_idx);
 
             // process a specific contig
             while (*results != '\0') {
@@ -263,16 +251,17 @@ int grouppredictions(int argn, const char **argv, const Command& command) {
             clusterPredictions(minusContigPredictions, minusContigRepPreds);
             excludeSameStrandOverlaps(minusContigRepPreds);
 
-            // write
-            writeRepPredsInDPFormat(plusContigRepPreds, predictionBuffer, false, writerGroupedPredictions, thread_idx);
-            writeRepPredsInDPFormat(plusContigRepPreds, predictionBuffer, true, writerGroupedPredictionsNoOverlap, thread_idx);
+            // write PLUS
+            writePredsClusters(plusContigPredictions, predictionBuffer, writerRepToMemebers, thread_idx);
+            writeRepPredsInDPFormat(plusContigRepPreds, predictionBuffer, par.overlapAllowed, writerGroupedPredictions, thread_idx);
 
-            writeRepPredsInDPFormat(minusContigRepPreds, predictionBuffer, false, writerGroupedPredictions, thread_idx);
-            writeRepPredsInDPFormat(minusContigRepPreds, predictionBuffer, true, writerGroupedPredictionsNoOverlap, thread_idx);
+            // write MINUS
+            writePredsClusters(minusContigPredictions, predictionBuffer, writerRepToMemebers, thread_idx);
+            writeRepPredsInDPFormat(minusContigRepPreds, predictionBuffer, par.overlapAllowed, writerGroupedPredictions, thread_idx);
 
             // close the contig entry with a null byte
+            writerRepToMemebers.writeEnd(contigKey, thread_idx);
             writerGroupedPredictions.writeEnd(contigKey, thread_idx);
-            writerGroupedPredictionsNoOverlap.writeEnd(contigKey, thread_idx);
 
             // move to another contig:
             plusContigPredictions.clear();
@@ -281,9 +270,7 @@ int grouppredictions(int argn, const char **argv, const Command& command) {
             minusContigRepPreds.clear();
         }
     }
-    // cleanup
+    writerRepToMemebers.close(true);
     writerGroupedPredictions.close(true);
-    writerGroupedPredictionsNoOverlap.close(true);
-    //contigStrandSortedMap.close();
     return EXIT_SUCCESS;
 }

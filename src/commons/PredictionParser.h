@@ -137,29 +137,10 @@ struct PotentialExon {
         *(tmpBuff-1) = '\t';
         tmpBuff = Itoa::i32toa_sse2(exon.nucleotideLen, tmpBuff);
 
-        *(tmpBuff-1) = '\n'; // not sure I want this...
+        *(tmpBuff-1) = '\n';
         *(tmpBuff) = '\0';
         return (tmpBuff - basePos);
     }
-
-    // contig start and end refer to the first (and last) nucleotides to participate in the alignment
-    // the coordinates are with respect to the contig start (5', plus strand) and are negative
-    // in case of the minus strand. This way, in both strands, start < end.
-    unsigned int exonKey;
-    unsigned int targetKey;
-    int strand;
-
-    unsigned int bitScore;
-    double seqId;
-    double evalue;
-
-    int targetMatchStart;
-    int targetMatchEnd;
-    int targetLen;
-
-    int contigStart;
-    int contigEnd;
-    int nucleotideLen;
 
     // allow comparing PotentialExons by their start on the contig
     static bool comparePotentialExons (const PotentialExon & aPotentialExon, const PotentialExon & anotherPotentialExon) {
@@ -175,6 +156,25 @@ struct PotentialExon {
         // if this line is reached, it is the same PotentialExon (same start & same end)...
         return false;
     }
+
+    // contig start and end refer to the first (and last) nucleotides to participate in the alignment
+    // the coordinates are with respect to the contig start (5', plus strand) and are negative
+    // in case of the minus strand. This way, on both strands, start < end.
+    unsigned int exonKey;
+    unsigned int targetKey;
+    int strand;
+
+    unsigned int bitScore;
+    double seqId;
+    double evalue;
+
+    int targetMatchStart;
+    int targetMatchEnd;
+    int targetLen;
+
+    int contigStart;
+    int contigEnd;
+    int nucleotideLen;
 };
 
 class Prediction {
@@ -252,12 +252,12 @@ class Prediction {
         optimalExonSet.emplace_back(exon);
     }
 
-    static int getStrand (const char** entry) {
-        return (Util::fast_atoi<int>(entry[1]));
-    }
-
     static int getTargetKey (const char** entry) {
         return (Util::fast_atoi<int>(entry[0]));
+    }
+
+    static int getStrand (const char** entry) {
+        return (Util::fast_atoi<int>(entry[1]));
     }
 
     // to allow sorting a vector of predictions by their E-values
@@ -310,17 +310,28 @@ class Prediction {
         return (tmpBuff - basePos);
     }
 
-    static void getPredictionContigCoords (std::vector<PotentialExon> & optimalExonSet, int & lowContigCoord, int & highContigCoord) {
-        int numExonsInOptimalSet = optimalExonSet.size();
-        PotentialExon firstExon = optimalExonSet[0];
-        PotentialExon lastExon = optimalExonSet[numExonsInOptimalSet - 1];
+    static size_t predictionClusterToBuffer (char * predictionBuffer, const Prediction & prediction) {
+        // write: Representative(T,S) , Member(T,S)
+        char * basePos = predictionBuffer;
+        char * tmpBuff = basePos;
 
-        // since contigStart and contigEnd are negative on the MINUS strand, we multiply by (-1)
-        // to assure ContigCoords are always positive
-        lowContigCoord = (firstExon.strand == PLUS) ? firstExon.contigStart : (-1 * lastExon.contigEnd);
-        highContigCoord = (firstExon.strand == PLUS) ? lastExon.contigEnd : (-1 * firstExon.contigStart);
+        // clusterId is the TargetKey of the representative. The representative is on the same strand
+        tmpBuff = Itoa::u32toa_sse2(static_cast<uint32_t>(prediction.clusterId), tmpBuff);
+        *(tmpBuff-1) = '\t';
+        tmpBuff = Itoa::i32toa_sse2(static_cast<uint32_t>(prediction.strand), tmpBuff);
+        *(tmpBuff-1) = '\t';
+
+        tmpBuff = Itoa::u32toa_sse2(static_cast<uint32_t>(prediction.targetKey), tmpBuff);
+        *(tmpBuff-1) = '\t';
+        tmpBuff = Itoa::i32toa_sse2(static_cast<uint32_t>(prediction.strand), tmpBuff);
+        *(tmpBuff-1) = '\n';
+
+        // close buffer
+        *(tmpBuff) = '\0';
+        return (tmpBuff - basePos);
     }
 
+    // members
     unsigned int targetKey;
     int strand;
     unsigned int totalBitscore;
@@ -330,7 +341,7 @@ class Prediction {
     unsigned int highContigCoord;
     std::vector<PotentialExon> optimalExonSet;
 
-    // members for groupin
+    // members for grouping
     bool isClustered;
     unsigned int clusterId; // will hold the target key of the final representative
 

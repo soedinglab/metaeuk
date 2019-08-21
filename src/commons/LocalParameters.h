@@ -18,7 +18,7 @@ public:
 
     std::vector<MMseqsParameter*> predictexonsworkflow;
     std::vector<MMseqsParameter*> collectoptimalset;
-    std::vector<MMseqsParameter*> reduceredundancyworkflow;
+    std::vector<MMseqsParameter*> reduceredundancy;
     std::vector<MMseqsParameter*> assigntaxonomyworkflow;
     std::vector<MMseqsParameter*> unitesetstofasta;
 
@@ -49,6 +49,9 @@ public:
     PARAMETER(PARAM_SHOULD_TRANSLATE)
     int shouldTranslate;
 
+    PARAMETER(PARAM_ALLOW_OVERLAP)
+    int overlapAllowed;
+
 private:
     LocalParameters() : 
         Parameters(),
@@ -60,7 +63,8 @@ private:
         PARAM_MAX_AA_OVERLAP(PARAM_MAX_AA_OVERLAP_ID,"--max-overlap", "Maximal overlap of exons", "Maximal allowed overlap of consecutive exons in amino acids", typeid(int), (void *) &maxAaOverlap, "^[0-9]+$"),
         PARAM_GAP_OPEN_PENALTY(PARAM_GAP_OPEN_PENALTY_ID,"--set-gap-open", "Gap open penalty", "Gap open penalty (negative) for missed target amino acids between exons", typeid(int), (void *) &setGapOpenPenalty, "^-[0-9]+$"),
         PARAM_GAP_EXTEND_PENALTY(PARAM_GAP_EXTEND_PENALTY_ID,"--set-gap-extend", "Gap extend penalty", "Gap extend penalty (negative) for missed target amino acids between exons", typeid(int), (void *) &setGapExtendPenalty, "^-[0-9]+$"),
-        PARAM_SHOULD_TRANSLATE(PARAM_SHOULD_TRANSLATE_ID,"--protein", "translate codons to AAs", "translate the joint exons coding sequence to amino acids [0,1]", typeid(int), (void *) &shouldTranslate, "^[0-1]{1}$")
+        PARAM_SHOULD_TRANSLATE(PARAM_SHOULD_TRANSLATE_ID,"--protein", "translate codons to AAs", "translate the joint exons coding sequence to amino acids [0,1]", typeid(int), (void *) &shouldTranslate, "^[0-1]{1}$"),
+        PARAM_ALLOW_OVERLAP(PARAM_ALLOW_OVERLAP_ID,"--overlap", "allow same-strand overlaps", "allow predictions to overlap another on the same strand. when not allowed (default), only the prediction with better E-value will be retained [0,1]", typeid(int), (void *) &overlapAllowed, "^[0-1]{1}$")
     {
         collectoptimalset.push_back(&PARAM_METAEUK_EVAL_THR);
         collectoptimalset.push_back(&PARAM_MAX_INTRON_LENGTH);
@@ -79,9 +83,9 @@ private:
         predictexonsworkflow = combineList(predictexonsworkflow, collectoptimalset);
         predictexonsworkflow.push_back(&PARAM_REVERSE_FRAGMENTS);
 
-        reduceredundancyworkflow = combineList(reduceredundancyworkflow, swapdb);
-        reduceredundancyworkflow.push_back(&PARAM_THREADS);
-        reduceredundancyworkflow.push_back(&PARAM_REMOVE_TMP_FILES);
+        reduceredundancy.push_back(&PARAM_ALLOW_OVERLAP);
+        reduceredundancy.push_back(&PARAM_THREADS);
+        reduceredundancy.push_back(&PARAM_REMOVE_TMP_FILES);
 
         assigntaxonomyworkflow.push_back(&PARAM_THREADS);
         assigntaxonomyworkflow.push_back(&PARAM_REMOVE_TMP_FILES);
@@ -94,6 +98,9 @@ private:
         
         // default value 0 means no reverse of AA fragments
         reverseFragments = 0;
+
+        // default value 0 means no same-strand overlap of representative predictions is allowed
+        overlapAllowed = 0;
 
         // default values for an optimal set:
         metaeukEvalueThr = 0.001;
