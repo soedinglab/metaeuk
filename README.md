@@ -81,7 +81,7 @@ Example header (two exons on the minus strand):
 *>ERR1719262_736507|ERR868377_k119_2347399|-|341|6.2e-93|2|54324|54855|54855[54855]:54754[54754]:102[102]|54656[54668]:54324[54324]:333[321]*
 
 
-#### Creating a TSV map of prediction representatives to their group members:
+### Creating a TSV map of prediction representatives to their group members:
 
 A TSV file, of lines of the format:
 
