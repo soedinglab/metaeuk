@@ -73,13 +73,5 @@ std::vector<struct Command> commands = {
                 "<i:contigToSearchRes> <i:targetsDB> <o:predictedExonsDB>",
                 NO_CITATION,{{"contigToSearchRes", DbType::ACCESS_MODE_INPUT, DbType::NEED_DATA, &DbValidator::resultDb},
                                 {"targetsDB", DbType::ACCESS_MODE_INPUT, DbType::NEED_DATA, &DbValidator::sequenceDb},
-                                {"predictedExonsDB", DbType::ACCESS_MODE_OUTPUT, DbType::NEED_DATA, NULL}}},
-        // overwrite MMseqs2 swapdb because of its input type validation
-        {"swapdb",               swapdb,               &localPar.swapdb,               COMMAND_HIDDEN,
-                "Create a DB where the key is from the first column of the input result DB",
-                NULL,
-                "Martin Steinegger <martin.steinegger@mpibpc.mpg.de>, Clovis Galiez & Eli Levy Karin",
-                "<i:resultDB> <o:resultDB>",
-                NO_CITATION, {{"resultDB",  DbType::ACCESS_MODE_INPUT, DbType::NEED_DATA, &DbValidator::allDb },
-                                {"resultDB", DbType::ACCESS_MODE_OUTPUT, DbType::NEED_DATA, &DbValidator::allDb}}}
+                                {"predictedExonsDB", DbType::ACCESS_MODE_OUTPUT, DbType::NEED_DATA, NULL}}}
 };
