@@ -26,16 +26,8 @@ Read [here](https://github.com/soedinglab/mmseqs2/wiki#how-to-create-a-target-pr
 
       predictexons      	Predict eukaryotic exons based on protein similarity
       reduceredundancy  	A greedy approach to group metaeuk predictions which share an exon
-      unitetoseqdbs     	Unite the exons of predictions to sequence BD
-
-
-### Converting Fasta files to databases:
-    
-    # create a database from contigs.fasta 
-      metaeuk createdb contigs.fasta contigsDB --dont-split-seq-by-len --dbtype 2
-
-    # create a database from reference.fasta  
-      metaeuk createdb reference.fasta referenceDB --dbtype 1
+      unitesetstofasta   Create a fasta output from optimal exon sets
+      groupstoacc        Create a TSV output from representative to member
 
 
 ### Important parameters: 
@@ -50,43 +42,36 @@ Read [here](https://github.com/soedinglab/mmseqs2/wiki#how-to-create-a-target-pr
 
 This module will extract all putative protein fragments from each contig (**C**) and strand (**S**), query them against the reference targets (**T**) and use dynamic programming to retain for each **T** the optimal compatible exon set from each **C** & **S** (thus creating **TCS** predictions).
     
-    metaeuk predictexons contigsDB referenceDB predExResult tempFolder --metaeuk-eval 0.0001 -e 100 --min-length 40
+    metaeuk predictexons contigsDB referenceDB predExResultDB tempFolder --metaeuk-eval 0.0001 -e 100 --min-length 40
     
-Since this step involves a search, it is the most time-demanding of all analyses steps. Upon completion, it will output: predExResult_dp_protein_contig_strand_map and predExResult_dp_optimal_exon_sets. These contain information about each of the **TCS** prediction and its exons.
+Since this step involves a search, it is the most time-demanding of all analyses steps. Upon completion, it will output a database (contigs are keys), where each line contains information about a **TCS** prediction and its exon (multi-exon predictions will span several lines).
 
 
 ### Reducing redundancy:
 
-If there are homologies in referenceDB (e.g., T1 is highly similar to T2), the same optimal exons set from a **C** & **S** combination will be predicted more than once. This module will group together **TCS** predictions that share and exon and will choose their representative. In addition, it will greedily obtain a subset of the **TCS** representatives, such that there is no overlap of predictions on the same contig and strand.
+If there are homologies in referenceDB (e.g., T1 is highly similar to T2), the same optimal exons set from a **C** & **S** combination will be predicted more than once. This module will group together **TCS** predictions that share and exon and will choose their representative. By default, it will greedily obtain a subset of the **TCS** representatives, such that there is no overlap of predictions on the same contig and strand (to allow same-strand overlaps, run with ```--overlap 1```).
     
-    metaeuk reduceredundancy predExResult_dp_protein_contig_strand_map predExResult_dp_optimal_exon_sets redRedResult tempFolder
+    metaeuk reduceredundancy predExResultDB predRedResultDB predGroupsDB
     
-Upon completion, it will output: redRedResult_dp_protein_contig_strand_map, redRedResult_dp_optimal_exon_sets, and  redRedResult_grouped_predictions. The first two contain information about the **TCS** representatives. The third, maps from the representative to all **TCS** predictions that share an exon with it.
-In addition, it will output: redRedResult_no_overlap_dp_protein_contig_strand_map redRedResult_no_overlap_dp_optimal_exon_sets, and  redRedResult_grouped_predictions_no_overlap. The first two contain information about the **TCS** representatives after resolving overlaps. The third, maps from the representative to all **TCS** representatives that overlap it (excluded).
+Upon completion, it will output: predRedResultDB and predGroupsDB. predRedResultDB contains information about the **TCS** representatives (same format as predExResultDB). Each line of predGroupsDB maps from a representative to all **TCS** predictions that share an exon with it.
 
-
-### Creating sequence DBs:
-
-The X_dp_protein_contig_strand_map and X_dp_optimal_exon_sets produced by the modules above, can be used to extract the sequences of the predicted protein-coding genes.
-    
-    metaeuk unitetoseqdbs contigsDB referenceDB X_dp_protein_contig_strand_map X_no_overlap_dp_optimal_exon_sets result tempFolder
-    
-It will output: result_united_exons, result_united_exons_aa, which correspond to the codon (DNA) and amino-acid sequences of the predictions.
 
 
 ### Converting to Fasta:
 
-The X_dp_protein_contig_strand_map and X_dp_optimal_exon_sets produced by the modules above, can be used to extract the sequences of the predicted protein-coding genes.
+The predExResultDB/predRedResultDB produced by the modules above, can be used to extract the sequences of the predicted protein-coding genes. The parameter ```--protein``` controls whether to transalte the coding genes (1) or report in nucleotides (0, default)
     
-    metaeuk convert2fasta result_united_exons_aa result_united_exons_aa.fas
+    metaeuk unitesetstofasta contigsDB referenceDB predRedResultDB predRedResultProteins.fas --protein 1
     
+
+
 #### The MetaEuk header:
 
 The header is composed of several sections, separated by pipes ('|'):
 
-*>T_header|C_header|S|bitscore|E-Value|number_exons|low_coord|high_coord|exon1_coords|exon2_coords|...*
+*>T_acc|C_acc|S|bitscore|E-Value|number_exons|low_coord|high_coord|exon1_coords|exon2_coords|...*
 
-*coord* refers to the coordination on the contig. It is advisable to keep T_header and C_header short and without pipes. The exon_coords are of the structure:
+*coord* refers to the coordination on the contig. It is advisable to keep T_acc and C_acc short and without pipes. The exon_coords are of the structure:
 *low[taken_low]:high[taken_high]:nucleotide_length[taken_nucleotide_length]*
 Since MetaEuk allows for a very overlap on T of two putative exons (see P1 and P2 in the illustartion below), when joining the sequences of the exons, one of them is shortened.
 
@@ -95,6 +80,17 @@ Since MetaEuk allows for a very overlap on T of two putative exons (see P1 and P
 Example header (two exons on the minus strand):
 *>ERR1719262_736507|ERR868377_k119_2347399|-|341|6.2e-93|2|54324|54855|54855[54855]:54754[54754]:102[102]|54656[54668]:54324[54324]:333[321]*
 
+
+#### Creating TSV map of predictions to representatives:
+
+A TSV file, of lines of the format:
+
+*T_acc_rep|C_acc|S    T_acc_member|C_acc|S*
+
+can help mapping from each representative prediction after the redundancy reduction stage to all its group members. Since redundancy reduction is performed per contig and strand combination, there will always be agreement in these fields. Note, a representative also maps to itself.
+
+    metaeuk groupstoacc contigsDB referenceDB predGroupsDB predGroups.tsv
+    
 
 
 ## Compile from source
