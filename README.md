@@ -73,7 +73,8 @@ The header is composed of several sections, separated by pipes ('|'):
 
 *coord* refers to the coordination on the contig. It is advisable to keep T_acc and C_acc short and without pipes. The exon_coords are of the structure:
 *low[taken_low]:high[taken_high]:nucleotide_length[taken_nucleotide_length]*
-Since MetaEuk allows for a very overlap on T of two putative exons (see P1 and P2 in the illustartion below), when joining the sequences of the exons, one of them is shortened.
+
+Since MetaEuk allows for a very overlap on T of two putative exons (see P2 and P3 in the illustartion below), when joining the sequences of the exons, one of them is shortened.
 
 <p align="center"><img src="https://github.com/soedinglab/metaeuk/blob/master/imgs/small_overlap_allowed.png" height="150"/></p>
 
