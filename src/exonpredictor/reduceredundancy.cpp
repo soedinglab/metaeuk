@@ -26,6 +26,8 @@ const size_t EXPECTED_NUM_PREDICTIONS = 100000;
 void clusterPredictions (std::vector<Prediction> &contigPredictions, std::vector<Prediction> &repContigPredictions) {
     // sort the vector by contigStart (sub sorted by length, bitscore and targetKey):
     std::stable_sort(contigPredictions.begin(), contigPredictions.end(), Prediction::comparePredictionsByContigStart);
+
+    std::vector<Prediction> currClusterPreds;
     
     // the index i iterates over cluster tmp_representatives.
     // after member collection is done, tmp_representative is replaced by the member with the highest bitscore
@@ -40,7 +42,8 @@ void clusterPredictions (std::vector<Prediction> &contigPredictions, std::vector
         contigPredictions[i].clusterId = contigPredictions[i].targetKey;
         unsigned int maxScore = contigPredictions[i].totalBitscore;
         contigPredictions[i].isClustered = true;
-        size_t max_j = i;
+        currClusterPreds.clear();
+        currClusterPreds.emplace_back(contigPredictions[i]);
         
         for (size_t j = (i + 1); j < contigPredictions.size(); ++j) {
             if (contigPredictions[j].lowContigCoord >= contigPredictions[i].highContigCoord) {
@@ -72,22 +75,28 @@ void clusterPredictions (std::vector<Prediction> &contigPredictions, std::vector
                 }
 
                 // will be used to assign finalClusterId later
-                if (max_j < j) {
-                    max_j = j;
-                }
+                currClusterPreds.emplace_back(contigPredictions[j]);
             }
         }
 
         // collecting all j members for tmp_representative i is finished.
         // assign finalClusterId (target key of best scoring representative)
-        for (size_t j = i; j <= max_j; ++j) {
-            if (contigPredictions[j].clusterId == contigPredictions[i].targetKey) {
-                contigPredictions[j].clusterId = finalClusterId;
+        size_t numPutInVec = 0;
+        for (size_t j = 0; j < currClusterPreds.size(); ++j) {
+            if (currClusterPreds[j].clusterId == contigPredictions[i].targetKey) {
+                currClusterPreds[j].clusterId = finalClusterId;
             }
             // if by now the clusterId is equal to finalClusterId --> this is a representative
-            if (contigPredictions[j].clusterId == contigPredictions[j].targetKey) {
-                repContigPredictions.emplace_back(contigPredictions[j]);
+            if (currClusterPreds[j].clusterId == currClusterPreds[j].targetKey) {
+                repContigPredictions.emplace_back(currClusterPreds[j]);
+                numPutInVec++;
             }
+        }
+        currClusterPreds.clear();
+
+        if (numPutInVec != 1) {
+            Debug(Debug::ERROR) << "Should insert exactly one representative: " << numPutInVec << "\n";
+            EXIT(EXIT_FAILURE);
         }
     }
 }
