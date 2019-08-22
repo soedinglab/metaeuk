@@ -260,6 +260,31 @@ class Prediction {
         return (Util::fast_atoi<int>(entry[1]));
     }
 
+    // to allow sorting a vector of predictions by their start on the contig
+    static bool comparePredictionsByContigStart (const Prediction & aPrediction, const Prediction & anotherPrediction) {
+        if(aPrediction.lowContigCoord < anotherPrediction.lowContigCoord)
+            return true;
+        if(aPrediction.lowContigCoord > anotherPrediction.lowContigCoord)
+            return false;
+        // the following lines will break even cases in a consistent way (longer comes before shorter)
+        if(aPrediction.highContigCoord > anotherPrediction.highContigCoord)
+            return true;
+        if(aPrediction.highContigCoord < anotherPrediction.highContigCoord)
+            return false;
+        // the following lines will break even cases in a consistent way (higher bitscore comes before lower)
+        if(aPrediction.totalBitscore > anotherPrediction.totalBitscore)
+            return true;
+        if(aPrediction.totalBitscore < anotherPrediction.totalBitscore)
+            return false;
+        // the following lines will break even cases in a consistent way (higher bitscore comes before lower)
+        if(aPrediction.targetKey < anotherPrediction.targetKey)
+            return true;
+        if(aPrediction.targetKey > anotherPrediction.targetKey)
+            return false;
+        // this line will not be reached...
+        return false;
+    }
+
     // to allow sorting a vector of predictions by their E-values
     static bool comparePredictionsByEvalue (const Prediction & aPrediction, const Prediction & anotherPrediction) {
         if(aPrediction.combinedEvalue < anotherPrediction.combinedEvalue)

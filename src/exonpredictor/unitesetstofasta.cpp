@@ -176,10 +176,12 @@ int unitesetstofasta(int argn, const char **argv, const Command& command) {
                     }
                     
                     const char* targetHeader = targetsHeaders.getDataByDBKey(currTargetKey, thread_idx);
-                    std::string targetHeaderAcc = Util::parseFastaHeader(targetHeader);
+                    std::string targetHeaderAcc;
                     if (par.writeTargetKey == true) {
                         Itoa::u32toa_sse2(static_cast<uint32_t>(currTargetKey), targetKeyBuff);
                         targetHeaderAcc = std::string(targetKeyBuff);
+                    } else {
+                        targetHeaderAcc = Util::parseFastaHeader(targetHeader);
                     }
                     
                     if (plusPred.optimalExonSet.size() > 0) {
@@ -242,10 +244,12 @@ int unitesetstofasta(int argn, const char **argv, const Command& command) {
 
             // handle the last target for the current contig:
             const char* targetHeader = targetsHeaders.getDataByDBKey(currTargetKey, thread_idx);
-            std::string targetHeaderAcc = Util::parseFastaHeader(targetHeader);
+            std::string targetHeaderAcc;
             if (par.writeTargetKey == true) {
                 Itoa::u32toa_sse2(static_cast<uint32_t>(currTargetKey), targetKeyBuff);
                 targetHeaderAcc = std::string(targetKeyBuff);
+            } else {
+                targetHeaderAcc = Util::parseFastaHeader(targetHeader);
             }
             
             if (plusPred.optimalExonSet.size() > 0) {

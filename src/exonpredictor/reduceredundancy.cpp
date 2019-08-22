@@ -24,6 +24,9 @@
 const size_t EXPECTED_NUM_PREDICTIONS = 100000;
 
 void clusterPredictions (std::vector<Prediction> &contigPredictions, std::vector<Prediction> &repContigPredictions) {
+    // sort the vector by contigStart (sub sorted by length, bitscore and targetKey):
+    std::stable_sort(contigPredictions.begin(), contigPredictions.end(), Prediction::comparePredictionsByContigStart);
+    
     // the index i iterates over cluster tmp_representatives.
     // after member collection is done, tmp_representative is replaced by the member with the highest bitscore
     for (size_t i = 0; i < contigPredictions.size(); ++i) {
@@ -173,10 +176,12 @@ int reduceredundancy(int argn, const char **argv, const Command& command) {
         std::vector<Prediction> plusContigPredictions;
         plusContigPredictions.reserve(EXPECTED_NUM_PREDICTIONS);
         std::vector<Prediction> plusContigRepPreds;
+        plusContigRepPreds.reserve(300);
 
         std::vector<Prediction> minusContigPredictions;
         minusContigPredictions.reserve(EXPECTED_NUM_PREDICTIONS);
         std::vector<Prediction> minusContigRepPreds;
+        minusContigRepPreds.reserve(300);
 
         char predictionBuffer[5000];
 
@@ -223,8 +228,9 @@ int reduceredundancy(int argn, const char **argv, const Command& command) {
 
                 if (strand == PLUS) {
                     if ((isFirstIterationPlus == true) || (prevTargetKeyPlus != targetKey)) {
-                        plusContigPredictions.emplace_back(Prediction());
-                        plusContigPredictions.back().setByDPRes(entry);
+                        Prediction pred;
+                        pred.setByDPRes(entry);
+                        plusContigPredictions.emplace_back(pred);
                         isFirstIterationPlus = false;
                     }
                     // add the exon key
@@ -232,8 +238,9 @@ int reduceredundancy(int argn, const char **argv, const Command& command) {
                     prevTargetKeyPlus = targetKey;
                 } else {
                     if ((isFirstIterationMinus == true) || (prevTargetKeyMinus != targetKey)) {
-                        minusContigPredictions.emplace_back(Prediction());
-                        minusContigPredictions.back().setByDPRes(entry);
+                        Prediction pred;
+                        pred.setByDPRes(entry);
+                        minusContigPredictions.emplace_back(pred);
                         isFirstIterationMinus = false;
                     }
                     // add the exon key
@@ -273,5 +280,7 @@ int reduceredundancy(int argn, const char **argv, const Command& command) {
     }
     writerRepToMembers.close();
     writerGroupedPredictions.close();
+    predsPerContig.close();
+
     return EXIT_SUCCESS;
 }
