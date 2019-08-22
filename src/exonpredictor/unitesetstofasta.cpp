@@ -131,6 +131,7 @@ int unitesetstofasta(int argn, const char **argv, const Command& command) {
         Prediction minusPred;
 
         char translatedSeqBuff[Parameters::MAX_SEQ_LEN];
+        char targetKeyBuff[40];
         
 #pragma omp for schedule(dynamic, 100)
         for (size_t id = 0; id < predsPerContig.getSize(); id++) {
@@ -176,6 +177,10 @@ int unitesetstofasta(int argn, const char **argv, const Command& command) {
                     
                     const char* targetHeader = targetsHeaders.getDataByDBKey(currTargetKey, thread_idx);
                     std::string targetHeaderAcc = Util::parseFastaHeader(targetHeader);
+                    if (par.writeTargetKey == true) {
+                        Itoa::u32toa_sse2(static_cast<uint32_t>(currTargetKey), targetKeyBuff);
+                        targetHeaderAcc = std::string(targetKeyBuff);
+                    }
                     
                     if (plusPred.optimalExonSet.size() > 0) {
                         preparePredDataAndHeader(plusPred, targetHeaderAcc, contigHeaderAcc, contigData, joinedHeaderStream, joinedExonsStream);
@@ -238,6 +243,11 @@ int unitesetstofasta(int argn, const char **argv, const Command& command) {
             // handle the last target for the current contig:
             const char* targetHeader = targetsHeaders.getDataByDBKey(currTargetKey, thread_idx);
             std::string targetHeaderAcc = Util::parseFastaHeader(targetHeader);
+            if (par.writeTargetKey == true) {
+                Itoa::u32toa_sse2(static_cast<uint32_t>(currTargetKey), targetKeyBuff);
+                targetHeaderAcc = std::string(targetKeyBuff);
+            }
+            
             if (plusPred.optimalExonSet.size() > 0) {
                 preparePredDataAndHeader(plusPred, targetHeaderAcc, contigHeaderAcc, contigData, joinedHeaderStream, joinedExonsStream);
                 std::string result = ">" + joinedHeaderStream.str();

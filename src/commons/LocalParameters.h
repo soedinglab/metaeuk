@@ -52,6 +52,9 @@ public:
     PARAMETER(PARAM_ALLOW_OVERLAP)
     int overlapAllowed;
 
+    PARAMETER(PARAM_WRITE_TKEY)
+    int writeTargetKey;
+
 private:
     LocalParameters() : 
         Parameters(),
@@ -64,7 +67,8 @@ private:
         PARAM_GAP_OPEN_PENALTY(PARAM_GAP_OPEN_PENALTY_ID,"--set-gap-open", "Gap open penalty", "Gap open penalty (negative) for missed target amino acids between exons", typeid(int), (void *) &setGapOpenPenalty, "^-[0-9]+$"),
         PARAM_GAP_EXTEND_PENALTY(PARAM_GAP_EXTEND_PENALTY_ID,"--set-gap-extend", "Gap extend penalty", "Gap extend penalty (negative) for missed target amino acids between exons", typeid(int), (void *) &setGapExtendPenalty, "^-[0-9]+$"),
         PARAM_SHOULD_TRANSLATE(PARAM_SHOULD_TRANSLATE_ID,"--protein", "translate codons to AAs", "translate the joint exons coding sequence to amino acids [0,1]", typeid(int), (void *) &shouldTranslate, "^[0-1]{1}$"),
-        PARAM_ALLOW_OVERLAP(PARAM_ALLOW_OVERLAP_ID,"--overlap", "allow same-strand overlaps", "allow predictions to overlap another on the same strand. when not allowed (default), only the prediction with better E-value will be retained [0,1]", typeid(int), (void *) &overlapAllowed, "^[0-1]{1}$")
+        PARAM_ALLOW_OVERLAP(PARAM_ALLOW_OVERLAP_ID,"--overlap", "allow same-strand overlaps", "allow predictions to overlap another on the same strand. when not allowed (default), only the prediction with better E-value will be retained [0,1]", typeid(int), (void *) &overlapAllowed, "^[0-1]{1}$"),
+        PARAM_WRITE_TKEY(PARAM_WRITE_TKEY_ID,"--target-key", "write target key instead of accession", "write the target key (internal DB identifier) instead of its accession. By default (0) target accession will be written [0,1]", typeid(int), (void *) &writeTargetKey, "^[0-1]{1}$")
     {
         collectoptimalset.push_back(&PARAM_METAEUK_EVAL_THR);
         collectoptimalset.push_back(&PARAM_MAX_INTRON_LENGTH);
@@ -75,7 +79,7 @@ private:
         collectoptimalset.push_back(&PARAM_GAP_EXTEND_PENALTY);
         collectoptimalset.push_back(&PARAM_SCORE_BIAS);
         collectoptimalset.push_back(&PARAM_THREADS);
-        unitesetstofasta.push_back(&PARAM_COMPRESSED);
+        collectoptimalset.push_back(&PARAM_COMPRESSED);
         collectoptimalset.push_back(&PARAM_V);
 
         // predictexonsworkflow = combineList(extractorfs, translatenucs); // available through searchworkflow
@@ -92,6 +96,7 @@ private:
 
         unitesetstofasta.push_back(&PARAM_SHOULD_TRANSLATE);
         unitesetstofasta.push_back(&PARAM_TRANSLATION_TABLE);
+        unitesetstofasta.push_back(&PARAM_WRITE_TKEY);
         unitesetstofasta.push_back(&PARAM_THREADS);
         unitesetstofasta.push_back(&PARAM_COMPRESSED);
         unitesetstofasta.push_back(&PARAM_V);
@@ -113,6 +118,9 @@ private:
 
         // default value 0 means no transaltion to AAs
         shouldTranslate = 0;
+
+        // default value 0 means the accession is written
+        writeTargetKey = 0;
     }
     LocalParameters(LocalParameters const&);
     ~LocalParameters() {};
