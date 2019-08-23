@@ -25,7 +25,7 @@ void clusterPredictions (std::vector<Prediction> &contigPredictions, std::vector
     // sort the vector by contigStart (sub sorted by length, bitscore and targetKey):
     std::stable_sort(contigPredictions.begin(), contigPredictions.end(), Prediction::comparePredictionsByContigStart);
 
-    std::vector<Prediction> currClusterPreds;
+    std::vector<size_t> currClusterPredsInd; // keeps track of the indices of contigPredictions that arein currCluster
     
     // the index i iterates over cluster tmp_representatives.
     // after member collection is done, tmp_representative is replaced by the member with the highest bitscore
@@ -40,10 +40,14 @@ void clusterPredictions (std::vector<Prediction> &contigPredictions, std::vector
         contigPredictions[i].clusterId = contigPredictions[i].targetKey;
         unsigned int maxScore = contigPredictions[i].totalBitscore;
         contigPredictions[i].isClustered = true;
-        currClusterPreds.clear();
-        currClusterPreds.emplace_back(contigPredictions[i]);
+        currClusterPredsInd.clear();
+        currClusterPredsInd.emplace_back(i);
         
         for (size_t j = (i + 1); j < contigPredictions.size(); ++j) {
+            if (contigPredictions[j].strand != contigPredictions[i].strand) {
+                Debug(Debug::ERROR) << "Predictions should be on the same strand for grouping!\n";
+                EXIT(EXIT_FAILURE);
+            }
             if (contigPredictions[j].lowContigCoord >= contigPredictions[i].highContigCoord) {
                 // overlap is over - no need to compare to other j - finish and move to the next i
                 break;
@@ -73,24 +77,23 @@ void clusterPredictions (std::vector<Prediction> &contigPredictions, std::vector
                 }
 
                 // will be used to assign finalClusterId later
-                currClusterPreds.emplace_back(contigPredictions[j]);
+                currClusterPredsInd.emplace_back(j);
             }
         }
 
         // collecting all j members for tmp_representative i is finished.
         // assign finalClusterId (target key of best scoring representative)
         size_t numPutInVec = 0;
-        for (size_t j = 0; j < currClusterPreds.size(); ++j) {
-            if (currClusterPreds[j].clusterId == contigPredictions[i].targetKey) {
-                currClusterPreds[j].clusterId = finalClusterId;
-            }
-            // if by now the clusterId is equal to finalClusterId --> this is a representative
-            if (currClusterPreds[j].clusterId == currClusterPreds[j].targetKey) {
-                repContigPredictions.emplace_back(currClusterPreds[j]);
+        for (size_t k = 0; k < currClusterPredsInd.size(); ++k) {
+            size_t indOfMemeber = currClusterPredsInd[k];
+            contigPredictions[indOfMemeber].clusterId = finalClusterId;
+            // if by now the clusterId is equal to finalClusterId --> this is the final representative
+            if (contigPredictions[indOfMemeber].clusterId == contigPredictions[indOfMemeber].targetKey) {
+                repContigPredictions.emplace_back(contigPredictions[indOfMemeber]);
                 numPutInVec++;
             }
         }
-        currClusterPreds.clear();
+        currClusterPredsInd.clear();
 
         if (numPutInVec != 1) {
             Debug(Debug::ERROR) << "Should insert exactly one representative: " << numPutInVec << "\n";
