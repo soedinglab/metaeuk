@@ -14,13 +14,13 @@ abspath() {
     if [ -d "$1" ]; then
         (cd "$1"; pwd)
     elif [ -f "$1" ]; then
-        if [[ "$1" == */* ]]; then
+        if [ -z "${1##*/*}" ]; then
             echo "$(cd "${1%/*}"; pwd)/${1##*/}"
         else
             echo "$(pwd)/$1"
         fi
     elif [ -d "$(dirname "$1")" ]; then
-            echo "$(cd "$(dirname "$1")"; pwd)/$(basename "$1")"
+        echo "$(cd "$(dirname "$1")"; pwd)/$(basename "$1")"
     fi
 }
 
