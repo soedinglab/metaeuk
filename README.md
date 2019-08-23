@@ -6,6 +6,9 @@ MetaEuk is a modular toolkit designed for large-scale gene discovery and annotat
 
 Levy Karin E, Mirdita M and Soeding J. MetaEuk – sensitive, high-throughput gene discovery and annotation for large-scale eukaryotic metagenomics. submitted, 2019.
 
+We are currently revising MetaEuk. Our ISMB/ECCB 2019 poster is available [here](https://f1000research.com/posters/8-1489)
+
+
 <p align="center"><img src="https://github.com/soedinglab/metaeuk/blob/master/imgs/MetaEuk.png" height="250"/></p>
 
 ## Installation
