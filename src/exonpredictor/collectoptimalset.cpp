@@ -1,20 +1,18 @@
-#include <string>
-#include <vector>
-#include <algorithm> 
-#include <sstream>
-#include <sys/time.h>
-
 #include "LocalParameters.h"
 #include "DBReader.h"
 #include "DBWriter.h"
 #include "Debug.h"
 #include "Util.h"
 #include "MathUtil.h"
-#include <limits>
-#include <cstdint>
-#include <queue>
 #include "itoa.h"
 #include "PredictionParser.h"
+
+#include <limits>
+#include <cstdint>
+#include <string>
+#include <vector>
+#include <algorithm> 
+#include <sstream>
 
 #ifdef OPENMP
 #include <omp.h>

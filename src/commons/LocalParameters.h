@@ -19,7 +19,6 @@ public:
     std::vector<MMseqsParameter*> predictexonsworkflow;
     std::vector<MMseqsParameter*> collectoptimalset;
     std::vector<MMseqsParameter*> reduceredundancy;
-    std::vector<MMseqsParameter*> assigntaxonomyworkflow;
     std::vector<MMseqsParameter*> unitesetstofasta;
 
     PARAMETER(PARAM_REVERSE_FRAGMENTS)
@@ -83,16 +82,13 @@ private:
         collectoptimalset.push_back(&PARAM_V);
 
         // predictexonsworkflow = combineList(extractorfs, translatenucs); // available through searchworkflow
-        predictexonsworkflow = combineList(predictexonsworkflow, searchworkflow);
-        predictexonsworkflow = combineList(predictexonsworkflow, collectoptimalset);
+        predictexonsworkflow = combineList(searchworkflow, collectoptimalset);
         predictexonsworkflow.push_back(&PARAM_REVERSE_FRAGMENTS);
 
         reduceredundancy.push_back(&PARAM_ALLOW_OVERLAP);
         reduceredundancy.push_back(&PARAM_THREADS);
-        reduceredundancy.push_back(&PARAM_REMOVE_TMP_FILES);
-
-        assigntaxonomyworkflow.push_back(&PARAM_THREADS);
-        assigntaxonomyworkflow.push_back(&PARAM_REMOVE_TMP_FILES);
+        reduceredundancy.push_back(&PARAM_COMPRESSED);
+        reduceredundancy.push_back(&PARAM_V);
 
         unitesetstofasta.push_back(&PARAM_SHOULD_TRANSLATE);
         unitesetstofasta.push_back(&PARAM_TRANSLATION_TABLE);

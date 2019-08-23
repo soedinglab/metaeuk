@@ -1,4 +1,4 @@
-#!/bin/bash -e
+#!/bin/sh -e
 
 # predict exons workflow script
 fail() {
@@ -25,7 +25,7 @@ abspath() {
 }
 
 # check number of input variables
-[ "$#" -ne 4 ] && echo "Please provide <i:contigsDB> <i:targetsDB> <o:predictexonsBaseName> <tmpDir>" && exit 1;
+[ "$#" -ne 4 ] && echo "Please provide <i:contigsDB> <i:targetsDB> <o:predictedExonsDB> <tmpDir>" && exit 1;
 # check if files exist
 [ ! -f "$1.dbtype" ] && echo "$1.dbtype not found!" && exit 1;
 [ ! -f "$2.dbtype" ] && echo "$2.dbtype not found!" && exit 1;
@@ -52,9 +52,11 @@ fi
 # when running in null mode (to assess evalues), reverse the AA fragments:
 AA_FRAGS="${TMP_PATH}/aa_6f"
 if [ -n "$REVERSE_FRAGMENTS" ]; then
-    # shellcheck disable=SC2086
-    "$MMSEQS" reverseseq "${AA_FRAGS}" "${AA_FRAGS}_reverse" ${THREADS_PAR} \
-        || fail "reverseseq step died"
+    if notExists "${AA_FRAGS}_reverse.dbtype"; then
+        # shellcheck disable=SC2086
+        "$MMSEQS" reverseseq "${AA_FRAGS}" "${AA_FRAGS}_reverse" ${THREAD_COMP_PAR} \
+            || fail "reverseseq step died"
+    fi
     AA_FRAGS="${AA_FRAGS}_reverse"
     echo "Will base search on ${AA_FRAGS}"
 fi
@@ -69,7 +71,7 @@ fi
 # augment the search results with contig info and write a double alignment format where contigs are keys
 if notExists "${TMP_PATH}/search_res_by_contig.dbtype"; then
     # shellcheck disable=SC2086
-    "$MMSEQS" resultspercontig "${INPUT_CONTIGS}" "${TMP_PATH}/nucl_6f" "${TMP_PATH}/search_res" "${TMP_PATH}/search_res_by_contig" ${THREADS_PAR} \
+    "$MMSEQS" resultspercontig "${INPUT_CONTIGS}" "${TMP_PATH}/nucl_6f" "${TMP_PATH}/search_res" "${TMP_PATH}/search_res_by_contig" ${THREAD_COMP_PAR} \
         || fail "resultspercontig step died"
 fi
 
@@ -88,6 +90,6 @@ if [ -n "$REMOVE_TMP" ]; then
     rm -f "${TMP_PATH}"/nucl_6f*
     rm -f "${TMP_PATH}"/aa_6f*
     rm -f "${TMP_PATH}"/search_res*
-    rm -r "${TMP_PATH}"/tmp_search/
+    rm -r "${TMP_PATH}/tmp_search"
 fi
 

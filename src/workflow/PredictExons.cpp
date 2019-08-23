@@ -20,27 +20,14 @@ int predictexons(int argc, const char **argv, const Command& command) {
     setPredictExonsDefaults(&par);
     par.parseParameters(argc, argv, command, true, 0, 0);
 
-    // check if temp dir exists and if not, try to create it:
-    if (FileUtil::directoryExists(par.db4.c_str()) == false){
-        Debug(Debug::INFO) << "Tmp " << par.db4 << " folder does not exist or is not a directory.\n";
-        if (FileUtil::makeDir(par.db4.c_str()) == false){
-            Debug(Debug::ERROR) << "Could not crate tmp folder " << par.db4 << ".\n";
-            EXIT(EXIT_FAILURE);
-        } else {
-            Debug(Debug::INFO) << "Created dir " << par.db4 << "\n";
-        }
+    std::string tmpDir = par.db4;
+    std::string hash = SSTR(par.hashParameter(par.filenames, *command.params));
+    if (par.reuseLatest) {
+        hash = FileUtil::getHashFromSymLink(tmpDir + "/latest");
     }
-    size_t hash = par.hashParameter(par.filenames, par.predictexonsworkflow);
-    std::string tmpDir = par.db4 + "/" + SSTR(hash);
-    if (FileUtil::directoryExists(tmpDir.c_str())==false) {
-        if (FileUtil::makeDir(tmpDir.c_str()) == false) {
-            Debug(Debug::ERROR) << "Could not create sub tmp folder " << tmpDir << ".\n";
-            EXIT(EXIT_FAILURE);
-        }
-    }
+    tmpDir = FileUtil::createTemporaryDirectory(tmpDir, hash);
     par.filenames.pop_back();
     par.filenames.push_back(tmpDir);
-    FileUtil::symlinkAlias(tmpDir, "latest");
 
     CommandCaller cmd;
     cmd.addVariable("REMOVE_TMP", par.removeTmpFiles ? "TRUE" : NULL);
@@ -50,17 +37,13 @@ int predictexons(int argc, const char **argv, const Command& command) {
     // align module should return alignments of at least a minimal exon length
     par.alnLenThr = par.minExonAaLength;
     cmd.addVariable("SEARCH_PAR", par.createParameterString(par.searchworkflow).c_str());
-    float originalEvalThr = par.evalThr;
-    par.evalThr = std::numeric_limits<float>::max();
-    cmd.addVariable("SWAPRESULT_PAR", par.createParameterString(par.swapresult).c_str());
-    par.evalThr = originalEvalThr;
-    cmd.addVariable("THREADS_PAR", par.createParameterString(par.onlythreads).c_str());
-
+    cmd.addVariable("THREAD_COMP_PAR", par.createParameterString(par.threadsandcompression).c_str());
     cmd.addVariable("COLLECTOPTIMALSET_PAR", par.createParameterString(par.collectoptimalset).c_str());
 
-    FileUtil::writeFile(par.db4 + "/predictexons.sh", predictexons_sh, predictexons_sh_len);
-    std::string program(par.db4 + "/predictexons.sh");
+    std::string program(tmpDir + "/predictexons.sh");
+    FileUtil::writeFile(program, predictexons_sh, predictexons_sh_len);
     cmd.execProgram(program.c_str(), par.filenames);
 
-    return EXIT_SUCCESS;
+    // should never get here
+    return EXIT_FAILURE;
 }

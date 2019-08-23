@@ -9,6 +9,5 @@ extern int collectoptimalset(int argn, const char **argv, const Command& command
 extern int unitesetstofasta(int argn, const char **argv, const Command& command);
 extern int reduceredundancy(int argc, const char **argv, const Command& command);
 extern int groupstoacc(int argc, const char **argv, const Command& command);
-extern int assigntaxonomy(int argc, const char **argv, const Command& command);
 
 #endif

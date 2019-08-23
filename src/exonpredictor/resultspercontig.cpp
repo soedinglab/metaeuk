@@ -136,7 +136,7 @@ int resultspercontig(int argc, const char **argv, const Command &command) {
 #ifdef OPENMP
         thread_idx = static_cast<unsigned int>(omp_get_thread_num());
 #endif
-        char * buffer = new char[65536];
+        char buffer[65536];
 
         std::string ss;
         ss.reserve(1024);
@@ -198,7 +198,6 @@ int resultspercontig(int argc, const char **argv, const Command &command) {
             ss.clear();
             results.clear();
         }
-        delete[] buffer;
     }
     resultWriter.close();
 

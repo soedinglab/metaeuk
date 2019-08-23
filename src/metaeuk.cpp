@@ -49,13 +49,6 @@ std::vector<struct Command> commands = {
                                 {"targetsDB", DbType::ACCESS_MODE_INPUT, DbType::NEED_DATA, &DbValidator::sequenceDb},
                                 {"repToPred", DbType::ACCESS_MODE_INPUT, DbType::NEED_DATA, &DbValidator::genericDb},
                                 {"groupsInfoTSV", DbType::ACCESS_MODE_OUTPUT, DbType::NEED_DATA, NULL}}},
-        // taxonomy workflow is under construction...
-        {"assigntaxonomy",             assigntaxonomy,            &localPar.assigntaxonomyworkflow,    COMMAND_HIDDEN,
-                "Assign taxonomy to each representative prediction using 2bLCA",
-                "Assign taxonomy to each representative prediction using 2bLCA against a uniprot-based refernce database. Contigs are assigned based on their predictions",
-                "Eli Levy Karin <eli.levy.karin@gmail.com>",
-                "<i:metaeukBaseName> <i:uniprotFasta> <tmpDir>",
-                NO_CITATION, {{"",DbType::ACCESS_MODE_INPUT, DbType::NEED_DATA, NULL}}},
         // internal modules (COMMAND_EXPERT)
         {"resultspercontig",             resultspercontig,            &localPar.collectoptimalset,    COMMAND_EXPERT,
                 "Swap fragments against targets search and join with contigs",
