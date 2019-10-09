@@ -315,12 +315,9 @@ class Prediction {
         return false;
     }
 
-    static size_t predictionToBuffer (char * predictionBuffer, const Prediction & prediction) {
-        char * basePos = predictionBuffer;
-        char * tmpBuff = basePos;
-
-        // go over vector in reverse order (the last exon is in place 0 in the vector)
+    static void predictionToBuffer (std::string& predictionBuffer, char* exonBuffer, const Prediction & prediction) {
         for (size_t i = 0; i < prediction.optimalExonSet.size(); ++i) {
+            char* tmpBuff = exonBuffer;
             // add the columns that are joint for all exons
             tmpBuff = Itoa::u32toa_sse2(static_cast<uint32_t>(prediction.targetKey), tmpBuff);
             *(tmpBuff-1) = '\t';
@@ -344,15 +341,13 @@ class Prediction {
 
             // add a new line after each exon
             *(tmpBuff-1) = '\n';
+            predictionBuffer.append(exonBuffer, tmpBuff - exonBuffer);
         }
-        // close buffer
-        *(tmpBuff) = '\0';
-        return (tmpBuff - basePos);
     }
 
-    static size_t predictionClusterToBuffer (char * predictionBuffer, const Prediction & prediction) {
+    static size_t predictionClusterToBuffer (char * clusterBuffer, const Prediction & prediction) {
         // write: Representative(T,S) , Member(T,S)
-        char * basePos = predictionBuffer;
+        char * basePos = clusterBuffer;
         char * tmpBuff = basePos;
 
         // clusterId is the TargetKey of the representative. The representative is on the same strand

@@ -138,22 +138,23 @@ void excludeSameStrandOverlaps (std::vector<Prediction> &repContigPredictions) {
     }
 }
 
-void writeRepPredsInDPFormat (std::vector<Prediction> &repContigPredictions, char * predBuff, bool allowOverlaps,
+void writeRepPredsInDPFormat (std::vector<Prediction> &repContigPredictions, std::string& predictionBuffer, char * exonLineBuffer, bool allowOverlaps,
                                 DBWriter &repWriter, unsigned int thread_idx) {
     for (size_t i = 0; i < repContigPredictions.size(); ++i) {
         // if same strand overlaps are not allowed, skip predictions that were worse than another representatives
         if ((allowOverlaps == false) && (repContigPredictions[i].noOverlapClusterId != repContigPredictions[i].targetKey)) {
             continue;
         }
-        size_t predLen = Prediction::predictionToBuffer(predBuff, repContigPredictions[i]);
-        repWriter.writeAdd(predBuff, predLen, thread_idx);
+        Prediction::predictionToBuffer(predictionBuffer, exonLineBuffer, repContigPredictions[i]);
+        repWriter.writeAdd(predictionBuffer.c_str(), predictionBuffer.size(), thread_idx);
+        predictionBuffer.clear();
     }
 }
 
-void writePredsClusters (std::vector<Prediction> &predictions, char * predBuff, DBWriter &repWriter, unsigned int thread_idx) {
+void writePredsClusters (std::vector<Prediction> &predictions, char * clusterBuff, DBWriter &repWriter, unsigned int thread_idx) {
     for (size_t i = 0; i < predictions.size(); ++i) {
-        size_t predLen = Prediction::predictionClusterToBuffer(predBuff, predictions[i]);
-        repWriter.writeAdd(predBuff, predLen, thread_idx);
+        size_t predLen = Prediction::predictionClusterToBuffer(clusterBuff, predictions[i]);
+        repWriter.writeAdd(clusterBuff, predLen, thread_idx);
     }
 }
 
@@ -193,7 +194,14 @@ int reduceredundancy(int argn, const char **argv, const Command& command) {
         std::vector<Prediction> minusContigRepPreds;
         minusContigRepPreds.reserve(300);
 
-        char predictionBuffer[5000];
+        // each exon line within a prediction has 17 columns
+        char exonLineBuffer[2048];
+        // this buffer will hold a single prediction with all its exons
+        std::string predictionBuffer;
+        predictionBuffer.reserve(10000);
+
+        // cluster line
+        char clusterBuffer[1000];
 
 #pragma omp for schedule(dynamic, 100)
         for (size_t id = 0; id < predsPerContig.getSize(); id++) {
@@ -269,13 +277,13 @@ int reduceredundancy(int argn, const char **argv, const Command& command) {
             excludeSameStrandOverlaps(minusContigRepPreds);
 
             // write clusters
-            writePredsClusters(plusContigPredictions, predictionBuffer, writerRepToMembers, thread_idx);
-            writePredsClusters(minusContigPredictions, predictionBuffer, writerRepToMembers, thread_idx);
+            writePredsClusters(plusContigPredictions, clusterBuffer, writerRepToMembers, thread_idx);
+            writePredsClusters(minusContigPredictions, clusterBuffer, writerRepToMembers, thread_idx);
 
             // join representatives from both strands and sort by targetKey to comply with expectd order of DP format
             plusContigRepPreds.insert(plusContigRepPreds.end(), minusContigRepPreds.begin(), minusContigRepPreds.end());
             std::stable_sort(plusContigRepPreds.begin(), plusContigRepPreds.end(), Prediction::comparePredictionsByTarget);
-            writeRepPredsInDPFormat(plusContigRepPreds, predictionBuffer, par.overlapAllowed, writerGroupedPredictions, thread_idx);
+            writeRepPredsInDPFormat(plusContigRepPreds, predictionBuffer, exonLineBuffer, par.overlapAllowed, writerGroupedPredictions, thread_idx);
 
             // close the contig entry with a null byte
             writerRepToMembers.writeEnd(contigKey, thread_idx);
