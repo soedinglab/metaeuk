@@ -20,14 +20,15 @@
 
 struct dpMatrixRow {
     // constructor
-    dpMatrixRow(size_t iPrevPotentialExonId, int iPathScore, size_t iNumExonsInPath) : 
-        prevPotentialExonId(iPrevPotentialExonId), pathScore(iPathScore), numExonsInPath(iNumExonsInPath) {
+    dpMatrixRow(size_t iPrevPotentialExonId, int iPathScore, size_t iNumExonsInPath, double iPathTargetCov) : 
+        prevPotentialExonId(iPrevPotentialExonId), pathScore(iPathScore), numExonsInPath(iNumExonsInPath), pathTargetCov(iPathTargetCov) {
 
     }
     // the prevPotentialExonId refers to the row Id (i.e., the sorted order)
     size_t prevPotentialExonId;
     int pathScore;
     size_t numExonsInPath;
+    double pathTargetCov;
 };
 
 bool isPairCompatible(const PotentialExon & firstPotentialExonOnContig, const PotentialExon & secondPotentialExonOnContig, const size_t minIntronLength, const size_t maxIntronLength, const size_t maxAaOvelap) {
@@ -100,7 +101,9 @@ int getPenaltyForProtCoords(const PotentialExon & prevPotentialExon, const Poten
     return -1000;
 }
 
-int findoptimalsetbydp(std::vector<PotentialExon> & potentialExonCandidates, std::vector<PotentialExon> & optimalExonSet, const size_t minIntronLength, const size_t maxIntronLength, const size_t maxAaOvelap, const int setGapOpenPenalty, const int setGapExtendPenalty) {
+int findoptimalsetbydp(std::vector<PotentialExon> & potentialExonCandidates, std::vector<PotentialExon> & optimalExonSet, 
+                        const size_t minIntronLength, const size_t maxIntronLength, const size_t maxAaOvelap, const int setGapOpenPenalty, 
+                        const int setGapExtendPenalty, const double dMetaeukTargetCovThr) {
     size_t numPotentialExonCandidates = potentialExonCandidates.size();
     if (numPotentialExonCandidates == 0) {
         // nothing to do here!
@@ -116,11 +119,12 @@ int findoptimalsetbydp(std::vector<PotentialExon> & potentialExonCandidates, std
     // prevPotentialExonId keeps the id j such that j is the previous potentialExon
     // on the best path ending with the potentialExon i. It will allow for the trace back.
     // pathScore contains the score itself and numExonsInPath contans the number of exons in the path (including i)
+    // pathTargetCov contains the proportion of the target the path covers
     std::vector<dpMatrixRow> prevIdsAndScoresBestPath;
     prevIdsAndScoresBestPath.reserve(numPotentialExonCandidates);
     // initialize:
     for (size_t id = 0; id < numPotentialExonCandidates; ++id) {
-        prevIdsAndScoresBestPath.emplace_back(dpMatrixRow(id, potentialExonCandidates[id].bitScore, 1));
+        prevIdsAndScoresBestPath.emplace_back(dpMatrixRow(id, potentialExonCandidates[id].bitScore, 1, potentialExonCandidates[id].targetCov));
     }
 
     int bestPathScore = 0;
@@ -136,21 +140,30 @@ int findoptimalsetbydp(std::vector<PotentialExon> & potentialExonCandidates, std
                 size_t currNumExonsWithPrev = numExonsInPathPrevIsLast + 1;
                 int bonusForAddingAnExon = (int) log2(currNumExonsWithPrev); // not the most accurate...
                 int currScoreWithPrev = bestScorePathPrevIsLast + costOfPrevToCurrTransition + potentialExonCandidates[currPotentialExonId].bitScore + bonusForAddingAnExon;
+                
+                // add curr cnadidate contribution to tcov
+                double currCovWithPrev = prevIdsAndScoresBestPath[prevPotentialExonId].pathTargetCov + potentialExonCandidates[currPotentialExonId].targetCov;
 
                 // update row of currPotentialExon in case of improvement:
                 if (currScoreWithPrev > prevIdsAndScoresBestPath[currPotentialExonId].pathScore) {
                     prevIdsAndScoresBestPath[currPotentialExonId].prevPotentialExonId = prevPotentialExonId;
                     prevIdsAndScoresBestPath[currPotentialExonId].pathScore = currScoreWithPrev;
                     prevIdsAndScoresBestPath[currPotentialExonId].numExonsInPath = currNumExonsWithPrev;
+                    prevIdsAndScoresBestPath[currPotentialExonId].pathTargetCov = currCovWithPrev;
                 }
             }
         }
 
-        // update the global max in case of improvement:
-        if (prevIdsAndScoresBestPath[currPotentialExonId].pathScore > bestPathScore) {
+        // update the global max in case of improvement that covers the target:
+        if ((prevIdsAndScoresBestPath[currPotentialExonId].pathTargetCov >= dMetaeukTargetCovThr) && (prevIdsAndScoresBestPath[currPotentialExonId].pathScore > bestPathScore)) {
             lastPotentialExonInBestPath = currPotentialExonId;
             bestPathScore = prevIdsAndScoresBestPath[currPotentialExonId].pathScore;
         }
+    }
+
+    // bestPathScore is 0 when no path covers enough of the target
+    if (bestPathScore == 0) {
+        return (0);
     }
 
     // traceback:
@@ -186,6 +199,7 @@ int collectoptimalset(int argn, const char **argv, const Command& command) {
     size_t totNumOfAAsInTargetDb = targetsData.getAminoAcidDBSize(); // method now returns db size for proteins and for profiles by checking dbtype
     targetsData.close();
     double dMetaeukEvalueThr = (double)par.metaeukEvalueThr; // converting to double for precise comparisons
+    double dMetaeukTargetCovThr = (double)par.metaeukTargetCovThr;
 
     DBWriter predWriter(par.db3.c_str(), par.db3Index.c_str(), par.threads, par.compressed, Parameters::DBTYPE_GENERIC_DB);
     predWriter.open();
@@ -256,8 +270,8 @@ int collectoptimalset(int argn, const char **argv, const Command& command) {
                         EXIT(EXIT_FAILURE);
                     }
                     // sort + dynamic programming to find the optimals set:
-                    int totalBitScorePlus = findoptimalsetbydp(plusStrandPotentialExons, plusStrandOptimalExonSet, par.minIntronLength, par.maxIntronLength, par.maxAaOverlap, par.setGapOpenPenalty, par.setGapExtendPenalty);
-                    int totalBitScoreMinus = findoptimalsetbydp(minusStrandPotentialExons, minusStrandOptimalExonSet, par.minIntronLength, par.maxIntronLength, par.maxAaOverlap, par.setGapOpenPenalty, par.setGapExtendPenalty);
+                    int totalBitScorePlus = findoptimalsetbydp(plusStrandPotentialExons, plusStrandOptimalExonSet, par.minIntronLength, par.maxIntronLength, par.maxAaOverlap, par.setGapOpenPenalty, par.setGapExtendPenalty, dMetaeukTargetCovThr);
+                    int totalBitScoreMinus = findoptimalsetbydp(minusStrandPotentialExons, minusStrandOptimalExonSet, par.minIntronLength, par.maxIntronLength, par.maxAaOverlap, par.setGapOpenPenalty, par.setGapExtendPenalty, dMetaeukTargetCovThr);
 
                     // write optimal sets to result file:
                     if (plusStrandOptimalExonSet.size() > 0) {
@@ -307,8 +321,8 @@ int collectoptimalset(int argn, const char **argv, const Command& command) {
 
             // one last time - required for the matches of the contig against the last target
             // sort + dynamic programming to find the optimals set:
-            int totalBitScorePlus = findoptimalsetbydp(plusStrandPotentialExons, plusStrandOptimalExonSet, par.minIntronLength, par.maxIntronLength, par.maxAaOverlap, par.setGapOpenPenalty, par.setGapExtendPenalty);
-            int totalBitScoreMinus = findoptimalsetbydp(minusStrandPotentialExons, minusStrandOptimalExonSet, par.minIntronLength, par.maxIntronLength, par.maxAaOverlap, par.setGapOpenPenalty, par.setGapExtendPenalty);
+            int totalBitScorePlus = findoptimalsetbydp(plusStrandPotentialExons, plusStrandOptimalExonSet, par.minIntronLength, par.maxIntronLength, par.maxAaOverlap, par.setGapOpenPenalty, par.setGapExtendPenalty, dMetaeukTargetCovThr);
+            int totalBitScoreMinus = findoptimalsetbydp(minusStrandPotentialExons, minusStrandOptimalExonSet, par.minIntronLength, par.maxIntronLength, par.maxAaOverlap, par.setGapOpenPenalty, par.setGapExtendPenalty, dMetaeukTargetCovThr);
             
             // write optimal sets to result file:
             if (plusStrandOptimalExonSet.size() > 0) {

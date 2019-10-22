@@ -8,7 +8,7 @@ mkdir -p "${RESULTPATH}"
 "${METAEUK}" createdb "${DATAPATH}/contigs.fna" "${RESULTPATH}/contigs" --dont-split-seq-by-len --dbtype 2
 "${METAEUK}" createdb "${DATAPATH}/proteins.faa" "${RESULTPATH}/proteins" --dbtype 1
 
-"${METAEUK}" predictexons "${RESULTPATH}/contigs" "${RESULTPATH}/proteins" "${RESULTPATH}/predEx" tempFolder --metaeuk-eval 0.0001 -e 100 --min-length 20
+"${METAEUK}" predictexons "${RESULTPATH}/contigs" "${RESULTPATH}/proteins" "${RESULTPATH}/predEx" tempFolder --metaeuk-eval 0.0001 -e 100 --min-length 20 --metaeuk-tcov 0
 "${METAEUK}" reduceredundancy "${RESULTPATH}/predEx" "${RESULTPATH}/predRedOverAllowed" "${RESULTPATH}/predClust" --overlap 1
 "${METAEUK}" unitesetstofasta "${RESULTPATH}/contigs" "${RESULTPATH}/proteins" "${RESULTPATH}/predRedOverAllowed" "${RESULTPATH}/predRedOverAllowed.fas" --protein 1
 "${METAEUK}" reduceredundancy "${RESULTPATH}/predEx" "${RESULTPATH}/predRedNoOver" "${RESULTPATH}/predClust" --overlap 0

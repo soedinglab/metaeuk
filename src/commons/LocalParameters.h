@@ -27,6 +27,9 @@ public:
     PARAMETER(PARAM_METAEUK_EVAL_THR)
     float metaeukEvalueThr;
 
+    PARAMETER(PARAM_METAEUK_TARGET_COV_THR)
+    float metaeukTargetCovThr;
+
     PARAMETER(PARAM_MAX_INTRON_LENGTH)
     size_t maxIntronLength;
 
@@ -59,6 +62,7 @@ private:
         Parameters(),
         PARAM_REVERSE_FRAGMENTS(PARAM_REVERSE_FRAGMENTS_ID,"--reverse-fragments", "Reverse AA Fragments", "reverse AA fragments to compute under null [0,1]", typeid(int), (void *) &reverseFragments, "^[0-1]{1}$"),
         PARAM_METAEUK_EVAL_THR(PARAM_METAEUK_EVAL_THR_ID,"--metaeuk-eval", "maximal combined evalue of an optimal set", "maximal combined evalue of an optimal set [0.0, inf]", typeid(float), (void *) &metaeukEvalueThr, "^([-+]?[0-9]*\\.?[0-9]+([eE][-+]?[0-9]+)?)|[0-9]*(\\.[0-9]+)?$"),
+        PARAM_METAEUK_TARGET_COV_THR(PARAM_METAEUK_TARGET_COV_THR_ID,"--metaeuk-tcov", "minimal combined target coverage of an optimal set", "minimal combined target coverage of an optimal set [0.0, 1.0]", typeid(float), (void *) &metaeukTargetCovThr, "^0(\\.[0-9]+)?|^1(\\.0+)?$"),
         PARAM_MAX_INTRON_LENGTH(PARAM_MAX_INTRON_LENGTH_ID,"--max-intron", "Maximal intron length", "Maximal allowed intron length", typeid(int), (void *) &maxIntronLength, "^[0-9]+$"),
         PARAM_MIN_INTRON_LENGTH(PARAM_MIN_INTRON_LENGTH_ID,"--min-intron", "Minimal intron length", "Minimal allowed intron length", typeid(int), (void *) &minIntronLength, "^[0-9]+$"),
         PARAM_MIN_EXON_AA_LENGTH(PARAM_MIN_EXON_AA_LENGTH_ID,"--min-exon-aa", "Minimal exon length aa", "Minimal allowed exon length in amino acids", typeid(int), (void *) &minExonAaLength, "^[0-9]+$"),
@@ -70,6 +74,7 @@ private:
         PARAM_WRITE_TKEY(PARAM_WRITE_TKEY_ID,"--target-key", "write target key instead of accession", "write the target key (internal DB identifier) instead of its accession. By default (0) target accession will be written [0,1]", typeid(int), (void *) &writeTargetKey, "^[0-1]{1}$")
     {
         collectoptimalset.push_back(&PARAM_METAEUK_EVAL_THR);
+        collectoptimalset.push_back(&PARAM_METAEUK_TARGET_COV_THR);
         collectoptimalset.push_back(&PARAM_MAX_INTRON_LENGTH);
         collectoptimalset.push_back(&PARAM_MIN_INTRON_LENGTH);
         collectoptimalset.push_back(&PARAM_MIN_EXON_AA_LENGTH);
@@ -105,6 +110,7 @@ private:
 
         // default values for an optimal set:
         metaeukEvalueThr = 0.001;
+        metaeukTargetCovThr = 0.5;
         maxIntronLength = 10000;
         minIntronLength = 15;
         minExonAaLength = 11;

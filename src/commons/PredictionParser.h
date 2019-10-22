@@ -55,6 +55,9 @@ struct PotentialExon {
             Debug(Debug::ERROR) << "seems like the coordiantes do not dictate a legal length for a codon segment.\n";
             EXIT(EXIT_FAILURE);
         }
+
+        // compute contribution to target coverage
+        targetCov = (double)(targetMatchEnd - targetMatchStart + 1) / targetLen; 
     }
 
     void setByDPRes (const char ** exonData) {
@@ -77,6 +80,9 @@ struct PotentialExon {
         contigStart = Util::fast_atoi<int>(exonData[14]);
         contigEnd = Util::fast_atoi<int>(exonData[15]);
         nucleotideLen = Util::fast_atoi<int>(exonData[16]);
+
+        // compute contribution to target coverage
+        targetCov = (double)(targetMatchEnd - targetMatchStart + 1) / targetLen; 
     }
 
     static size_t exonToBuffer (char * exonBuffer, const PotentialExon & exon) {
@@ -171,6 +177,7 @@ struct PotentialExon {
     int targetMatchStart;
     int targetMatchEnd;
     int targetLen;
+    double targetCov;
 
     int contigStart;
     int contigEnd;
