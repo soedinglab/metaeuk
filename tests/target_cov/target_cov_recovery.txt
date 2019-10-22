@@ -1,0 +1,2 @@
+there are two proteins, one with 385 amino acids and one with 245 amino acids (identical to the first 245 amino acids of the other protein).
+the contig only codes for the short one so if we require a target coverage of at least 0.65, we should get only a single MetaEuk prediction (matching thee shorter one)
