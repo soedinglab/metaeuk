@@ -62,7 +62,7 @@ private:
         Parameters(),
         PARAM_REVERSE_FRAGMENTS(PARAM_REVERSE_FRAGMENTS_ID,"--reverse-fragments", "Reverse AA Fragments", "reverse AA fragments to compute under null [0,1]", typeid(int), (void *) &reverseFragments, "^[0-1]{1}$"),
         PARAM_METAEUK_EVAL_THR(PARAM_METAEUK_EVAL_THR_ID,"--metaeuk-eval", "maximal combined evalue of an optimal set", "maximal combined evalue of an optimal set [0.0, inf]", typeid(float), (void *) &metaeukEvalueThr, "^([-+]?[0-9]*\\.?[0-9]+([eE][-+]?[0-9]+)?)|[0-9]*(\\.[0-9]+)?$"),
-        PARAM_METAEUK_TARGET_COV_THR(PARAM_METAEUK_TARGET_COV_THR_ID,"--metaeuk-tcov", "minimal combined target coverage of an optimal set", "minimal combined target coverage of an optimal set [0.0, 1.0]", typeid(float), (void *) &metaeukTargetCovThr, "^0(\\.[0-9]+)?|^1(\\.0+)?$"),
+        PARAM_METAEUK_TARGET_COV_THR(PARAM_METAEUK_TARGET_COV_THR_ID,"--metaeuk-tcov", "minimal length ratio between combined optimal set and target", "minimal length ratio of combined set to target [0.0, 1.0]", typeid(float), (void *) &metaeukTargetCovThr, "^0(\\.[0-9]+)?|^1(\\.0+)?$"),
         PARAM_MAX_INTRON_LENGTH(PARAM_MAX_INTRON_LENGTH_ID,"--max-intron", "Maximal intron length", "Maximal allowed intron length", typeid(int), (void *) &maxIntronLength, "^[0-9]+$"),
         PARAM_MIN_INTRON_LENGTH(PARAM_MIN_INTRON_LENGTH_ID,"--min-intron", "Minimal intron length", "Minimal allowed intron length", typeid(int), (void *) &minIntronLength, "^[0-9]+$"),
         PARAM_MIN_EXON_AA_LENGTH(PARAM_MIN_EXON_AA_LENGTH_ID,"--min-exon-aa", "Minimal exon length aa", "Minimal allowed exon length in amino acids", typeid(int), (void *) &minExonAaLength, "^[0-9]+$"),

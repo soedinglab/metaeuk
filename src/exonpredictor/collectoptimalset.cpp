@@ -20,8 +20,9 @@
 
 struct dpMatrixRow {
     // constructor
-    dpMatrixRow(size_t iPrevPotentialExonId, int iPathScore, size_t iNumExonsInPath, double iPathTargetCov) : 
-        prevPotentialExonId(iPrevPotentialExonId), pathScore(iPathScore), numExonsInPath(iNumExonsInPath), pathTargetCov(iPathTargetCov) {
+    dpMatrixRow(size_t iPrevPotentialExonId, int iPathScore, size_t iNumExonsInPath, double iPathTargetCov, int iPathAALen) : 
+        prevPotentialExonId(iPrevPotentialExonId), pathScore(iPathScore), numExonsInPath(iNumExonsInPath), 
+        pathTargetCov(iPathTargetCov), pathAALen(iPathAALen) {
 
     }
     // the prevPotentialExonId refers to the row Id (i.e., the sorted order)
@@ -29,9 +30,11 @@ struct dpMatrixRow {
     int pathScore;
     size_t numExonsInPath;
     double pathTargetCov;
+    int pathAALen;
 };
 
-bool isPairCompatible(const PotentialExon & firstPotentialExonOnContig, const PotentialExon & secondPotentialExonOnContig, const size_t minIntronLength, const size_t maxIntronLength, const size_t maxAaOvelap) {
+bool isPairCompatible(const PotentialExon & firstPotentialExonOnContig, const PotentialExon & secondPotentialExonOnContig, 
+                      const size_t minIntronLength, const size_t maxIntronLength, const size_t maxAaOvelap, size_t & aaOverlapTarget) {
 	// it is assumed firstPotentialExonOnContig comes before secondPotentialExonOnContig on contig, i.e.:
     // firstPotentialExonOnContig.contigStart <= secondPotentialExonOnContig.contigStart
     // because negative coordinates are used for the minus strand, the logic works
@@ -60,11 +63,12 @@ bool isPairCompatible(const PotentialExon & firstPotentialExonOnContig, const Po
 
     // check overlap on target:
     int diffAAs = secondPotentialExonOnContig.targetMatchStart - firstPotentialExonOnContig.targetMatchEnd - 1;
+    aaOverlapTarget = 0;
     // if diffAAs is negative - there is some target overlap:
     if (diffAAs < 0) {
-        size_t diffAAsAbs = abs(diffAAs);
+        aaOverlapTarget = abs(diffAAs);
         // check overlap is not too long
-        if (diffAAsAbs > maxAaOvelap) {
+        if (aaOverlapTarget > maxAaOvelap) {
             return false;
         }
     }
@@ -120,19 +124,36 @@ int findoptimalsetbydp(std::vector<PotentialExon> & potentialExonCandidates, std
     // on the best path ending with the potentialExon i. It will allow for the trace back.
     // pathScore contains the score itself and numExonsInPath contans the number of exons in the path (including i)
     // pathTargetCov contains the proportion of the target the path covers
+    // pathAALen contains the total number of AAs in the path
+    int targetLength = potentialExonCandidates[0].targetLen;
+    if (targetLength == 0) {
+        Debug(Debug::ERROR) << "target length is 0 and this cannot be.\n";
+        EXIT(EXIT_FAILURE);
+    }
     std::vector<dpMatrixRow> prevIdsAndScoresBestPath;
     prevIdsAndScoresBestPath.reserve(numPotentialExonCandidates);
     // initialize:
     for (size_t id = 0; id < numPotentialExonCandidates; ++id) {
-        prevIdsAndScoresBestPath.emplace_back(dpMatrixRow(id, potentialExonCandidates[id].bitScore, 1, potentialExonCandidates[id].targetCov));
+        prevIdsAndScoresBestPath.emplace_back(dpMatrixRow(id, potentialExonCandidates[id].bitScore, 1, 
+                                              potentialExonCandidates[id].targetCov, potentialExonCandidates[id].aaLen));
+        
+        // sanity check - all exons refer to the same target
+        if (potentialExonCandidates[id].targetLen != targetLength) {
+            Debug(Debug::ERROR) << "two exons are analyzed in the context of differnt targets.\n";
+            EXIT(EXIT_FAILURE);
+        }
     }
 
     int bestPathScore = 0;
     size_t lastPotentialExonInBestPath = 0;
+    
     // dynamic programming to fill in the matrix, go over all rows - previous values have been computed:
     for (size_t currPotentialExonId = 0; currPotentialExonId < numPotentialExonCandidates; ++currPotentialExonId) {
         for (size_t prevPotentialExonId = 0; prevPotentialExonId < currPotentialExonId; ++prevPotentialExonId) {
-            if (isPairCompatible(potentialExonCandidates[prevPotentialExonId], potentialExonCandidates[currPotentialExonId], minIntronLength, maxIntronLength, maxAaOvelap)) {
+            size_t pairAaOverlapTarget = 0;
+            if (isPairCompatible(potentialExonCandidates[prevPotentialExonId], potentialExonCandidates[currPotentialExonId], 
+                                 minIntronLength, maxIntronLength, maxAaOvelap, pairAaOverlapTarget)) {
+                
                 int bestScorePathPrevIsLast = prevIdsAndScoresBestPath[prevPotentialExonId].pathScore;
                 size_t numExonsInPathPrevIsLast = prevIdsAndScoresBestPath[prevPotentialExonId].numExonsInPath;
                 int costOfPrevToCurrTransition = getPenaltyForProtCoords(potentialExonCandidates[prevPotentialExonId], potentialExonCandidates[currPotentialExonId], setGapOpenPenalty, setGapExtendPenalty);
@@ -141,8 +162,9 @@ int findoptimalsetbydp(std::vector<PotentialExon> & potentialExonCandidates, std
                 int bonusForAddingAnExon = (int) log2(currNumExonsWithPrev); // not the most accurate...
                 int currScoreWithPrev = bestScorePathPrevIsLast + costOfPrevToCurrTransition + potentialExonCandidates[currPotentialExonId].bitScore + bonusForAddingAnExon;
                 
-                // add curr cnadidate contribution to tcov
+                // add curr candidate contribution to tcov and path length
                 double currCovWithPrev = prevIdsAndScoresBestPath[prevPotentialExonId].pathTargetCov + potentialExonCandidates[currPotentialExonId].targetCov;
+                int currAALenWithPrev = prevIdsAndScoresBestPath[prevPotentialExonId].pathAALen + potentialExonCandidates[currPotentialExonId].aaLen - pairAaOverlapTarget;
 
                 // update row of currPotentialExon in case of improvement:
                 if (currScoreWithPrev > prevIdsAndScoresBestPath[currPotentialExonId].pathScore) {
@@ -150,14 +172,18 @@ int findoptimalsetbydp(std::vector<PotentialExon> & potentialExonCandidates, std
                     prevIdsAndScoresBestPath[currPotentialExonId].pathScore = currScoreWithPrev;
                     prevIdsAndScoresBestPath[currPotentialExonId].numExonsInPath = currNumExonsWithPrev;
                     prevIdsAndScoresBestPath[currPotentialExonId].pathTargetCov = currCovWithPrev;
+                    prevIdsAndScoresBestPath[currPotentialExonId].pathAALen = currAALenWithPrev;
                 }
             }
         }
 
         // update the global max in case of improvement that covers the target:
-        if ((prevIdsAndScoresBestPath[currPotentialExonId].pathTargetCov >= dMetaeukTargetCovThr) && (prevIdsAndScoresBestPath[currPotentialExonId].pathScore > bestPathScore)) {
-            lastPotentialExonInBestPath = currPotentialExonId;
-            bestPathScore = prevIdsAndScoresBestPath[currPotentialExonId].pathScore;
+        //if (prevIdsAndScoresBestPath[currPotentialExonId].pathTargetCov >= dMetaeukTargetCovThr) {
+        if ((double)prevIdsAndScoresBestPath[currPotentialExonId].pathAALen / (double)targetLength >= dMetaeukTargetCovThr) {
+            if (prevIdsAndScoresBestPath[currPotentialExonId].pathScore > bestPathScore) {
+                lastPotentialExonInBestPath = currPotentialExonId;
+                bestPathScore = prevIdsAndScoresBestPath[currPotentialExonId].pathScore;
+            }
         }
     }
 
