@@ -38,6 +38,7 @@ Read [here](https://github.com/soedinglab/mmseqs2/wiki#how-to-create-a-target-pr
      --min-length        minimal number of codons in putative protein fragment
      -e                  maximal E-Value to retain a match between a putative protein fragment and a reference taraget 
      --metaeuk-eval      maximal combined E-Value to retain an optimal exon set
+     --metaeuk-tcov      minimal length ratio of combined set to target 
      --slice-search      if refernceDB is a profile database, should be added
      
 
