@@ -5,7 +5,7 @@ DATAPATH="$2"
 RESULTPATH="$3"
 
 mkdir -p "${RESULTPATH}"
-"${METAEUK}" createdb "${DATAPATH}/contigs.fna" "${RESULTPATH}/contigs" --dont-split-seq-by-len --dbtype 2
+"${METAEUK}" createdb "${DATAPATH}/contigs.fna" "${RESULTPATH}/contigs" --dbtype 2
 "${METAEUK}" createdb "${DATAPATH}/proteins.faa" "${RESULTPATH}/proteins" --dbtype 1
 
 "${METAEUK}" predictexons "${RESULTPATH}/contigs" "${RESULTPATH}/proteins" "${RESULTPATH}/predEx" tempFolder --metaeuk-eval 0.0001 -e 100 --min-length 20 --metaeuk-tcov 0

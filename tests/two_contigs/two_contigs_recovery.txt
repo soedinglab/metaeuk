@@ -32,21 +32,3 @@ TKSPLTEQRIMIFGAGTAGVGIANQIVAGMVTDGLSLGKARDNLFMIDRCGLLLERHAKIATDGQKPFLKKDSDFKEVPS
 DGMLKAASDALATVPRSLFVADEALLPDLDNAREISRHIVFAVLKQAISEGMSTVDLPKDDAKLKEWIIEREWNPEYRNFV
 
 # the result should be 4 hits for contig1 (not exon 4) and 4 hits for contig2 (not exon2)
-
-### run test ###
-cd /home/eli/postdoc/unitests/two_contigs
-/home/eli/postdoc/metaeuk/build/src/metaeuk createdb data/contigs.fna contigs --dont-split-seq-by-len
-/home/eli/postdoc/metaeuk/build/src/metaeuk createdb data/proteins.faa proteins
-/home/eli/postdoc/metaeuk/build/src/metaeuk predictexons contigs proteins final tempFolder
-/home/eli/postdoc/metaeuk/build/src/metaeuk reduceredundancy final final tempGroup
-/home/eli/postdoc/metaeuk/build/src/metaeuk convert2fasta final_united_exons_aa final_united_exons_aa.fas
-/home/eli/postdoc/metaeuk/build/src/metaeuk convert2fasta final_grouped_predictions_rep final_grouped_predictions_rep.fas
-/home/eli/postdoc/metaeuk/build/src/metaeuk createtsv final_united_exons_aa final_united_exons_aa final_grouped_predictions final_grouped_predictions.tsv
-
-### the results - ungroupped ###
-as_should_final_united_exons_aa.fas
-
-### the results after groupping ###
-as_should_final_grouped_predictions_rep.fas
-
-
