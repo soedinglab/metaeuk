@@ -20,11 +20,13 @@ MetaEuk can be used by compiling from source (see below) or downloading a [stati
      wget https://mmseqs.com/metaeuk/metaeuk-linux-avx2.tar.gz; tar xvfz metaeuk-linux-avx2.tar.gz; export PATH=$(pwd)/metaeuk/bin/:$PATH
 
 ## Input 
-MetaEuk will search for eukaryotic protein-coding genes in **contigs** based on similarity to a reference database of **proteins** or **protein profiles**. The starting point are Fasta files of sequences (you can use contigs.fna and proteins.faa from the tests/two_contigs directory as a small toy example). Convert the contigs.fna file to a nucleotide database by running the createdb command (--dbtype 2)
+MetaEuk will search for eukaryotic protein-coding genes in **contigs** based on similarity to a reference database of **proteins** or **protein profiles**. The starting point are Fasta files of sequences (you can use contigs.fna and proteins.faa from the tests/two_contigs directory as a small toy example).
 
-Read [here](https://github.com/soedinglab/mmseqs2/wiki#how-to-create-a-target-profile-database-from-pfam) to learn more on how to create a protein profile database using MMseqs2. Once created, this database can be used as referenceDB in the command below.
+Convert the contigs.fna file to a nucleotide database by running the createdb command (```--dbtype 2```).
+Read [here](https://github.com/soedinglab/mmseqs2/wiki#how-to-create-a-target-profile-database-from-pfam) to learn more on how to create a protein profile database using MMseqs2. Once created, this database can be used as referenceDB in the commands below.
 
-Terminology: a **gene call** is an optimal set of exons predicted based on similarity to a specific target (**T**) in a specific contig (**C**) and strand (**S**). In the following it is referred to as a **TCS** or as a **call**. After redundancy reduction (see details below), the **representative TCS** is reffered to as **prediction**.
+## Terminology
+A **gene call** is an optimal set of exons predicted based on similarity to a specific target (**T**) in a specific contig (**C**) and strand (**S**). In the following it is referred to as a **TCS** or as a **call**. After redundancy reduction (see details below), the **representative TCS** is reffered to as **prediction**.
 
 ## Running MetaEuk 
 ### Main Modules:
