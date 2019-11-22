@@ -44,7 +44,7 @@ Terminology: a **gene call** is an optimal set of exons predicted based on simil
      --slice-search      if refernceDB is a profile database, should be added
      
 
-### Collecting optimal exons sets:
+### Calling optimal exons sets:
 
 This module will extract all putative protein fragments from each contig and strand, query them against the reference targets and use dynamic programming to retain for each **T** the optimal compatible exon set from each **C** & **S** (thus creating **TCS** calls).
     
