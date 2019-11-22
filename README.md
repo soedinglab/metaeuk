@@ -24,13 +24,15 @@ MetaEuk will search for eukaryotic protein-coding genes in **contigs** based on 
 
 Read [here](https://github.com/soedinglab/mmseqs2/wiki#how-to-create-a-target-profile-database-from-pfam) to learn more on how to create a protein profile database using MMseqs2. Once created, this database can be used as referenceDB in the command below.
 
+Terminology: a **gene call** is an optimal set of exons predicted based on similarity to a specific target (**T**) in a specific contig (**C**) and strand (**S**). In the following it is referred to as a **TCS** or as a **call**. After redundancy reduction (see details below), the **representative TCS** is reffered to as **prediction**.
+
 ## Running MetaEuk 
 ### Main Modules:
 
-      predictexons      	Predict eukaryotic exons based on protein similarity
-      reduceredundancy  	A greedy approach to group metaeuk predictions which share an exon
+      predictexons      	Call optimal exon sets based on protein similarity
+      reduceredundancy  	Cluster metaeuk calls which share an exon and select representative
       unitesetstofasta  	Create a fasta output from optimal exon sets
-      groupstoacc     	Create a TSV output from representative to member
+      groupstoacc     	Create a TSV output from representative to calls
 
 
 ### Important parameters: 
@@ -44,28 +46,28 @@ Read [here](https://github.com/soedinglab/mmseqs2/wiki#how-to-create-a-target-pr
 
 ### Collecting optimal exons sets:
 
-This module will extract all putative protein fragments from each contig (**C**) and strand (**S**), query them against the reference targets (**T**) and use dynamic programming to retain for each **T** the optimal compatible exon set from each **C** & **S** (thus creating **TCS** predictions).
+This module will extract all putative protein fragments from each contig and strand, query them against the reference targets and use dynamic programming to retain for each **T** the optimal compatible exon set from each **C** & **S** (thus creating **TCS** calls).
     
-    metaeuk predictexons contigsDB referenceDB predExResultDB tempFolder --metaeuk-eval 0.0001 -e 100 --min-length 40
+    metaeuk predictexons contigsDB referenceDB callsResultDB tempFolder --metaeuk-eval 0.0001 -e 100 --min-length 40
     
-Since this step involves a search, it is the most time-demanding of all analyses steps. Upon completion, it will output a database (contigs are keys), where each line contains information about a **TCS** prediction and its exon (multi-exon predictions will span several lines).
+Since this step involves a search, it is the most time-demanding of all analyses steps. Upon completion, it will output a database (contigs are keys), where each line contains information about a **TCS** and its exon (multi-exon **TCS**s will span several lines).
 
 
 ### Reducing redundancy:
 
-If there are homologies in referenceDB (e.g., T1 is highly similar to T2), the same optimal exons set from a **C** & **S** combination will be predicted more than once. This module will group together **TCS** predictions that share and exon and will choose their representative. By default, it will greedily obtain a subset of the **TCS** representatives, such that there is no overlap of predictions on the same contig and strand (to allow same-strand overlaps, run with ```--overlap 1```).
+If there are homologies in referenceDB (e.g., T1 is highly similar to T2), the same optimal exons set from a **C** & **S** combination will be called more than once. This module will group together **TCS**s that share and exon and will choose their representative **prediction**. By default, it will greedily obtain a subset of the **predictions**, such that there is no overlap of **predictions** on the same contig and strand (to allow same-strand overlaps, run with ```--overlap 1```).
     
-    metaeuk reduceredundancy predExResultDB predRedResultDB predGroupsDB
+    metaeuk reduceredundancy callsResultDB predsResultDB predGroupsDB
     
-Upon completion, it will output: predRedResultDB and predGroupsDB. predRedResultDB contains information about the **TCS** representatives (same format as predExResultDB). Each line of predGroupsDB maps from a representative to all **TCS** predictions that share an exon with it.
+Upon completion, it will output: predsResultDB and predGroupsDB. predsResultDB contains information about the **predictions** (same format as callsResultDB). Each line of predGroupsDB maps from a **prediction** to all **TCS**s that share an exon with it.
 
 
 
 ### Converting to Fasta:
 
-The predExResultDB/predRedResultDB produced by the modules above, can be used to extract the sequences of the predicted protein-coding genes. The parameter ```--protein``` controls whether to transalte the coding genes (1) or report in nucleotides (0, default)
+The callsResultDB/predsResultDB produced by the modules above, can be used to extract the sequences of the predicted protein-coding genes. The parameter ```--protein``` controls whether to transalte the coding genes (1) or report in nucleotides (0, default)
     
-    metaeuk unitesetstofasta contigsDB referenceDB predRedResultDB predRedResultProteins.fas --protein 1
+    metaeuk unitesetstofasta contigsDB referenceDB predsResultDB predsResultProteins.fas --protein 1
     
 
 
@@ -86,13 +88,13 @@ Example header (two exons on the minus strand):
 *>ERR1719262_736507|ERR868377_k119_2347399|-|341|6.2e-93|2|54324|54855|54855[54855]:54754[54754]:102[102]|54656[54668]:54324[54324]:333[321]*
 
 
-### Creating a TSV map of prediction representatives to their group members:
+### Creating a TSV map of predictions to their TCS group members:
 
 A TSV file, of lines of the format:
 
 *T_acc_rep|C_acc|S    T_acc_member|C_acc|S*
 
-can help mapping from each representative prediction after the redundancy reduction stage to all its group members. Since redundancy reduction is performed per contig and strand combination, there will always be agreement in these fields. Note, a representative also maps to itself.
+can help mapping from each representative prediction after the redundancy reduction stage to all its TCS group members. Since redundancy reduction is performed per contig and strand combination, there will always be agreement in these fields. Note, a representative also maps to itself.
 
     metaeuk groupstoacc contigsDB referenceDB predGroupsDB predGroups.tsv
     
