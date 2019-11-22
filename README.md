@@ -20,7 +20,7 @@ MetaEuk can be used by compiling from source (see below) or downloading a [stati
      wget https://mmseqs.com/metaeuk/metaeuk-linux-avx2.tar.gz; tar xvfz metaeuk-linux-avx2.tar.gz; export PATH=$(pwd)/metaeuk/bin/:$PATH
 
 ## Input 
-MetaEuk will search for eukaryotic protein-coding genes in **contigs** based on similarity to a reference database of **proteins** or **protein profiles**. The starting point are Fasta files of sequences (you can use contigs.fna and proteins.faa from the tests/two_contigs directory as a small toy example).
+MetaEuk will search for eukaryotic protein-coding genes in **contigs** based on similarity to a reference database of **proteins** or **protein profiles**. The starting point are Fasta files of sequences (you can use contigs.fna and proteins.faa from the tests/two_contigs directory as a small toy example). Convert the contigs.fna file to a nucleotide database by running the createdb command (--dbtype 2)
 
 Read [here](https://github.com/soedinglab/mmseqs2/wiki#how-to-create-a-target-profile-database-from-pfam) to learn more on how to create a protein profile database using MMseqs2. Once created, this database can be used as referenceDB in the command below.
 
