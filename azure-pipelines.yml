@@ -68,11 +68,11 @@ jobs:
       - checkout: self
         submodules: true
       - script: |
-          brew install cmake gcc@9 zlib bzip2 coreutils
+          brew install cmake zlib bzip2 libomp
         displayName: Install Dependencies
       - script: |
           cd ${BUILD_SOURCESDIRECTORY}
-          CC=gcc-9 CXX=g++-9 ./lib/mmseqs/util/build_osx.sh . build metaeuk
+          ./lib/mmseqs/util/build_osx.sh . build metaeuk
         displayName: Build MetaEuk
       - script: |
           cd ${BUILD_SOURCESDIRECTORY}/tests
