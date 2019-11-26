@@ -140,7 +140,11 @@ int unitesetstofasta(int argn, const char **argv, const Command& command) {
             unsigned int contigKey = predsPerContig.getDbKey(id);
 
             char *results = predsPerContig.getData(id, thread_idx);
+            
+            // if the contig has no predictions - move on
             if (*results == '\0') {
+                plusPred.clearPred();
+                minusPred.clearPred();
                 continue;
             }
 
