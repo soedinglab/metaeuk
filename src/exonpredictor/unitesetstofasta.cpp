@@ -140,7 +140,10 @@ int unitesetstofasta(int argn, const char **argv, const Command& command) {
             unsigned int contigKey = predsPerContig.getDbKey(id);
 
             char *results = predsPerContig.getData(id, thread_idx);
-            
+            if (*results == '\0') {
+                continue;
+            }
+
             unsigned int currTargetKey = 0;
             bool isFirstIteration = true;
             
