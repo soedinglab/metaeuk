@@ -3,6 +3,8 @@
 
 #include <Parameters.h>
 
+const int CITATION_METAEUK = CITATION_END << 1;
+
 class LocalParameters : public Parameters {
 public:
     static void initInstance() {
@@ -123,6 +125,8 @@ private:
 
         // default value 0 means the accession is written
         writeTargetKey = 0;
+
+        citations.emplace(CITATION_METAEUK, "Levy Karin E, Mirdita M, Soding J: MetaEuk – sensitive, high-throughput gene discovery and annotation for large-scale eukaryotic metagenomics. biorxiv, 851964 (2019).");
     }
     LocalParameters(LocalParameters const&);
     ~LocalParameters() {};
