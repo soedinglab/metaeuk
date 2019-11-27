@@ -91,5 +91,6 @@ if [ -n "$REMOVE_TMP" ]; then
     rm -f "${TMP_PATH}"/aa_6f*
     rm -f "${TMP_PATH}"/search_res*
     rm -r "${TMP_PATH}/tmp_search"
+    rm -f "${TMP_PATH}/predictexons.sh"
 fi
 
