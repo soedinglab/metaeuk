@@ -31,11 +31,11 @@ A **gene call** is an optimal set of exons predicted based on similarity to a sp
 ## Running MetaEuk 
 ### Main Modules:
 
-      easy-predict      	Predict proteins from contigs (fasta/db) based on similarities to targets (fasta/db) and return a fasta
       predictexons      	Call optimal exon sets based on protein similarity
       reduceredundancy  	Cluster metaeuk calls which share an exon and select representative
       unitesetstofasta  	Create a fasta output from optimal exon sets
       groupstoacc     	Create a TSV output from representative to calls
+      easy-predict      	Predict proteins from contigs (fasta/db) based on similarities to targets (fasta/db) and return a fasta
 
 
 ### Important parameters: 
@@ -101,6 +101,12 @@ can help mapping from each representative prediction after the redundancy reduct
 
     metaeuk groupstoacc contigsDB referenceDB predGroupsDB predGroups.tsv
     
+
+### easy-predict workflow:
+
+This workflow combines the following MetaEuk modules into a single step: predictexons, reduceredundancy and unitesetstofasta. Its input are contigs (either as a Fasta file or a previously created database) and targets (either as a Fasta file of protein sequences or a previously created database of proteins or protein profiles). It will run the modules and output the predictions in Fasta foramt.
+    
+    metaeuk easy-predict contigsFasta/contigsDB proteinsFasta/referenceDB predsResultProteins.fas tempFolder
 
 
 ## Compile from source
