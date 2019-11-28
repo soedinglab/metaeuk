@@ -18,6 +18,7 @@ public:
         return static_cast<LocalParameters&>(LocalParameters::getInstance());
     }
 
+    std::vector<MMseqsParameter*> easypredictworkflow;
     std::vector<MMseqsParameter*> predictexonsworkflow;
     std::vector<MMseqsParameter*> collectoptimalset;
     std::vector<MMseqsParameter*> reduceredundancy;
@@ -103,6 +104,11 @@ private:
         unitesetstofasta.push_back(&PARAM_THREADS);
         unitesetstofasta.push_back(&PARAM_COMPRESSED);
         unitesetstofasta.push_back(&PARAM_V);
+
+        easypredictworkflow = combineList(searchworkflow, collectoptimalset);
+        easypredictworkflow = combineList(easypredictworkflow, reduceredundancy);
+        easypredictworkflow = combineList(easypredictworkflow, unitesetstofasta);
+        easypredictworkflow.push_back(&PARAM_REVERSE_FRAGMENTS);
         
         // default value 0 means no reverse of AA fragments
         reverseFragments = 0;
@@ -126,7 +132,7 @@ private:
         // default value 0 means the accession is written
         writeTargetKey = 0;
 
-        citations.emplace(CITATION_METAEUK, "Levy Karin E, Mirdita M, Soding J: MetaEuk – sensitive, high-throughput gene discovery and annotation for large-scale eukaryotic metagenomics. biorxiv, 851964 (2019).");
+        citations.emplace(CITATION_METAEUK, "Levy Karin E, Mirdita M, Soeding J: MetaEuk – sensitive, high-throughput gene discovery and annotation for large-scale eukaryotic metagenomics. biorxiv, 851964 (2019).");
     }
     LocalParameters(LocalParameters const&);
     ~LocalParameters() {};
