@@ -24,8 +24,8 @@ void reverseComplement (const std::string & seq, std::string & revCompSeq) {
     }
 }
 
-void preparePredDataAndHeader (const Prediction & pred, const std::string targetHeaderAcc, const std::string contigHeaderAcc, 
-                                    const char* contigData, std::ostringstream& joinedHeaderStream, std::ostringstream& joinedExonsStream) {
+void preparePredDataAndHeader (const Prediction & pred, const std::string & targetHeaderAcc, const std::string & contigHeaderAcc, 
+                                    const char* contigData, std::ostringstream & joinedHeaderStream, std::ostringstream & joinedExonsStream) {
     
     // clear streams:
     joinedHeaderStream.str("");
