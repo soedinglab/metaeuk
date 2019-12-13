@@ -90,6 +90,30 @@ void preparePredDataAndHeader (const Prediction & pred, const std::string & targ
     joinedExonsStream << "\n";
 }
 
+void preparePredHeaderToInfo (const unsigned int contigKey, const Prediction & pred, const std::string & joinedHeaderStr, 
+                                std::ostringstream & joinedPredHeadToInfoStream) {
+    // clear stream:
+    joinedPredHeadToInfoStream.str("");
+
+    // structure mimicks the headers produced by extractorfs (Orf::writeOrfHeader)
+    // the first columns are therefore:
+    // contigkey, contigStartPosition+contigLenIncludingIntrons, 0
+    // followed by MetaEuk columns:
+    // targetKey, strand, predHeader
+
+    size_t contigLenIncludingIntrons = pred.highContigCoord - pred.lowContigCoord + 1;
+
+    joinedPredHeadToInfoStream << contigKey << "\t";
+    if (pred.strand == PLUS) {
+        joinedPredHeadToInfoStream << pred.lowContigCoord << "+" << contigLenIncludingIntrons << "\t";
+    } else {
+        joinedPredHeadToInfoStream << pred.highContigCoord << "-" << contigLenIncludingIntrons << "\t";
+    }
+    joinedPredHeadToInfoStream << "0\t" << pred.targetKey << "\t" << pred.strand << "\t";
+    // no need for \n because the header already has one!
+    joinedPredHeadToInfoStream << joinedHeaderStr;
+}
+
 int unitesetstofasta(int argn, const char **argv, const Command& command) {
     LocalParameters& par = LocalParameters::getLocalInstance();
     par.parseParameters(argn, argv, command, true, 0, 0);
@@ -109,8 +133,15 @@ int unitesetstofasta(int argn, const char **argv, const Command& command) {
     DBReader<unsigned int> predsPerContig(par.db3.c_str(), par.db3Index.c_str(), par.threads, DBReader<unsigned int>::USE_INDEX|DBReader<unsigned int>::USE_DATA);
     predsPerContig.open(DBReader<unsigned int>::LINEAR_ACCCESS);
 
-    DBWriter writer(par.db4.c_str(), par.db4Index.c_str(), par.threads, par.compressed, Parameters::DBTYPE_OMIT_FILE);
-    writer.open();
+    // out fasta
+    DBWriter fastaWriter(par.db4.c_str(), par.db4Index.c_str(), par.threads, par.compressed, Parameters::DBTYPE_OMIT_FILE);
+    fastaWriter.open();
+
+    // out mapping - MetaEuk header to contig, target, etc. Mimicking the headers produced by extractorfs so this can later be plugged in easily
+    std::string mapFileName = par.db4 + ".headersMap";
+    std::string mapFileNameIndex = par.db4 + ".headersMap.index"; // not used
+    DBWriter mapWriter(mapFileName.c_str(), mapFileNameIndex.c_str(), par.threads, par.compressed, Parameters::DBTYPE_OMIT_FILE);
+    mapWriter.open();
 
     // in case a translated result is required
     TranslateNucl translateNucl(static_cast<TranslateNucl::GenCode>(par.translationTable));
@@ -125,6 +156,7 @@ int unitesetstofasta(int argn, const char **argv, const Command& command) {
         // per thread variables
         std::ostringstream joinedHeaderStream;
         std::ostringstream joinedExonsStream;
+        std::ostringstream predHeaderToInfoStream;
         const char *entry[255];
 
         Prediction plusPred;
@@ -194,7 +226,12 @@ int unitesetstofasta(int argn, const char **argv, const Command& command) {
                     if (plusPred.optimalExonSet.size() > 0) {
                         preparePredDataAndHeader(plusPred, targetHeaderAcc, contigHeaderAcc, contigData, joinedHeaderStream, joinedExonsStream);
                         std::string result = ">" + joinedHeaderStream.str();
-                        writer.writeData(result.c_str(), result.size(), 0, thread_idx, false, false);
+                        fastaWriter.writeData(result.c_str(), result.size(), 0, thread_idx, false, false);
+                        
+                        preparePredHeaderToInfo(contigKey, plusPred, joinedHeaderStream.str(), predHeaderToInfoStream);
+                        std::string headerInfo = predHeaderToInfoStream.str();
+                        mapWriter.writeData(headerInfo.c_str(), headerInfo.size(), 0, thread_idx, true, false);
+
                         result = joinedExonsStream.str();
                         if (par.shouldTranslate == true) {
                             size_t nuclLen = result.size() - 1; // \n at the end of result...
@@ -205,15 +242,20 @@ int unitesetstofasta(int argn, const char **argv, const Command& command) {
                             size_t aaLen = nuclLen / 3;
                             translateNucl.translate(translatedSeqBuff, result.c_str(), nuclLen);
                             translatedSeqBuff[aaLen] = '\n';
-                            writer.writeData(translatedSeqBuff, (aaLen + 1), 0, thread_idx, false, false);
+                            fastaWriter.writeData(translatedSeqBuff, (aaLen + 1), 0, thread_idx, false, false);
                         } else {
-                            writer.writeData(result.c_str(), result.size(), 0, thread_idx, false, false);
+                            fastaWriter.writeData(result.c_str(), result.size(), 0, thread_idx, false, false);
                         }
                     }
                     if (minusPred.optimalExonSet.size() > 0) {
                         preparePredDataAndHeader(minusPred, targetHeaderAcc, contigHeaderAcc, contigData, joinedHeaderStream, joinedExonsStream);
                         std::string result = ">" + joinedHeaderStream.str();
-                        writer.writeData(result.c_str(), result.size(), 0, thread_idx, false, false);
+                        fastaWriter.writeData(result.c_str(), result.size(), 0, thread_idx, false, false);
+
+                        preparePredHeaderToInfo(contigKey, minusPred, joinedHeaderStream.str(), predHeaderToInfoStream);
+                        std::string headerInfo = predHeaderToInfoStream.str();
+                        mapWriter.writeData(headerInfo.c_str(), headerInfo.size(), 0, thread_idx, true, false);
+
                         result = joinedExonsStream.str();
                         if (par.shouldTranslate == true) {
                             size_t nuclLen = result.size() - 1; // \n at the end of result...
@@ -224,9 +266,9 @@ int unitesetstofasta(int argn, const char **argv, const Command& command) {
                             size_t aaLen = nuclLen / 3;
                             translateNucl.translate(translatedSeqBuff, result.c_str(), nuclLen);
                             translatedSeqBuff[aaLen] = '\n';
-                            writer.writeData(translatedSeqBuff, (aaLen + 1), 0, thread_idx, false, false);
+                            fastaWriter.writeData(translatedSeqBuff, (aaLen + 1), 0, thread_idx, false, false);
                         } else {
-                            writer.writeData(result.c_str(), result.size(), 0, thread_idx, false, false);
+                            fastaWriter.writeData(result.c_str(), result.size(), 0, thread_idx, false, false);
                         }
                     }
                     
@@ -262,7 +304,12 @@ int unitesetstofasta(int argn, const char **argv, const Command& command) {
             if (plusPred.optimalExonSet.size() > 0) {
                 preparePredDataAndHeader(plusPred, targetHeaderAcc, contigHeaderAcc, contigData, joinedHeaderStream, joinedExonsStream);
                 std::string result = ">" + joinedHeaderStream.str();
-                writer.writeData(result.c_str(), result.size(), 0, thread_idx, false, false);
+                fastaWriter.writeData(result.c_str(), result.size(), 0, thread_idx, false, false);
+                
+                preparePredHeaderToInfo(contigKey, plusPred, joinedHeaderStream.str(), predHeaderToInfoStream);
+                std::string headerInfo = predHeaderToInfoStream.str();
+                mapWriter.writeData(headerInfo.c_str(), headerInfo.size(), 0, thread_idx, true, false);
+                
                 result = joinedExonsStream.str();
                 if (par.shouldTranslate == true) {
                     size_t nuclLen = result.size() - 1; // \n at the end of result...
@@ -273,15 +320,20 @@ int unitesetstofasta(int argn, const char **argv, const Command& command) {
                     size_t aaLen = nuclLen / 3;
                     translateNucl.translate(translatedSeqBuff, result.c_str(), nuclLen);
                     translatedSeqBuff[aaLen] = '\n';
-                    writer.writeData(translatedSeqBuff, (aaLen + 1), 0, thread_idx, false, false);
+                    fastaWriter.writeData(translatedSeqBuff, (aaLen + 1), 0, thread_idx, false, false);
                 } else {
-                    writer.writeData(result.c_str(), result.size(), 0, thread_idx, false, false);
+                    fastaWriter.writeData(result.c_str(), result.size(), 0, thread_idx, false, false);
                 }
             }
             if (minusPred.optimalExonSet.size() > 0) {
                 preparePredDataAndHeader(minusPred, targetHeaderAcc, contigHeaderAcc, contigData, joinedHeaderStream, joinedExonsStream);
                 std::string result = ">" + joinedHeaderStream.str();
-                writer.writeData(result.c_str(), result.size(), 0, thread_idx, false, false);
+                fastaWriter.writeData(result.c_str(), result.size(), 0, thread_idx, false, false);
+                
+                preparePredHeaderToInfo(contigKey, minusPred, joinedHeaderStream.str(), predHeaderToInfoStream);
+                std::string headerInfo = predHeaderToInfoStream.str();
+                mapWriter.writeData(headerInfo.c_str(), headerInfo.size(), 0, thread_idx, true, false);
+                
                 result = joinedExonsStream.str();
                 if (par.shouldTranslate == true) {
                     size_t nuclLen = result.size() - 1; // \n at the end of result...
@@ -292,9 +344,9 @@ int unitesetstofasta(int argn, const char **argv, const Command& command) {
                     size_t aaLen = nuclLen / 3;
                     translateNucl.translate(translatedSeqBuff, result.c_str(), nuclLen);
                     translatedSeqBuff[aaLen] = '\n';
-                    writer.writeData(translatedSeqBuff, (aaLen + 1), 0, thread_idx, false, false);
+                    fastaWriter.writeData(translatedSeqBuff, (aaLen + 1), 0, thread_idx, false, false);
                 } else {
-                    writer.writeData(result.c_str(), result.size(), 0, thread_idx, false, false);
+                    fastaWriter.writeData(result.c_str(), result.size(), 0, thread_idx, false, false);
                 }
             }
             // move to another contig:
@@ -302,8 +354,11 @@ int unitesetstofasta(int argn, const char **argv, const Command& command) {
             minusPred.clearPred();
         }
     }
-    writer.close(true);
+    fastaWriter.close(true);
     FileUtil::remove(par.db4Index.c_str());
+
+    mapWriter.close(true);
+    FileUtil::remove(mapFileNameIndex.c_str());
  
     contigsData.close();
     contigsHeaders.close();
