@@ -95,7 +95,7 @@ void preparePredHeaderToInfo (const unsigned int contigKey, const Prediction & p
     // clear stream:
     joinedPredHeadToInfoStream.str("");
 
-    // structure mimicks the headers produced by extractorfs (Orf::writeOrfHeader)
+    // structure mimics the headers produced by extractorfs (Orf::writeOrfHeader)
     // the first columns are therefore:
     // contigkey, contigStartPosition+contigLenIncludingIntrons, 0
     // followed by MetaEuk columns:
