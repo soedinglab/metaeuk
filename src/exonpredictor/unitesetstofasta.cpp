@@ -138,8 +138,8 @@ int unitesetstofasta(int argn, const char **argv, const Command& command) {
     fastaWriter.open();
 
     // out mapping - MetaEuk header to contig, target, etc. Mimicking the headers produced by extractorfs so this can later be plugged in easily
-    std::string mapFileName = par.db4 + ".headersMap";
-    std::string mapFileNameIndex = par.db4 + ".headersMap.index"; // not used
+    std::string mapFileName = par.db4 + ".headersMap.tsv";
+    std::string mapFileNameIndex = par.db4 + ".headersMap.tsv.index"; // not used
     DBWriter mapWriter(mapFileName.c_str(), mapFileNameIndex.c_str(), par.threads, par.compressed, Parameters::DBTYPE_OMIT_FILE);
     mapWriter.open();
 
@@ -230,7 +230,7 @@ int unitesetstofasta(int argn, const char **argv, const Command& command) {
                         
                         preparePredHeaderToInfo(contigKey, plusPred, joinedHeaderStream.str(), predHeaderToInfoStream);
                         std::string headerInfo = predHeaderToInfoStream.str();
-                        mapWriter.writeData(headerInfo.c_str(), headerInfo.size(), 0, thread_idx, true, false);
+                        mapWriter.writeData(headerInfo.c_str(), headerInfo.size(), 0, thread_idx, false, false);
 
                         result = joinedExonsStream.str();
                         if (par.shouldTranslate == true) {
@@ -254,7 +254,7 @@ int unitesetstofasta(int argn, const char **argv, const Command& command) {
 
                         preparePredHeaderToInfo(contigKey, minusPred, joinedHeaderStream.str(), predHeaderToInfoStream);
                         std::string headerInfo = predHeaderToInfoStream.str();
-                        mapWriter.writeData(headerInfo.c_str(), headerInfo.size(), 0, thread_idx, true, false);
+                        mapWriter.writeData(headerInfo.c_str(), headerInfo.size(), 0, thread_idx, false, false);
 
                         result = joinedExonsStream.str();
                         if (par.shouldTranslate == true) {
@@ -308,7 +308,7 @@ int unitesetstofasta(int argn, const char **argv, const Command& command) {
                 
                 preparePredHeaderToInfo(contigKey, plusPred, joinedHeaderStream.str(), predHeaderToInfoStream);
                 std::string headerInfo = predHeaderToInfoStream.str();
-                mapWriter.writeData(headerInfo.c_str(), headerInfo.size(), 0, thread_idx, true, false);
+                mapWriter.writeData(headerInfo.c_str(), headerInfo.size(), 0, thread_idx, false, false);
                 
                 result = joinedExonsStream.str();
                 if (par.shouldTranslate == true) {
@@ -332,7 +332,7 @@ int unitesetstofasta(int argn, const char **argv, const Command& command) {
                 
                 preparePredHeaderToInfo(contigKey, minusPred, joinedHeaderStream.str(), predHeaderToInfoStream);
                 std::string headerInfo = predHeaderToInfoStream.str();
-                mapWriter.writeData(headerInfo.c_str(), headerInfo.size(), 0, thread_idx, true, false);
+                mapWriter.writeData(headerInfo.c_str(), headerInfo.size(), 0, thread_idx, false, false);
                 
                 result = joinedExonsStream.str();
                 if (par.shouldTranslate == true) {
