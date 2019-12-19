@@ -18,6 +18,7 @@ public:
         return static_cast<LocalParameters&>(LocalParameters::getInstance());
     }
 
+    std::vector<MMseqsParameter*> taxpercontigworkflow;
     std::vector<MMseqsParameter*> easypredictworkflow;
     std::vector<MMseqsParameter*> predictexonsworkflow;
     std::vector<MMseqsParameter*> collectoptimalset;
@@ -109,6 +110,8 @@ private:
         easypredictworkflow = combineList(easypredictworkflow, reduceredundancy);
         easypredictworkflow = combineList(easypredictworkflow, unitesetstofasta);
         easypredictworkflow.push_back(&PARAM_REVERSE_FRAGMENTS);
+
+        taxpercontigworkflow = combineList(taxonomy, aggregatetax);
         
         // default value 0 means no reverse of AA fragments
         reverseFragments = 0;

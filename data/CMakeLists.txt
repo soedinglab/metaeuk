@@ -3,6 +3,7 @@ include(MMseqsResourceCompiler)
 set(COMPILED_RESOURCES
         predictexons.sh
         easypredict.sh
+        taxtocontig.sh
         )
 
 set(GENERATED_OUTPUT_HEADERS "")
