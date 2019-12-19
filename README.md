@@ -31,10 +31,10 @@ A **gene call** is an optimal set of exons predicted based on similarity to a sp
 ## Running MetaEuk 
 ### Main Modules:
 
-      easy-predict      	Predict proteins from contigs (fasta/db) based on similarities to targets (fasta/db) and return a fasta
+      easy-predict      	Predict proteins from contigs (fasta/db) based on similarities to targets (fasta/db) and return a fasta 
       predictexons      	Call optimal exon sets based on protein similarity
       reduceredundancy  	Cluster metaeuk calls which share an exon and select representative
-      unitesetstofasta  	Create a fasta output from optimal exon sets
+      unitesetstofasta  	Create a fasta output from optimal exon sets (and a TSV map between headers and internal identifiers)
       groupstoacc     	Create a TSV output from representative to calls
 
 
