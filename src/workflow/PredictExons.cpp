@@ -18,7 +18,13 @@ void setPredictExonsDefaults(Parameters *p) {
 int predictexons(int argc, const char **argv, const Command& command) {
     LocalParameters& par = LocalParameters::getLocalInstance();
     setPredictExonsDefaults(&par);
-    par.parseParameters(argc, argv, command, true, 0, 0);
+    par.parseParameters(argc, argv, command, false, 0, 0);
+    int targetDbType = FileUtil::parseDbType(par.db2.c_str());
+    if (Parameters::isEqualDbtype(targetDbType, Parameters::DBTYPE_HMM_PROFILE)) {
+        Debug(Debug::INFO) << "Enforcing exhaustive profile search mode due to profile target database\n";
+        par.sliceSearch = true;
+    }
+    par.printParameters(command.cmd, argc, argv, *command.params);
 
     std::string tmpDir = par.db4;
     std::string hash = SSTR(par.hashParameter(par.filenames, *command.params));
