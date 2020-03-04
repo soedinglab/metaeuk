@@ -1,6 +1,4 @@
-ARG NAMESPACE=
-FROM ${NAMESPACE}debian:stable-slim as metaeuk-builder
-ARG NAMESPACE
+FROM debian:stable-slim as metaeuk-builder
 
 RUN apt-get update && apt-get install -y \
     build-essential cmake xxd git zlib1g-dev libbz2-dev \
@@ -9,24 +7,17 @@ RUN apt-get update && apt-get install -y \
 WORKDIR /opt/metaeuk
 ADD . .
 
-RUN git submodule update --init
-
-RUN mkdir -p build_sse/bin && mkdir -p build_avx/bin && mkdir -p build_neon/bin
+RUN mkdir -p build_sse/bin && mkdir -p build_avx/bin
 
 WORKDIR /opt/metaeuk/build_sse
-RUN if [ X"$NAMESPACE" = X"" ]; then \
-      cmake -DHAVE_SSE4_1=1 -DHAVE_MPI=0 -DHAVE_TESTS=0 -DCMAKE_BUILD_TYPE=Release -DCMAKE_INSTALL_PREFIX=. ..; \
-      make -j $(nproc --all) && make install; \
-    fi
+RUN cmake -DHAVE_SSE4_1=1 -DHAVE_MPI=0 -DHAVE_TESTS=0 -DCMAKE_BUILD_TYPE=Release -DCMAKE_INSTALL_PREFIX=. ..; \
+    make -j $(nproc --all) && make install;
 
 WORKDIR /opt/metaeuk/build_avx
-RUN if [ X"$NAMESPACE" = X"" ]; then \
-      cmake -DHAVE_AVX2=1 -DHAVE_MPI=0 -DHAVE_TESTS=0 -DCMAKE_BUILD_TYPE=Release -DCMAKE_INSTALL_PREFIX=. ..; \
-      make -j $(nproc --all) && make install; \
-    fi
+RUN cmake -DHAVE_AVX2=1 -DHAVE_MPI=0 -DHAVE_TESTS=0 -DCMAKE_BUILD_TYPE=Release -DCMAKE_INSTALL_PREFIX=. ..; \
+    make -j $(nproc --all) && make install;
 
-FROM ${NAMESPACE}debian:stable-slim
-ARG NAMESPACE
+FROM debian:stable-slim
 MAINTAINER Eli Levy Karin <eli.levy.karin@gmail.com>
 
 RUN apt-get update && apt-get install -y \
