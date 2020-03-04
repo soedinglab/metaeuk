@@ -32,5 +32,6 @@ if $(grep -q -E "^flags.+avx2" /proc/cpuinfo); then\n\
 else\n\
     exec /usr/local/bin/metaeuk_sse42 "$@"\n\
 fi' > /usr/local/bin/metaeuk
+RUN chmod +x /usr/local/bin/metaeuk
 
 ENTRYPOINT ["/usr/local/bin/metaeuk"]
