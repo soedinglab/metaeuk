@@ -21,7 +21,7 @@ FROM debian:stable-slim
 MAINTAINER Eli Levy Karin <eli.levy.karin@gmail.com>
 
 RUN apt-get update && apt-get upgrade -y && apt-get install -y \
-     gawk bash grep libstdc++6 libgomp1 zlib1g libbz2-1.0 \
+     gawk bash grep wget libstdc++6 libgomp1 zlib1g libbz2-1.0 \
     && rm -rf /var/lib/apt/lists/*
 
 COPY --from=metaeuk-builder /opt/metaeuk/build_sse/bin/metaeuk /usr/local/bin/metaeuk_sse42
