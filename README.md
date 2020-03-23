@@ -36,6 +36,7 @@ A **gene call** is an optimal set of exons predicted based on similarity to a sp
       reduceredundancy  	Cluster metaeuk calls which share an exon and select representative
       unitesetstofasta  	Create a fasta output from optimal exon sets (and a TSV map between headers and internal identifiers)
       groupstoacc     	Create a TSV output from representative to calls
+      taxtocontig     	Assign taxonomic labels to MetaEuk predictions and contigs by majority voting
 
 
 ### Important parameters: 
@@ -109,6 +110,24 @@ can help mapping from each representative prediction after the redundancy reduct
     metaeuk groupstoacc contigsDB referenceDB predGroupsDB predGroups.tsv
     
 
+### Taxonomic assignment with taxtocontig:
+
+After obtaining MetaEuk predictions, the *taxtocontig* workflow allows assigning taxonomic labels to the predicted MetaEuk proteins and confer these predictions to their contigs. This workflow internally runs [*taxonomy*](https://github.com/soedinglab/MMseqs2/wiki#the-concept-of-lca) on the MetaEuk prediciotions, using any `--lca-mode`. It then performs majority voting among the taxonomically labeled predictions on a given contig to select a label for the contig. The parameter ```--majority``` indicates the minimal fraction of labeled predictions that agree in their taxonomic assignment (1.0 - consensus, 0.5 - at least 50%, etc.). The contig's label will be the last common ancestor (LCA) of the fraction of labeled predictions in agreement.
+
+#### Example:
+predictions' taxonomic labels: *Ostreococcus tauri*, *Ostreococcus mediterraneus*, *unclassified*, *Bathycoccus prasinos*
+- contig label (`--majority 0.5`): *Ostreococcus* (genus), the LCA of 2 out of 3 labels
+- contig label (`--majority 1`): *Bathycoccaceae* (family), the LCA of 3 out of 3 labels
+
+#### Input:
+- The output of a MetaEuk run: **contigsDB** (if you run MetaEuk with *easy-predict* you will find it at `<tmpDir>/latest/contigs`), **predictionsFasta** and **predictionsFasta.headersMap.tsv**, which are produced by the *unitesetstofasta* module (called by *easy-predict*).
+- A protein sequence database annotated with taxonomic information (**seqTaxDb**). See details [here](https://github.com/soedinglab/MMseqs2/wiki#creating-a-seqtaxdb). You could download such a resource with >88M entries [here](http://wwwuser.gwdg.de/~compbiol/metaeuk/2020_TAX_DB).
+
+#### Command:
+    metaeuk taxtocontig <i:contigsDB> <i:predictionsFasta> <i:predictionsFasta.headersMap.tsv> <i:taxAnnotTargetDb> <o:taxResult> <tmpDir> --majority 0.5 --tax-lineage --lca-mode 2
+    
+#### Output:
+The run ends with two files: **taxResult_per_pred.tsv** and **taxResult_per_contig.tsv**, each of which is in [taxonomy result TSV format](https://github.com/soedinglab/MMseqs2/wiki#taxonomy-output-and-tsv)
 
 ## Compile from source
 Compiling MetaEuk from source has the advantage that it will be optimized to the specific system, which should improve its performance. To compile MetaEuk `git`, `g++` (4.6 or higher) and `cmake` (3.0 or higher) are required. Afterwards, the MetaEuk binary will be located in the `build/bin` directory.
