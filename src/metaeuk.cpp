@@ -4,7 +4,7 @@
 
 const char* binary_name = "metaeuk";
 const char* tool_name = "metaeuk";
-const char* tool_introduction = "MetaEuk is homology-based strategy to efficiently query many contigs assembled from metagenomic samples against a comprehensive protein/profile target database to describe their protein repertoire. It does not require preliminary binning of the contigs and makes no assumption concerning the splicing signal when searching for multi-exon proteins.\n\nPlease cite:\nLevy Karin E, Mirdita M, Soding J: MetaEuk – sensitive, high-throughput gene discovery and annotation for large-scale eukaryotic metagenomics. biorxiv, 851964 (2019).";
+const char* tool_introduction = "MetaEuk is homology-based strategy to efficiently query many contigs assembled from metagenomic samples against a comprehensive protein/profile target database to describe their protein repertoire. It does not require preliminary binning of the contigs and makes no assumption concerning the splicing signal when searching for multi-exon proteins.\n\nPlease cite:\nLevy Karin E, Mirdita M, Soding J: MetaEuk — sensitive, high-throughput gene discovery, and annotation for large-scale eukaryotic metagenomics. Microbiome (2020) 8:48.";
 const char* main_author = "Eli Levy Karin, eli.levy.karin@gmail.com";
 const char* show_extended_help = "1";
 const char* show_bash_info = NULL;
