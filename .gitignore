@@ -29,6 +29,12 @@
 *.swp
 src/workflow/time_test
 
+# build stuff:
 build/
 .idea/
 cmake-build-*/
+build-asan/
+
+# visual studio code stuff:
+.vscode/
+metaeuk_workspace.code-workspace
