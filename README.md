@@ -33,7 +33,7 @@ A **gene call** is an optimal set of exons predicted based on similarity to a sp
       easy-predict      	Predict proteins from contigs (fasta/db) based on similarities to targets (fasta/db) and return a fasta 
       predictexons      	Call optimal exon sets based on protein similarity
       reduceredundancy  	Cluster metaeuk calls which share an exon and select representative
-      unitesetstofasta  	Create a fasta output from optimal exon sets (and a TSV map between headers and internal identifiers)
+      unitesetstofasta  	Create fasta output from optimal exon sets (and a TSV map between headers and internal identifiers)
       groupstoacc     	Create a TSV output from representative to calls
       taxtocontig     	Assign taxonomic labels to MetaEuk predictions and contigs by majority voting
 
@@ -51,7 +51,9 @@ A **gene call** is an optimal set of exons predicted based on similarity to a sp
 
 This workflow combines the following MetaEuk modules into a single step: predictexons, reduceredundancy and unitesetstofasta (each of which is detailed below). Its input are contigs (either as a Fasta file or a previously created database) and targets (either as a Fasta file of protein sequences or a previously created database of proteins or protein profiles). It will run the modules and output the predictions in Fasta foramt.
     
-    metaeuk easy-predict contigsFasta/contigsDB proteinsFasta/referenceDB predsResultProteins.fas tempFolder
+    metaeuk easy-predict contigsFasta/contigsDB proteinsFasta/referenceDB predsResults tempFolder
+    
+It will result in **predsResults.fas** (protein sequences), **predsResults.codon.fas** and **predsResults.headersMap.tsv**
 
 
 ### Calling optimal exons sets:
@@ -75,10 +77,11 @@ Upon completion, it will output: predsResultDB and predGroupsDB. predsResultDB c
 
 ### Converting to Fasta:
 
-The callsResultDB/predsResultDB produced by the modules above, can be used to extract the sequences of the predicted protein-coding genes. The parameter ```--protein``` controls whether to transalte the coding genes (1) or report in nucleotides (0, default)
+The callsResultDB/predsResultDB produced by the modules above, can be used to extract the sequences of the predicted protein-coding genes.
     
-    metaeuk unitesetstofasta contigsDB referenceDB predsResultDB predsResultProteins.fas --protein 1
+    metaeuk unitesetstofasta contigsDB referenceDB predsResultDB predsResults
     
+It will result in **predsResults.fas** (protein sequences), **predsResults.codon.fas** and **predsResults.headersMap.tsv**
 
 
 #### The MetaEuk header:
@@ -119,11 +122,11 @@ predictions' taxonomic labels: *Ostreococcus tauri*, *Ostreococcus mediterraneus
 - contig label (`--majority 1`): *Bathycoccaceae* (family), the LCA of 3 out of 3 labels
 
 #### Input:
-- The output of a MetaEuk run: **contigsDB** (if you run MetaEuk with *easy-predict* you will find it at `<tmpDir>/latest/contigs`), **predictionsFasta** and **predictionsFasta.headersMap.tsv**, which are produced by the *unitesetstofasta* module (called by *easy-predict*).
+- The output of a MetaEuk run: **contigsDB** (if you run MetaEuk with *easy-predict* you will find it at `<tmpDir>/latest/contigs`), **predsResults.fas** and **predsResults.headersMap.tsv**, which are produced by the *unitesetstofasta* module (called by *easy-predict*).
 - A protein sequence database annotated with taxonomic information (**seqTaxDb**). See details [here](https://github.com/soedinglab/MMseqs2/wiki#creating-a-seqtaxdb). You could download such a resource with >88M entries [here](http://wwwuser.gwdg.de/~compbiol/metaeuk/2020_TAX_DB).
 
 #### Command:
-    metaeuk taxtocontig <i:contigsDB> <i:predictionsFasta> <i:predictionsFasta.headersMap.tsv> <i:taxAnnotTargetDb> <o:taxResult> <tmpDir> --majority 0.5 --tax-lineage --lca-mode 2
+    metaeuk taxtocontig <i:contigsDB> <i:predsResults.fas> <i:predsResults.headersMap.tsv> <i:taxAnnotTargetDb> <o:taxResult> <tmpDir> --majority 0.5 --tax-lineage --lca-mode 2
     
 #### Output:
 The run ends with two files: **taxResult_per_pred.tsv** and **taxResult_per_contig.tsv**, each of which is in [taxonomy result TSV format](https://github.com/soedinglab/MMseqs2/wiki#taxonomy-output-and-tsv)
