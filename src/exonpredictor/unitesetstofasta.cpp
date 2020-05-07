@@ -132,10 +132,20 @@ int unitesetstofasta(int argn, const char **argv, const Command& command) {
     // db3 = predictions per contig
     DBReader<unsigned int> predsPerContig(par.db3.c_str(), par.db3Index.c_str(), par.threads, DBReader<unsigned int>::USE_INDEX|DBReader<unsigned int>::USE_DATA);
     predsPerContig.open(DBReader<unsigned int>::LINEAR_ACCCESS);
+    
+    std::string fastaAaFileName = par.db4 + ".fas";
+    std::string fastaAaFileNameIndex = par.db4Index;
 
-    // out fasta
-    DBWriter fastaWriter(par.db4.c_str(), par.db4Index.c_str(), par.threads, par.compressed, Parameters::DBTYPE_OMIT_FILE);
-    fastaWriter.open();
+    // out AA fasta
+    DBWriter fastaAaWriter(fastaAaFileName.c_str(), fastaAaFileNameIndex.c_str(), par.threads, par.compressed, Parameters::DBTYPE_OMIT_FILE);
+    fastaAaWriter.open();
+
+    std::string fastaCodonFileName = par.db4 + ".codon.fas";
+    std::string fastaCodonFileNameIndex = par.db4 + ".codon.index";
+
+    // out codon fasta
+    DBWriter fastaCodonWriter(fastaCodonFileName.c_str(), fastaCodonFileNameIndex.c_str(), par.threads, par.compressed, Parameters::DBTYPE_OMIT_FILE);
+    fastaCodonWriter.open();
 
     // out mapping - MetaEuk header to contig, target, etc. Mimicking the headers produced by extractorfs so this can later be plugged in easily
     std::string mapFileName = par.db4 + ".headersMap.tsv";
@@ -143,7 +153,7 @@ int unitesetstofasta(int argn, const char **argv, const Command& command) {
     DBWriter mapWriter(mapFileName.c_str(), mapFileNameIndex.c_str(), par.threads, par.compressed, Parameters::DBTYPE_OMIT_FILE);
     mapWriter.open();
 
-    // in case a translated result is required
+    // for the translated result
     TranslateNucl translateNucl(static_cast<TranslateNucl::GenCode>(par.translationTable));
 
     Debug::Progress progress(predsPerContig.getSize());
@@ -226,50 +236,46 @@ int unitesetstofasta(int argn, const char **argv, const Command& command) {
                     if (plusPred.optimalExonSet.size() > 0) {
                         preparePredDataAndHeader(plusPred, targetHeaderAcc, contigHeaderAcc, contigData, joinedHeaderStream, joinedExonsStream);
                         std::string result = ">" + joinedHeaderStream.str();
-                        fastaWriter.writeData(result.c_str(), result.size(), 0, thread_idx, false, false);
+                        fastaAaWriter.writeData(result.c_str(), result.size(), 0, thread_idx, false, false);
+                        fastaCodonWriter.writeData(result.c_str(), result.size(), 0, thread_idx, false, false);
                         
                         preparePredHeaderToInfo(contigKey, plusPred, joinedHeaderStream.str(), predHeaderToInfoStream);
                         std::string headerInfo = predHeaderToInfoStream.str();
                         mapWriter.writeData(headerInfo.c_str(), headerInfo.size(), 0, thread_idx, false, false);
 
                         result = joinedExonsStream.str();
-                        if (par.shouldTranslate == true) {
-                            size_t nuclLen = result.size() - 1; // \n at the end of result...
-                            if (nuclLen % 3 != 0) {
-                                Debug(Debug::ERROR) << "coding sequence does not divide by 3.\n";
-                                EXIT(EXIT_FAILURE);
-                            }
-                            size_t aaLen = nuclLen / 3;
-                            translateNucl.translate(translatedSeqBuff, result.c_str(), nuclLen);
-                            translatedSeqBuff[aaLen] = '\n';
-                            fastaWriter.writeData(translatedSeqBuff, (aaLen + 1), 0, thread_idx, false, false);
-                        } else {
-                            fastaWriter.writeData(result.c_str(), result.size(), 0, thread_idx, false, false);
+                        size_t nuclLen = result.size() - 1; // \n at the end of result...
+                        if (nuclLen % 3 != 0) {
+                            Debug(Debug::ERROR) << "coding sequence does not divide by 3.\n";
+                            EXIT(EXIT_FAILURE);
                         }
+                        size_t aaLen = nuclLen / 3;
+                        translateNucl.translate(translatedSeqBuff, result.c_str(), nuclLen);
+                        translatedSeqBuff[aaLen] = '\n';
+                        fastaAaWriter.writeData(translatedSeqBuff, (aaLen + 1), 0, thread_idx, false, false);
+                        fastaCodonWriter.writeData(result.c_str(), result.size(), 0, thread_idx, false, false);
                     }
                     if (minusPred.optimalExonSet.size() > 0) {
                         preparePredDataAndHeader(minusPred, targetHeaderAcc, contigHeaderAcc, contigData, joinedHeaderStream, joinedExonsStream);
                         std::string result = ">" + joinedHeaderStream.str();
-                        fastaWriter.writeData(result.c_str(), result.size(), 0, thread_idx, false, false);
+                        fastaAaWriter.writeData(result.c_str(), result.size(), 0, thread_idx, false, false);
+                        fastaCodonWriter.writeData(result.c_str(), result.size(), 0, thread_idx, false, false);
 
                         preparePredHeaderToInfo(contigKey, minusPred, joinedHeaderStream.str(), predHeaderToInfoStream);
                         std::string headerInfo = predHeaderToInfoStream.str();
                         mapWriter.writeData(headerInfo.c_str(), headerInfo.size(), 0, thread_idx, false, false);
 
                         result = joinedExonsStream.str();
-                        if (par.shouldTranslate == true) {
-                            size_t nuclLen = result.size() - 1; // \n at the end of result...
-                            if (nuclLen % 3 != 0) {
-                                Debug(Debug::ERROR) << "coding sequence does not divide by 3.\n";
-                                EXIT(EXIT_FAILURE);
-                            }
-                            size_t aaLen = nuclLen / 3;
-                            translateNucl.translate(translatedSeqBuff, result.c_str(), nuclLen);
-                            translatedSeqBuff[aaLen] = '\n';
-                            fastaWriter.writeData(translatedSeqBuff, (aaLen + 1), 0, thread_idx, false, false);
-                        } else {
-                            fastaWriter.writeData(result.c_str(), result.size(), 0, thread_idx, false, false);
+                        size_t nuclLen = result.size() - 1; // \n at the end of result...
+                        if (nuclLen % 3 != 0) {
+                            Debug(Debug::ERROR) << "coding sequence does not divide by 3.\n";
+                            EXIT(EXIT_FAILURE);
                         }
+                        size_t aaLen = nuclLen / 3;
+                        translateNucl.translate(translatedSeqBuff, result.c_str(), nuclLen);
+                        translatedSeqBuff[aaLen] = '\n';
+                        fastaAaWriter.writeData(translatedSeqBuff, (aaLen + 1), 0, thread_idx, false, false);
+                        fastaCodonWriter.writeData(result.c_str(), result.size(), 0, thread_idx, false, false);
                     }
                     
                     // move to another target:
@@ -304,58 +310,56 @@ int unitesetstofasta(int argn, const char **argv, const Command& command) {
             if (plusPred.optimalExonSet.size() > 0) {
                 preparePredDataAndHeader(plusPred, targetHeaderAcc, contigHeaderAcc, contigData, joinedHeaderStream, joinedExonsStream);
                 std::string result = ">" + joinedHeaderStream.str();
-                fastaWriter.writeData(result.c_str(), result.size(), 0, thread_idx, false, false);
+                fastaAaWriter.writeData(result.c_str(), result.size(), 0, thread_idx, false, false);
+                fastaCodonWriter.writeData(result.c_str(), result.size(), 0, thread_idx, false, false);
                 
                 preparePredHeaderToInfo(contigKey, plusPred, joinedHeaderStream.str(), predHeaderToInfoStream);
                 std::string headerInfo = predHeaderToInfoStream.str();
                 mapWriter.writeData(headerInfo.c_str(), headerInfo.size(), 0, thread_idx, false, false);
                 
                 result = joinedExonsStream.str();
-                if (par.shouldTranslate == true) {
-                    size_t nuclLen = result.size() - 1; // \n at the end of result...
-                    if (nuclLen % 3 != 0) {
-                        Debug(Debug::ERROR) << "coding sequence does not divide by 3.\n";
-                        EXIT(EXIT_FAILURE);
-                    }
-                    size_t aaLen = nuclLen / 3;
-                    translateNucl.translate(translatedSeqBuff, result.c_str(), nuclLen);
-                    translatedSeqBuff[aaLen] = '\n';
-                    fastaWriter.writeData(translatedSeqBuff, (aaLen + 1), 0, thread_idx, false, false);
-                } else {
-                    fastaWriter.writeData(result.c_str(), result.size(), 0, thread_idx, false, false);
+                size_t nuclLen = result.size() - 1; // \n at the end of result...
+                if (nuclLen % 3 != 0) {
+                    Debug(Debug::ERROR) << "coding sequence does not divide by 3.\n";
+                    EXIT(EXIT_FAILURE);
                 }
+                size_t aaLen = nuclLen / 3;
+                translateNucl.translate(translatedSeqBuff, result.c_str(), nuclLen);
+                translatedSeqBuff[aaLen] = '\n';
+                fastaAaWriter.writeData(translatedSeqBuff, (aaLen + 1), 0, thread_idx, false, false);
+                fastaCodonWriter.writeData(result.c_str(), result.size(), 0, thread_idx, false, false);
             }
             if (minusPred.optimalExonSet.size() > 0) {
                 preparePredDataAndHeader(minusPred, targetHeaderAcc, contigHeaderAcc, contigData, joinedHeaderStream, joinedExonsStream);
                 std::string result = ">" + joinedHeaderStream.str();
-                fastaWriter.writeData(result.c_str(), result.size(), 0, thread_idx, false, false);
+                fastaAaWriter.writeData(result.c_str(), result.size(), 0, thread_idx, false, false);
+                fastaCodonWriter.writeData(result.c_str(), result.size(), 0, thread_idx, false, false);
                 
                 preparePredHeaderToInfo(contigKey, minusPred, joinedHeaderStream.str(), predHeaderToInfoStream);
                 std::string headerInfo = predHeaderToInfoStream.str();
                 mapWriter.writeData(headerInfo.c_str(), headerInfo.size(), 0, thread_idx, false, false);
                 
                 result = joinedExonsStream.str();
-                if (par.shouldTranslate == true) {
-                    size_t nuclLen = result.size() - 1; // \n at the end of result...
-                    if (nuclLen % 3 != 0) {
-                        Debug(Debug::ERROR) << "coding sequence does not divide by 3.\n";
-                        EXIT(EXIT_FAILURE);
-                    }
-                    size_t aaLen = nuclLen / 3;
-                    translateNucl.translate(translatedSeqBuff, result.c_str(), nuclLen);
-                    translatedSeqBuff[aaLen] = '\n';
-                    fastaWriter.writeData(translatedSeqBuff, (aaLen + 1), 0, thread_idx, false, false);
-                } else {
-                    fastaWriter.writeData(result.c_str(), result.size(), 0, thread_idx, false, false);
+                size_t nuclLen = result.size() - 1; // \n at the end of result...
+                if (nuclLen % 3 != 0) {
+                    Debug(Debug::ERROR) << "coding sequence does not divide by 3.\n";
+                    EXIT(EXIT_FAILURE);
                 }
+                size_t aaLen = nuclLen / 3;
+                translateNucl.translate(translatedSeqBuff, result.c_str(), nuclLen);
+                translatedSeqBuff[aaLen] = '\n';
+                fastaAaWriter.writeData(translatedSeqBuff, (aaLen + 1), 0, thread_idx, false, false);
+                fastaCodonWriter.writeData(result.c_str(), result.size(), 0, thread_idx, false, false);
             }
             // move to another contig:
             plusPred.clearPred();
             minusPred.clearPred();
         }
     }
-    fastaWriter.close(true);
-    FileUtil::remove(par.db4Index.c_str());
+    fastaAaWriter.close(true);
+    fastaCodonWriter.close(true);
+    FileUtil::remove(fastaCodonFileNameIndex.c_str());
+    FileUtil::remove(fastaAaFileNameIndex.c_str());
 
     mapWriter.close(true);
     FileUtil::remove(mapFileNameIndex.c_str());
