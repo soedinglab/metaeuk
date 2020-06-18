@@ -135,8 +135,6 @@ The run ends with two files: **taxResult_per_pred.tsv** and **taxResult_per_cont
 Compiling MetaEuk from source has the advantage that it will be optimized to the specific system, which should improve its performance. To compile MetaEuk `git`, `g++` (4.6 or higher) and `cmake` (3.0 or higher) are required. Afterwards, the MetaEuk binary will be located in the `build/bin` directory.
 
       git clone git@github.com:soedinglab/metaeuk.git .
-      git submodule init
-      git submodule update
       mkdir build
       cd build
       cmake -DCMAKE_BUILD_TYPE=Release -DHAVE_MPI=1 -DCMAKE_INSTALL_PREFIX=. ..
