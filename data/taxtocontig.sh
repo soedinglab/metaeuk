@@ -56,11 +56,11 @@ if notExists "${TMP_PATH}/tax_per_pred.dbtype"; then
         || fail "taxonomy died"
 fi
 
-# run aggregatetax on the tax_per_pred and the mapping
-if notExists "${TMP_PATH}/tax_per_contig.dbtype"; then
+# run aggregatetaxweights on the tax_per_pred and the mapping
+if [ ! -e "${RESULTS}.dbtype" ]; then
     # shellcheck disable=SC2086
-    "$MMSEQS" aggregatetax "${TAX_TARGET_DB}" "${TMP_PATH}/preds_map_num_swapped" "${TMP_PATH}/tax_per_pred" "${TMP_PATH}/tax_per_contig" ${AGGREGATETAX_PAR} \
-        || fail "aggregatetax died"
+    "$MMSEQS" aggregatetaxweights "${TAX_TARGET_DB}" "${TMP_PATH}/preds_map_num_swapped" "${TMP_PATH}/tax_per_pred" "${TMP_PATH}/tax_per_pred_aln" "${TMP_PATH}/tax_per_contig" ${AGGREGATETAX_PAR} \
+        || fail "aggregatetaxweights died"
 fi
 
 # create tsv for predictions
@@ -84,6 +84,7 @@ if [ -n "$REMOVE_TMP" ]; then
     rm -f "${TMP_PATH}/preds_map_num.tsv"
     "$MMSEQS" rmdb "${TMP_PATH}/preds_map_num"
     "$MMSEQS" rmdb "${TMP_PATH}/preds_map_num_swapped"
+    "$MMSEQS" rmdb "${TMP_PATH}/tax_per_pred_aln"
     rm -r "${TMP_PATH}/tmp_taxonomy"
     rm -f "${TMP_PATH}/taxtocontig.sh"
 fi
