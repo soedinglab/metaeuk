@@ -2,3 +2,6 @@
 	path = lib/mmseqs/util/regression
 	url = https://github.com/soedinglab/MMseqs2-Regression.git
 	update = none
+[submodule "tests"]
+	path = tests
+	url = https://github.com/soedinglab/metaeuk-regression.git
