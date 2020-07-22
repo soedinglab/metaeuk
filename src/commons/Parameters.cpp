@@ -84,7 +84,7 @@ Parameters::Parameters():
         PARAM_V(PARAM_V_ID, "-v", "Verbosity", "Verbosity level: 0: quiet, 1: +errors, 2: +warnings, 3: +info", typeid(int), (void *) &verbosity, "^[0-3]{1}$", MMseqsParameter::COMMAND_COMMON),
         // convertalignments
         PARAM_FORMAT_MODE(PARAM_FORMAT_MODE_ID, "--format-mode", "Alignment format", "Output format: 0: BLAST-TAB, 1: SAM, 2: BLAST-TAB + query/db length, 3: Pretty HTML", typeid(int), (void *) &formatAlignmentMode, "^[0-3]{1}$"),
-        PARAM_FORMAT_OUTPUT(PARAM_FORMAT_OUTPUT_ID, "--format-output", "Format alignment output", "Choose comma separated list of output columns from: query,target,evalue,gapopen,pident,nident,qstart,qend,qlen\ntstart,tend,tlen,alnlen,raw,bits,cigar,qseq,tseq,qheader,theader,qaln,taln,qframe,tframe,mismatch,qcov,tcov\nqset,qsetid,tset,tsetid,taxid,taxname,taxlineage", typeid(std::string), (void *) &outfmt, ""),
+        PARAM_FORMAT_OUTPUT(PARAM_FORMAT_OUTPUT_ID, "--format-output", "Format alignment output", "Choose comma separated list of output columns from: query,target,evalue,gapopen,pident,nident,qstart,qend,qlen\ntstart,tend,tlen,alnlen,raw,bits,cigar,qseq,tseq,qheader,theader,qaln,taln,qframe,tframe,mismatch,qcov,tcov\nqset,qsetid,tset,tsetid,taxid,taxname,taxlineage,qorfstart,qorfend,torfstart,torfend", typeid(std::string), (void *) &outfmt, ""),
         PARAM_DB_OUTPUT(PARAM_DB_OUTPUT_ID, "--db-output", "Database output", "Return a result DB instead of a text file", typeid(bool), (void *) &dbOut, "", MMseqsParameter::COMMAND_EXPERT),
         // --include-only-extendablediagonal
         PARAM_RESCORE_MODE(PARAM_RESCORE_MODE_ID, "--rescore-mode", "Rescore mode", "Rescore diagonals with:\n0: Hamming distance\n1: local alignment (score only)\n2: local alignment\n3: global alignment\n4: longest alignment fullfilling window quality criterion", typeid(int), (void *) &rescoreMode, "^[0-4]{1}$"),
@@ -239,7 +239,7 @@ Parameters::Parameters():
         PARAM_PICK_ID_FROM(PARAM_PICK_ID_FROM_ID, "--pick-id-from", "Extract mode", "Query 1, Target 2", typeid(int), (void *) &pickIdFrom, "^[1-2]{1}$"),
         PARAM_LCA_RANKS(PARAM_LCA_RANKS_ID, "--lca-ranks", "LCA ranks", "Add column with specified ranks (',' separated)", typeid(std::string), (void *) &lcaRanks, ""),
         PARAM_BLACKLIST(PARAM_BLACKLIST_ID, "--blacklist", "Taxon blacklist", "Comma separated list of ignored taxa in LCA computation", typeid(std::string), (void *) &blacklist, "([0-9]+,)?[0-9]+"),
-        PARAM_TAXON_ADD_LINEAGE(PARAM_TAXON_ADD_LINEAGE_ID, "--tax-lineage", "Show taxonomic lineage", "Add column with full taxonomy lineage", typeid(bool), (void *) &showTaxLineage, ""),
+        PARAM_TAXON_ADD_LINEAGE(PARAM_TAXON_ADD_LINEAGE_ID, "--tax-lineage", "Column with taxonomic lineage", "0: don't show, 1: add all lineage names, 2: add all lineage taxids", typeid(int), (void *) &showTaxLineage, "^[0-2]{1}$"),
         // aggregatetax
         PARAM_MAJORITY(PARAM_MAJORITY_ID, "--majority", "Majority threshold", "minimal fraction of agreement among taxonomically assigned sequences of a set", typeid(float), (void *) &majorityThr, "^0(\\.[0-9]+)?|^1(\\.0+)?$"),
         PARAM_VOTE_MODE(PARAM_VOTE_MODE_ID, "--vote-mode", "Vote mode", "Mode of assigning weights to compute majority. 0: uniform, 1: minus log e-value", typeid(int), (void *) &voteMode, "^[0-1]{1}$"),
@@ -2191,7 +2191,7 @@ void Parameters::setDefaults() {
     tarExclude = "^$";
 
     lcaRanks = "";
-    showTaxLineage = false;
+    showTaxLineage = 0;
     // bin for all unclassified sequences
     // https://www.ncbi.nlm.nih.gov/Taxonomy/Browser/wwwtax.cgi?id=12908
     // other sequences (plasmids, etc)
@@ -2383,6 +2383,10 @@ std::vector<int> Parameters::getOutputFormat(int formatMode, const std::string &
         else if (outformatSplit[i].compare("taxid") == 0){ needTaxonomyMapping = true; code = Parameters::OUTFMT_TAXID;}
         else if (outformatSplit[i].compare("taxname") == 0){ needTaxonomyMapping = true; needTaxonomy = true; code = Parameters::OUTFMT_TAXNAME;}
         else if (outformatSplit[i].compare("taxlineage") == 0){ needTaxonomyMapping = true; needTaxonomy = true; code = Parameters::OUTFMT_TAXLIN;}
+        else if (outformatSplit[i].compare("qorfstart") == 0){ code = Parameters::OUTFMT_QORFSTART;}
+        else if (outformatSplit[i].compare("qorfend") == 0){ code = Parameters::OUTFMT_QORFEND;}
+        else if (outformatSplit[i].compare("torfstart") == 0){ code = Parameters::OUTFMT_TORFSTART;}
+        else if (outformatSplit[i].compare("torfend") == 0){ code = Parameters::OUTFMT_TORFEND;}
         else if (outformatSplit[i].compare("empty") == 0){ code = Parameters::OUTFMT_EMPTY;}
         else {
             Debug(Debug::ERROR) << "Format code " << outformatSplit[i] << " does not exist.";
