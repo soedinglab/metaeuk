@@ -1,6 +1,6 @@
 /*
  * createdb
- * written by Martin Steinegger <martin.steinegger@mpibpc.mpg.de>.
+ * written by Martin Steinegger <martin.steinegger@snu.ac.kr>.
  * modified by Maria Hauser <mhauser@genzentrum.lmu.de> (splitting into sequences/headers databases)
  * modified by Milot Mirdita <milot@mirdita.de>
  */
@@ -128,6 +128,20 @@ int createdb(int argc, const char **argv, const Command& command) {
             kseq = new KSeqBuffer(reader->getData(fileIdx, 0), reader->getEntryLen(fileIdx) - 1);
         } else {
             kseq = KSeqFactory(filenames[fileIdx].c_str());
+        }
+        if (par.createdbMode == Parameters::SEQUENCE_SPLIT_MODE_SOFT && kseq->type != KSeqWrapper::KSEQ_FILE) {
+            Debug(Debug::WARNING) << "Only uncompressed fasta files can be used with --createdb-mode 0.\n";
+            Debug(Debug::WARNING) << "We recompute with --createdb-mode 1.\n";
+            par.createdbMode = Parameters::SEQUENCE_SPLIT_MODE_HARD;
+            progress.reset(SIZE_MAX);
+            hdrWriter.close();
+            seqWriter.close();
+            delete kseq;
+            fclose(source);
+            for (size_t i = 0; i < shuffleSplits; ++i) {
+                sourceLookup[i].clear();
+            }
+            goto redoComputation;
         }
         while (kseq->ReadEntry()) {
             progress.updateProgress();

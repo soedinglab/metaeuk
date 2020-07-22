@@ -617,10 +617,22 @@ int convertalignments(int argc, const char **argv, const Command &command) {
                                         result.append((taxonNode != NULL) ? taxonNode->name : "unclassified");
                                         break;
                                     case Parameters::OUTFMT_TAXLIN:
-                                        result.append((taxonNode != NULL) ? t->taxLineage(taxonNode) : "unclassified");
+                                        result.append((taxonNode != NULL) ? t->taxLineage(taxonNode, true) : "unclassified");
                                         break;
                                     case Parameters::OUTFMT_EMPTY:
                                         result.push_back('-');
+                                        break;
+                                    case Parameters::OUTFMT_QORFSTART:
+                                        result.append(SSTR(res.queryOrfStartPos));
+                                        break;
+                                    case Parameters::OUTFMT_QORFEND:
+                                        result.append(SSTR(res.queryOrfEndPos));
+                                        break;
+                                    case Parameters::OUTFMT_TORFSTART:
+                                        result.append(SSTR(res.dbOrfStartPos));
+                                        break;
+                                    case Parameters::OUTFMT_TORFEND:
+                                        result.append(SSTR(res.dbOrfEndPos));
                                         break;
                                 }
                                 if (i < outcodes.size() - 1) {

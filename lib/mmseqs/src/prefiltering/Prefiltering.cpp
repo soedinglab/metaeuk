@@ -12,6 +12,7 @@
 #include "ByteParser.h"
 #include "Parameters.h"
 #include "MemoryMapped.h"
+#include "FastSort.h"
 #include <sys/mman.h>
 
 #ifdef OPENMP
@@ -178,12 +179,7 @@ Prefiltering::Prefiltering(const std::string &queryDB,
                        (Parameters::isEqualDbtype(targetSeqType, Parameters::DBTYPE_NUCLEOTIDES) && Parameters::isEqualDbtype(querySeqType,Parameters::DBTYPE_NUCLEOTIDES));
 
     // memoryLimit in bytes
-    size_t memoryLimit;
-    if (par.splitMemoryLimit > 0) {
-        memoryLimit = par.splitMemoryLimit;
-    } else {
-        memoryLimit = static_cast<size_t>(Util::getTotalSystemMemory() * 0.9);
-    }
+    size_t memoryLimit=Util::computeMemory(par.splitMemoryLimit);
 
     if (templateDBIsIndex == false && sameQTDB == true) {
         qdbr = tdbr;
@@ -451,7 +447,7 @@ void Prefiltering::mergeTargetSplits(const std::string &outDB, const std::string
                 QueryMatcher::parsePrefilterHits(&dataFile[file][pos], hits);
             }
             if (hits.size() > 1) {
-                std::sort(hits.begin(), hits.end(), hit_t::compareHitsByScoreAndId);
+                SORT_SERIAL(hits.begin(), hits.end(), hit_t::compareHitsByScoreAndId);
             }
             for (size_t i = 0; i < hits.size(); ++i) {
                 int len = QueryMatcher::prefilterHitToBuffer(buffer, hits[i]);
