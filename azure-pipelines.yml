@@ -60,10 +60,10 @@ jobs:
           targetPath: $(Build.SourcesDirectory)/build/src/metaeuk
           artifactName: metaeuk-linux-$(SIMD)
 
-  - job: build_macos_1014
-    displayName: macOS 1014
+  - job: build_macos_1015
+    displayName: macOS 1015
     pool:
-      vmImage: 'macOS-10.14'
+      vmImage: 'macOS-10.15'
     steps:
       - checkout: self
         submodules: true
@@ -147,7 +147,7 @@ jobs:
     pool:
       vmImage: 'Ubuntu-16.04'
     dependsOn:
-      - build_macos_1014
+      - build_macos_1015
       - build_ubuntu_1604
       # - build_windows_2019
     steps:
