@@ -67,7 +67,7 @@ Since this step involves a search, it is the most time-demanding of all analyses
 
 ### Reducing redundancy:
 
-If there are homologies in referenceDB (e.g., T1 is highly similar to T2), the same optimal exons set from a **C** & **S** combination will be called more than once. This module will group together **TCS**s that share and exon and will choose their representative **prediction**. By default, it will greedily obtain a subset of the **predictions**, such that there is no overlap of **predictions** on the same contig and strand (to allow same-strand overlaps, run with ```--overlap 1```).
+If there are homologies in referenceDB (e.g., T1 is highly similar to T2), the same optimal exons set from a **C** & **S** combination will be called more than once. This module will group together **TCS**s that share an exon and will choose their representative **prediction**. By default, it will greedily obtain a subset of the **predictions**, such that there is no overlap of **predictions** on the same contig and strand (to allow same-strand overlaps, run with ```--overlap 1```).
     
     metaeuk reduceredundancy callsResultDB predsResultDB predGroupsDB
     
@@ -93,7 +93,7 @@ The header is composed of several sections, separated by pipes ('|'):
 *coord* refers to the coordination on the contig. It is advisable to keep T_acc and C_acc short and without pipes. The exon_coords are of the structure:
 *low[taken_low]:high[taken_high]:nucleotide_length[taken_nucleotide_length]*
 
-Since MetaEuk allows for a very overlap on T of two putative exons (see P2 and P3 in the illustartion below), when joining the sequences of the exons, one of them is shortened.
+Since MetaEuk allows for a very short overlap on T of two putative exons (see P2 and P3 in the illustartion below), when joining the sequences of the exons, one of them is shortened.
 
 <p align="center"><img src="https://github.com/soedinglab/metaeuk/blob/master/imgs/small_overlap_allowed.png" height="150"/></p>
 
