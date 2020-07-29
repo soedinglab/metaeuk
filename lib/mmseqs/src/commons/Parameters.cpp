@@ -527,7 +527,6 @@ Parameters::Parameters():
 
     // result2msa
     result2msa.push_back(&PARAM_SUB_MAT);
-    result2msa.push_back(&PARAM_E_PROFILE);
     result2msa.push_back(&PARAM_ALLOW_DELETION);
     result2msa.push_back(&PARAM_ADD_INTERNAL_ID);
     result2msa.push_back(&PARAM_NO_COMP_BIAS_CORR);
@@ -555,6 +554,21 @@ Parameters::Parameters():
     result2dnamsa.push_back(&PARAM_COMPRESSED);
     //result2msa.push_back(&PARAM_FIRST_SEQ_REP_SEQ);
     result2dnamsa.push_back(&PARAM_V);
+
+    // filterresult
+    filterresult.push_back(&PARAM_SUB_MAT);
+    filterresult.push_back(&PARAM_GAP_OPEN);
+    filterresult.push_back(&PARAM_GAP_EXTEND);
+    filterresult.push_back(&PARAM_NO_COMP_BIAS_CORR);
+    filterresult.push_back(&PARAM_ALLOW_DELETION);
+    filterresult.push_back(&PARAM_FILTER_MAX_SEQ_ID);
+    filterresult.push_back(&PARAM_FILTER_QID);
+    filterresult.push_back(&PARAM_FILTER_QSC);
+    filterresult.push_back(&PARAM_FILTER_COV);
+    filterresult.push_back(&PARAM_FILTER_NDIFF);
+    filterresult.push_back(&PARAM_THREADS);
+    filterresult.push_back(&PARAM_COMPRESSED);
+    filterresult.push_back(&PARAM_V);
 
     // convertmsa
     convertmsa.push_back(&PARAM_IDENTIFIER_FIELD);
