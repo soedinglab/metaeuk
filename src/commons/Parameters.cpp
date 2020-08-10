@@ -93,7 +93,6 @@ Parameters::Parameters():
         PARAM_SORT_RESULTS(PARAM_SORT_RESULTS_ID, "--sort-results", "Sort results", "Sort results: 0: no sorting, 1: sort by E-value (Alignment) or seq.id. (Hamming)", typeid(int), (void *) &sortResults, "^[0-1]{1}$", MMseqsParameter::COMMAND_EXPERT),
         // result2msa
         PARAM_ALLOW_DELETION(PARAM_ALLOW_DELETION_ID, "--allow-deletion", "Allow deletions", "Allow deletions in a MSA", typeid(bool), (void *) &allowDeletion, ""),
-        PARAM_ADD_INTERNAL_ID(PARAM_ADD_INTERNAL_ID_ID, "--add-iternal-id", "Add internal ID", "Add internal id as comment to MSA", typeid(bool), (void *) &addInternalId, "", MMseqsParameter::COMMAND_EXPERT),
         PARAM_COMPRESS_MSA(PARAM_COMPRESS_MSA_ID, "--compress", "Compress MSA", "Create MSA in CA3M format", typeid(bool), (void *) &compressMSA, ""),
         PARAM_SUMMARIZE_HEADER(PARAM_SUMMARIZE_HEADER_ID, "--summarize", "Summarize headers", "Summarize cluster headers into a single header description", typeid(bool), (void *) &summarizeHeader, ""),
         PARAM_SUMMARY_PREFIX(PARAM_SUMMARY_PREFIX_ID, "--summary-prefix", "Summary prefix", "Set the cluster summary prefix", typeid(std::string), (void *) &summaryPrefix, "", MMseqsParameter::COMMAND_EXPERT),
@@ -106,7 +105,7 @@ Parameters::Parameters():
         PARAM_MATCH_RATIO(PARAM_MATCH_RATIO_ID, "--match-ratio", "Match ratio", "Columns that have a residue in this ratio of all sequences are kept", typeid(float), (void *) &matchRatio, "^0(\\.[0-9]+)?|1(\\.0+)?$", MMseqsParameter::COMMAND_PROFILE),
         // result2profile
         PARAM_MASK_PROFILE(PARAM_MASK_PROFILE_ID, "--mask-profile", "Mask profile", "Mask query sequence of profile using tantan [0,1]", typeid(int), (void *) &maskProfile, "^[0-1]{1}$", MMseqsParameter::COMMAND_PROFILE | MMseqsParameter::COMMAND_EXPERT),
-        PARAM_E_PROFILE(PARAM_E_PROFILE_ID, "--e-profile", "Profile e-value threshold", "Include sequences matches with < e-value thr. into the profile (>=0.0)", typeid(float), (void *) &evalProfile, "^([-+]?[0-9]*\\.?[0-9]+([eE][-+]?[0-9]+)?)|([0-9]*(\\.[0-9]+)?)$", MMseqsParameter::COMMAND_PROFILE),
+        PARAM_E_PROFILE(PARAM_E_PROFILE_ID, "--e-profile", "Profile E-value threshold", "Include sequences matches with < E-value thr. into the profile (>=0.0)", typeid(float), (void *) &evalProfile, "^([-+]?[0-9]*\\.?[0-9]+([eE][-+]?[0-9]+)?)|([0-9]*(\\.[0-9]+)?)$", MMseqsParameter::COMMAND_PROFILE),
         PARAM_FILTER_MSA(PARAM_FILTER_MSA_ID, "--filter-msa", "Filter MSA", "Filter msa: 0: do not filter, 1: filter", typeid(int), (void *) &filterMsa, "^[0-1]{1}$", MMseqsParameter::COMMAND_PROFILE | MMseqsParameter::COMMAND_EXPERT),
         PARAM_FILTER_MAX_SEQ_ID(PARAM_FILTER_MAX_SEQ_ID_ID, "--max-seq-id", "Maximum seq. id. threshold", "Reduce redundancy of output MSA using max. pairwise sequence identity [0.0,1.0]", typeid(float), (void *) &filterMaxSeqId, "^0(\\.[0-9]+)?|1(\\.0+)?$", MMseqsParameter::COMMAND_PROFILE | MMseqsParameter::COMMAND_EXPERT),
         PARAM_FILTER_QSC(PARAM_FILTER_QSC_ID, "--qsc", "Minimum score per column", "Reduce diversity of output MSAs using min. score per aligned residue with query sequences [-50.0,100.0]", typeid(float), (void *) &qsc, "^\\-*[0-9]*(\\.[0-9]+)?$", MMseqsParameter::COMMAND_PROFILE | MMseqsParameter::COMMAND_EXPERT),
@@ -243,14 +242,14 @@ Parameters::Parameters():
         PARAM_TAXON_ADD_LINEAGE(PARAM_TAXON_ADD_LINEAGE_ID, "--tax-lineage", "Column with taxonomic lineage", "0: don't show, 1: add all lineage names, 2: add all lineage taxids", typeid(int), (void *) &showTaxLineage, "^[0-2]{1}$"),
         // aggregatetax
         PARAM_MAJORITY(PARAM_MAJORITY_ID, "--majority", "Majority threshold", "minimal fraction of agreement among taxonomically assigned sequences of a set", typeid(float), (void *) &majorityThr, "^0(\\.[0-9]+)?|^1(\\.0+)?$"),
-        PARAM_VOTE_MODE(PARAM_VOTE_MODE_ID, "--vote-mode", "Vote mode", "Mode of assigning weights to compute majority. 0: uniform, 1: minus log e-value", typeid(int), (void *) &voteMode, "^[0-1]{1}$"),
+        PARAM_VOTE_MODE(PARAM_VOTE_MODE_ID, "--vote-mode", "Vote mode", "Mode of assigning weights to compute majority. 0: uniform, 1: minus log E-value", typeid(int), (void *) &voteMode, "^[0-1]{1}$"),
         // taxonomyreport
         PARAM_REPORT_MODE(PARAM_REPORT_MODE_ID, "--report-mode", "Report mode", "Taxonomy report mode 0: Kraken 1: Krona", typeid(int), (void *) &reportMode, "^[0-1]{1}$"),
         // createtaxdb
         PARAM_NCBI_TAX_DUMP(PARAM_NCBI_TAX_DUMP_ID, "--ncbi-tax-dump", "NCBI tax dump directory", "NCBI tax dump directory. The tax dump can be downloaded here \"ftp://ftp.ncbi.nih.gov/pub/taxonomy/taxdump.tar.gz\"", typeid(std::string), (void *) &ncbiTaxDump, ""),
         PARAM_TAX_MAPPING_FILE(PARAM_TAX_MAPPING_FILE_ID, "--tax-mapping-file", "Taxonomical mapping file", "File to map sequence identifer to taxonomical identifier", typeid(std::string), (void *) &taxMappingFile, ""),
         // expandaln
-        PARAM_EXPANSION_MODE(PARAM_EXPANSION_MODE_ID, "--expansion-mode", "Expansion mode", "Which hits (still meeting the alignment criteria) to use when expanding the alignment results: 0 Use all hits, 1 Use only the best hit of each target", typeid(int), (void *) &expansionMode, "^[0-2]{1}$"),
+        PARAM_EXPANSION_MODE(PARAM_EXPANSION_MODE_ID, "--expansion-mode", "Expansion mode", "Update score, E-value, and sequence identity by 0: input alignment 1: rescoring the infered backtrace", typeid(int), (void *) &expansionMode, "^[0-2]{1}$"),
         // taxonomy
         PARAM_LCA_MODE(PARAM_LCA_MODE_ID, "--lca-mode", "LCA mode", "LCA Mode 1: Single Search LCA , 2: 2bLCA, 3: approx. 2bLCA, 4: top hit", typeid(int), (void *) &taxonomySearchMode, "^[1-4]{1}$"),
         PARAM_TAX_OUTPUT_MODE(PARAM_TAX_OUTPUT_MODE_ID, "--tax-output-mode", "Taxonomy output mode", "0: output LCA, 1: output alignment 2: output both", typeid(int), (void *) &taxonomyOutpuMode, "^[0-2]{1}$"),
@@ -380,6 +379,7 @@ Parameters::Parameters():
     ungappedprefilter.push_back(&PARAM_COV_MODE);
     ungappedprefilter.push_back(&PARAM_NO_COMP_BIAS_CORR);
     ungappedprefilter.push_back(&PARAM_MIN_DIAG_SCORE);
+    ungappedprefilter.push_back(&PARAM_MAX_SEQS);
     ungappedprefilter.push_back(&PARAM_THREADS);
     ungappedprefilter.push_back(&PARAM_COMPRESSED);
     ungappedprefilter.push_back(&PARAM_V);
@@ -479,16 +479,6 @@ Parameters::Parameters():
     result2pp.push_back(&PARAM_E_PROFILE);
     result2pp.push_back(&PARAM_E);
     result2pp.push_back(&PARAM_NO_COMP_BIAS_CORR);
-    result2pp.push_back(&PARAM_WG);
-    result2pp.push_back(&PARAM_FILTER_MSA);
-    result2pp.push_back(&PARAM_FILTER_MAX_SEQ_ID);
-    result2pp.push_back(&PARAM_FILTER_QID);
-    result2pp.push_back(&PARAM_FILTER_QSC);
-    result2pp.push_back(&PARAM_FILTER_COV);
-    result2pp.push_back(&PARAM_FILTER_NDIFF);
-    result2pp.push_back(&PARAM_PCA);
-    result2pp.push_back(&PARAM_PCB);
-    result2pp.push_back(&PARAM_OMIT_CONSENSUS);
     result2pp.push_back(&PARAM_PRELOAD_MODE);
     result2pp.push_back(&PARAM_THREADS);
     result2pp.push_back(&PARAM_COMPRESSED);
@@ -528,7 +518,6 @@ Parameters::Parameters():
     // result2msa
     result2msa.push_back(&PARAM_SUB_MAT);
     result2msa.push_back(&PARAM_ALLOW_DELETION);
-    result2msa.push_back(&PARAM_ADD_INTERNAL_ID);
     result2msa.push_back(&PARAM_NO_COMP_BIAS_CORR);
     result2msa.push_back(&PARAM_FILTER_MSA);
     result2msa.push_back(&PARAM_FILTER_MAX_SEQ_ID);
@@ -1015,7 +1004,6 @@ Parameters::Parameters():
     view.push_back(&PARAM_V);
 
     // exapandaln
-    expandaln.push_back(&PARAM_COMPRESSED);
     expandaln.push_back(&PARAM_EXPANSION_MODE);
     expandaln.push_back(&PARAM_SUB_MAT);
     expandaln.push_back(&PARAM_GAP_OPEN);
@@ -1025,13 +1013,44 @@ Parameters::Parameters():
     expandaln.push_back(&PARAM_NO_COMP_BIAS_CORR);
     expandaln.push_back(&PARAM_E);
     expandaln.push_back(&PARAM_MIN_SEQ_ID);
-    expandaln.push_back(&PARAM_SEQ_ID_MODE);
+//    expandaln.push_back(&PARAM_MIN_SEQ_ID);
+//    expandaln.push_back(&PARAM_SEQ_ID_MODE);
     expandaln.push_back(&PARAM_C);
     expandaln.push_back(&PARAM_COV_MODE);
     expandaln.push_back(&PARAM_PCA);
     expandaln.push_back(&PARAM_PCB);
+    expandaln.push_back(&PARAM_COMPRESSED);
     expandaln.push_back(&PARAM_THREADS);
     expandaln.push_back(&PARAM_V);
+
+    // expand2profile
+    expand2profile.push_back(&PARAM_EXPANSION_MODE);
+    expand2profile.push_back(&PARAM_SUB_MAT);
+    expand2profile.push_back(&PARAM_GAP_OPEN);
+    expand2profile.push_back(&PARAM_GAP_EXTEND);
+    expand2profile.push_back(&PARAM_MAX_SEQ_LEN);
+    expand2profile.push_back(&PARAM_SCORE_BIAS);
+    expand2profile.push_back(&PARAM_NO_COMP_BIAS_CORR);
+    expand2profile.push_back(&PARAM_E_PROFILE);
+//    expand2profile.push_back(&PARAM_E);
+//    expand2profile.push_back(&PARAM_MIN_SEQ_ID);
+//    expand2profile.push_back(&PARAM_SEQ_ID_MODE);
+    expand2profile.push_back(&PARAM_C);
+    expand2profile.push_back(&PARAM_COV_MODE);
+    expand2profile.push_back(&PARAM_MASK_PROFILE);
+    expand2profile.push_back(&PARAM_WG);
+    expand2profile.push_back(&PARAM_ALLOW_DELETION);
+    expand2profile.push_back(&PARAM_FILTER_MSA);
+    expand2profile.push_back(&PARAM_FILTER_MAX_SEQ_ID);
+    expand2profile.push_back(&PARAM_FILTER_QID);
+    expand2profile.push_back(&PARAM_FILTER_QSC);
+    expand2profile.push_back(&PARAM_FILTER_COV);
+    expand2profile.push_back(&PARAM_FILTER_NDIFF);
+    expand2profile.push_back(&PARAM_PCA);
+    expand2profile.push_back(&PARAM_PCB);
+    expand2profile.push_back(&PARAM_COMPRESSED);
+    expand2profile.push_back(&PARAM_THREADS);
+    expand2profile.push_back(&PARAM_V);
 
     sortresult.push_back(&PARAM_COMPRESSED);
     sortresult.push_back(&PARAM_THREADS);
@@ -2034,7 +2053,6 @@ void Parameters::setDefaults() {
 
     // result2msa
     allowDeletion = false;
-    addInternalId = false;
     compressMSA = false;
     summarizeHeader = false;
     summaryPrefix = "cl";
@@ -2221,7 +2239,7 @@ void Parameters::setDefaults() {
     reportMode = 0;
 
     // expandaln
-    expansionMode = 1;
+    expansionMode = EXPAND_TRANSFER_EVALUE;
 
     // taxonomy
     taxonomySearchMode = Parameters::TAXONOMY_TOP_HIT;
