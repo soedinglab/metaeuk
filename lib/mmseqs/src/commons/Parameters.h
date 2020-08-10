@@ -107,6 +107,9 @@ public:
     static const unsigned int ALIGNMENT_MODE_SCORE_COV_SEQID = 3;
     static const unsigned int ALIGNMENT_MODE_UNGAPPED = 4;
 
+    static const unsigned int EXPAND_TRANSFER_EVALUE = 0;
+    static const unsigned int EXPAND_RESCORE_BACKTRACE = 1;
+
     static const unsigned int WRITER_ASCII_MODE = 0;
     static const unsigned int WRITER_COMPRESSED_MODE = 1;
     static const unsigned int WRITER_LEXICOGRAPHIC_MODE = 2;
@@ -566,7 +569,7 @@ public:
     // diff
     bool useSequenceId;
 
-    //prefixid
+    // prefixid
     std::string prefix;
     bool tsvOut;
 
@@ -718,7 +721,6 @@ public:
 
     // result2msa
     PARAMETER(PARAM_ALLOW_DELETION)
-    PARAMETER(PARAM_ADD_INTERNAL_ID)
     PARAMETER(PARAM_COMPRESS_MSA)
     PARAMETER(PARAM_SUMMARIZE_HEADER)
     PARAMETER(PARAM_SUMMARY_PREFIX)
@@ -1022,6 +1024,7 @@ public:
     std::vector<MMseqsParameter*> multihitdb;
     std::vector<MMseqsParameter*> multihitsearch;
     std::vector<MMseqsParameter*> expandaln;
+    std::vector<MMseqsParameter*> expand2profile;
     std::vector<MMseqsParameter*> sortresult;
     std::vector<MMseqsParameter*> enrichworkflow;
     std::vector<MMseqsParameter*> databases;
