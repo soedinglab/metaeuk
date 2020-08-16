@@ -21,12 +21,13 @@ int result2pp(int argc, const char **argv, const Command& command) {
     MMseqsMPI::init(argc, argv);
 
     Parameters &par = Parameters::getInstance();
-    par.parseParameters(argc, argv, command, false, 0, 0);
-    par.evalProfile = (par.evalThr < par.evalProfile) ? par.evalThr : par.evalProfile;
-    par.printParameters(command.cmd, argc, argv, *command.params);
+    par.parseParameters(argc, argv, command, true, 0, 0);
 
     DBReader<unsigned int> qDbr(par.db1.c_str(), par.db1Index.c_str(), par.threads, DBReader<unsigned int>::USE_INDEX | DBReader<unsigned int>::USE_DATA);
     qDbr.open(DBReader<unsigned int>::NOSORT);
+    if (par.preloadMode != Parameters::PRELOAD_MODE_MMAP) {
+        qDbr.readMmapedDataInMemory();
+    }
 
     DBReader<unsigned int> *tDbr = &qDbr;
     bool sameDatabase = true;
@@ -34,6 +35,9 @@ int result2pp(int argc, const char **argv, const Command& command) {
         sameDatabase = false;
         tDbr = new DBReader<unsigned int>(par.db2.c_str(), par.db2Index.c_str(), par.threads, DBReader<unsigned int>::USE_INDEX | DBReader<unsigned int>::USE_DATA);
         tDbr->open(DBReader<unsigned int>::NOSORT);
+        if (par.preloadMode != Parameters::PRELOAD_MODE_MMAP) {
+            tDbr->readMmapedDataInMemory();
+        }
     }
 
     DBReader<unsigned int> resultReader(par.db3.c_str(), par.db3Index.c_str(), par.threads, DBReader<unsigned int>::USE_INDEX | DBReader<unsigned int>::USE_DATA);
@@ -63,8 +67,8 @@ int result2pp(int argc, const char **argv, const Command& command) {
         thread_idx = (unsigned int) omp_get_thread_num();
 #endif
 
-        Sequence queryProfile(par.maxSeqLen, qDbr.getDbtype(), &subMat, 0, false, par.compBiasCorrection, false);
-        Sequence targetProfile(par.maxSeqLen, tDbr->getDbtype(), &subMat, 0, false, par.compBiasCorrection, false);
+        Sequence queryProfile(par.maxSeqLen, qDbr.getDbtype(), &subMat, 0, false, false, false);
+        Sequence targetProfile(par.maxSeqLen, tDbr->getDbtype(), &subMat, 0, false, false, false);
         float *outProfile = new float[(par.maxSeqLen + 1) * Sequence::PROFILE_AA_SIZE];
         float *neffM = new float[par.maxSeqLen + 1];
 
@@ -88,7 +92,7 @@ int result2pp(int argc, const char **argv, const Command& command) {
                 continue;
             }
 
-            queryProfile.mapSequence(queryId, queryKey, queryData, qDbr.getSeqLen(queryId));
+            queryProfile.mapSequence(queryId, queryKey, queryData, qDbr.getSeqLen(queryId), false);
             const float *qProfile = queryProfile.getProfile();
 
             /*const size_t profile_row_size = queryProfile.profile_row_size;
@@ -124,7 +128,7 @@ int result2pp(int argc, const char **argv, const Command& command) {
                     didMerge = true;
                     const Matcher::result_t res = Matcher::parseAlignmentRecord(results);
                     const size_t edgeId = tDbr->getId(key);
-                    targetProfile.mapSequence(edgeId, key, tDbr->getData(edgeId, thread_idx), tDbr->getSeqLen(edgeId));
+                    targetProfile.mapSequence(edgeId, key, tDbr->getData(edgeId, thread_idx), tDbr->getSeqLen(edgeId), false);
                     const float *tProfile = targetProfile.getProfile();
                     size_t qPos = res.qStartPos;
                     minqStartPos = std::min(minqStartPos, res.qStartPos);
