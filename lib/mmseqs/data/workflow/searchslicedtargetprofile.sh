@@ -69,7 +69,7 @@ while [ "${FIRST_INDEX_LINE}" -le "${TOTAL_NUM_PROFILES}" ]; do
     fi
 
     # predict NUM_SEQS_THAT_SATURATE as the average number of prefilter results per profile in previous steps
-    # this allows to increase NUM_PROFS_IN_STEP
+    # this allows one to increase NUM_PROFS_IN_STEP
     if [ "${NUM_PREF_RESULTS_IN_ALL_PREV_STEPS}" -gt 0 ]; then
         # BE MORE CAUTIOUS?
         NUM_PROFS_PROCESSED="$((FIRST_INDEX_LINE-1))"
@@ -126,7 +126,7 @@ while [ "${FIRST_INDEX_LINE}" -le "${TOTAL_NUM_PROFILES}" ]; do
     # align current step chunk
     if notExists "${TMP_PATH}/aln.done"; then
         # shellcheck disable=SC2086
-        ${RUNNER} "$MMSEQS" align "${PROFILEDB}" "${INPUT}" "${TMP_PATH}/pref" "${TMP_PATH}/aln" ${ALIGNMENT_PAR} \
+        ${RUNNER} "$MMSEQS" "${ALIGN_MODULE}" "${PROFILEDB}" "${INPUT}" "${TMP_PATH}/pref" "${TMP_PATH}/aln" ${ALIGNMENT_PAR} \
             || fail "align died"
         # shellcheck disable=SC2086
         "$MMSEQS" rmdb "${TMP_PATH}/pref" ${VERBOSITY}

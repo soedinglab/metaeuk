@@ -500,6 +500,7 @@ public:
     // splitsequence
     int sequenceOverlap;
     int sequenceSplitMode;
+    int headerSplitMode;
 
     // convert2fasta
     bool useHeaderFile;
@@ -815,6 +816,7 @@ public:
     // split sequence
     PARAMETER(PARAM_SEQUENCE_OVERLAP)
     PARAMETER(PARAM_SEQUENCE_SPLIT_MODE)
+    PARAMETER(PARAM_HEADER_SPLIT_MODE)
 
     // gff2db
     PARAMETER(PARAM_GFF_TYPE)
@@ -994,6 +996,7 @@ public:
     std::vector<MMseqsParameter*> createseqfiledb;
     std::vector<MMseqsParameter*> filterDb;
     std::vector<MMseqsParameter*> offsetalignment;
+    std::vector<MMseqsParameter*> proteinaln2nucl;
     std::vector<MMseqsParameter*> subtractdbs;
     std::vector<MMseqsParameter*> diff;
     std::vector<MMseqsParameter*> concatdbs;
