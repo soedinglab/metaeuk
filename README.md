@@ -1,6 +1,11 @@
 # MetaEuk - sensitive, high-throughput gene discovery and annotation for large-scale eukaryotic metagenomics
 
-[ ![Codeship Status for soedinglab/metaeuk](https://app.codeship.com/projects/07a9f310-7bb9-0136-3e65-3e3f6cc64c07/status?branch=master)](https://app.codeship.com/projects/300789)
+
+[![BioConda Install](https://img.shields.io/conda/dn/bioconda/metaeuk.svg?style=flag&label=BioConda%20install)](https://anaconda.org/bioconda/metaeuk)
+[![Biocontainer Pulls](https://img.shields.io/endpoint?url=https%3A%2F%2Fmmseqs.com%2Fbiocontainer.php%3Fcontainer%3Dmetaeuk)](https://biocontainers.pro/#/tools/metaeuk)
+[![Docker Pulls](https://img.shields.io/docker/pulls/soedinglab/metaeuk.svg)](https://hub.docker.com/r/soedinglab/metaeuk)
+[![Build Status](https://dev.azure.com/elilevy/MetaEuk/_apis/build/status/soedinglab.metaeuk?branchName=master)](https://dev.azure.com/themartinsteinegger/mmseqs2/_build/latest?definitionId=2&branchName=master)
+[![Chat Support](https://chat.mmseqs.com/api/v1/shield.svg?type=online&name=chat&icon=false)](https://chat.mmseqs.com/channel/metaeuk)
 
 MetaEuk is a modular toolkit designed for large-scale gene discovery and annotation in eukaryotic metagenomic contigs. Metaeuk combines the fast and sensitive homology search capabilities of [MMseqs2](https://github.com/soedinglab/MMseqs2) with a dynamic programming procedure to recover optimal exons sets. It reduces redundancies in multiple discoveries of the same gene and resolves conflicting gene predictions on the same strand. MetaEuk is GPL-licensed open source software that is implemented in C++ and available for Linux and macOS. The software is designed to run on multiple cores.
 
