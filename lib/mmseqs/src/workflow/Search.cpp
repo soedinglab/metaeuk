@@ -30,7 +30,7 @@ void setSearchDefaults(Parameters *p) {
 }
 
 
-int computeSearchMode(int queryDbType, int targetDbType, int targetSrcDbType, int searchType){
+int computeSearchMode(int queryDbType, int targetDbType, int targetSrcDbType, int searchType) {
     // reject unvalid search
     if (Parameters::isEqualDbtype(queryDbType, Parameters::DBTYPE_HMM_PROFILE) &&
         Parameters::isEqualDbtype(targetDbType,Parameters::DBTYPE_HMM_PROFILE)) {
@@ -238,7 +238,6 @@ int search(int argc, const char **argv, const Command& command) {
     }
 
     int searchMode = computeSearchMode(queryDbType, targetDbType, targetSrcDbType, par.searchType);
-
     if ((searchMode & Parameters::SEARCH_MODE_FLAG_QUERY_NUCLEOTIDE) && (searchMode & Parameters::SEARCH_MODE_FLAG_TARGET_NUCLEOTIDE)) {
         setNuclSearchDefaults(&par);
     } else{
@@ -253,7 +252,13 @@ int search(int argc, const char **argv, const Command& command) {
     const bool isUngappedMode = par.alignmentMode == Parameters::ALIGNMENT_MODE_UNGAPPED;
     if (isUngappedMode && (searchMode & (Parameters::SEARCH_MODE_FLAG_QUERY_PROFILE |Parameters::SEARCH_MODE_FLAG_TARGET_PROFILE ))) {
         par.printUsageMessage(command, MMseqsParameter::COMMAND_ALIGN | MMseqsParameter::COMMAND_PREFILTER);
-        Debug(Debug::ERROR) << "Cannot use ungapped alignment mode with profile databases.\n";
+        Debug(Debug::ERROR) << "Cannot use ungapped alignment mode with profile databases\n";
+        EXIT(EXIT_FAILURE);
+    }
+
+    if (isUngappedMode && par.lcaSearch) {
+        par.printUsageMessage(command, MMseqsParameter::COMMAND_ALIGN | MMseqsParameter::COMMAND_PREFILTER);
+        Debug(Debug::ERROR) << "Cannot use ungapped alignment mode with lca search\n";
         EXIT(EXIT_FAILURE);
     }
 
@@ -282,7 +287,7 @@ int search(int argc, const char **argv, const Command& command) {
     par.printParameters(command.cmd, argc, argv, par.searchworkflow);
 
     std::string tmpDir = par.db4;
-    std::string hash = SSTR(par.hashParameter(par.filenames, par.searchworkflow));
+    std::string hash = SSTR(par.hashParameter(command.databases, par.filenames, par.searchworkflow));
     if (par.reuseLatest) {
         hash = FileUtil::getHashFromSymLink(tmpDir + "/latest");
     }
@@ -295,7 +300,13 @@ int search(int argc, const char **argv, const Command& command) {
     cmd.addVariable("VERBOSITY", par.createParameterString(par.onlyverbosity).c_str());
     cmd.addVariable("THREADS_COMP_PAR", par.createParameterString(par.threadsandcompression).c_str());
     cmd.addVariable("VERB_COMP_PAR", par.createParameterString(par.verbandcompression).c_str());
-    cmd.addVariable("ALIGN_MODULE", isUngappedMode ? "rescorediagonal" : "align");
+    if (isUngappedMode) {
+        cmd.addVariable("ALIGN_MODULE", "rescorediagonal");
+    } else if (par.lcaSearch) {
+        cmd.addVariable("ALIGN_MODULE", "lcaalign");
+    } else {
+        cmd.addVariable("ALIGN_MODULE", "align");
+    }
     cmd.addVariable("REMOVE_TMP", par.removeTmpFiles ? "TRUE" : NULL);
     std::string program;
     cmd.addVariable("RUNNER", par.runner.c_str());
