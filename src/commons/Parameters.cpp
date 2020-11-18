@@ -68,6 +68,8 @@ Parameters::Parameters():
         PARAM_MIN_SEQ_ID(PARAM_MIN_SEQ_ID_ID, "--min-seq-id", "Seq. id. threshold", "List matches above this sequence identity (for clustering) (range 0.0-1.0)", typeid(float), (void *) &seqIdThr, "^0(\\.[0-9]+)?|1(\\.0+)?$", MMseqsParameter::COMMAND_ALIGN),
         PARAM_MIN_ALN_LEN(PARAM_MIN_ALN_LEN_ID, "--min-aln-len", "Min alignment length", "Minimum alignment length (range 0-INT_MAX)", typeid(int), (void *) &alnLenThr, "^[0-9]{1}[0-9]*$", MMseqsParameter::COMMAND_ALIGN),
         PARAM_SCORE_BIAS(PARAM_SCORE_BIAS_ID, "--score-bias", "Score bias", "Score bias when computing SW alignment (in bits)", typeid(float), (void *) &scoreBias, "^-?[0-9]*(\\.[0-9]+)?$", MMseqsParameter::COMMAND_ALIGN | MMseqsParameter::COMMAND_EXPERT),
+        PARAM_REALIGN_SCORE_BIAS(PARAM_REALIGN_SCORE_BIAS_ID, "--realign-score-bias", "Realign score bias", "Additional bias when computing realignment", typeid(float), (void *) &realignScoreBias, "^-?[0-9]*(\\.[0-9]+)?$", MMseqsParameter::COMMAND_ALIGN | MMseqsParameter::COMMAND_EXPERT),
+        PARAM_REALIGN_MAX_SEQS(PARAM_REALIGN_MAX_SEQS_ID, "--realign-max-seqs", "Realign max seqs", "Maximum number of results to return in realignment", typeid(int), (void *) &realignMaxSeqs, "^[0-9]{1}[0-9]*$", MMseqsParameter::COMMAND_ALIGN | MMseqsParameter::COMMAND_EXPERT),
         PARAM_ALT_ALIGNMENT(PARAM_ALT_ALIGNMENT_ID, "--alt-ali", "Alternative alignments", "Show up to this many alternative alignments", typeid(int), (void *) &altAlignment, "^[0-9]{1}[0-9]*$", MMseqsParameter::COMMAND_ALIGN),
         PARAM_GAP_OPEN(PARAM_GAP_OPEN_ID, "--gap-open", "Gap open cost", "Gap open cost", typeid(MultiParam<int>), (void *) &gapOpen, "^[0-9]{1}[0-9]*$", MMseqsParameter::COMMAND_ALIGN | MMseqsParameter::COMMAND_EXPERT),
         PARAM_GAP_EXTEND(PARAM_GAP_EXTEND_ID, "--gap-extend", "Gap extension cost", "Gap extension cost", typeid(MultiParam<int>), (void *) &gapExtend, "^[0-9]{1}[0-9]*$", MMseqsParameter::COMMAND_ALIGN | MMseqsParameter::COMMAND_EXPERT),
@@ -92,11 +94,9 @@ Parameters::Parameters():
         PARAM_FILTER_HITS(PARAM_FILTER_HITS_ID, "--filter-hits", "Remove hits by seq. id. and coverage", "Filter hits by seq.id. and coverage", typeid(bool), (void *) &filterHits, "", MMseqsParameter::COMMAND_EXPERT),
         PARAM_SORT_RESULTS(PARAM_SORT_RESULTS_ID, "--sort-results", "Sort results", "Sort results: 0: no sorting, 1: sort by E-value (Alignment) or seq.id. (Hamming)", typeid(int), (void *) &sortResults, "^[0-1]{1}$", MMseqsParameter::COMMAND_EXPERT),
         // result2msa
+        PARAM_MSA_FORMAT_MODE(PARAM_MSA_FORMAT_MODE_ID, "--msa-format-mode", "MSA format mode", "Format MSA as: 0: binary cA3M DB\n1: binary ca3m w. consensus DB\n2: aligned FASTA DB\n3: aligned FASTA w. header summary\n4: STOCKHOLM flat file", typeid(int), (void *) &msaFormatMode, "^[0-4]{1}$"),
         PARAM_ALLOW_DELETION(PARAM_ALLOW_DELETION_ID, "--allow-deletion", "Allow deletions", "Allow deletions in a MSA", typeid(bool), (void *) &allowDeletion, ""),
-        PARAM_COMPRESS_MSA(PARAM_COMPRESS_MSA_ID, "--compress", "Compress MSA", "Create MSA in CA3M format", typeid(bool), (void *) &compressMSA, ""),
-        PARAM_SUMMARIZE_HEADER(PARAM_SUMMARIZE_HEADER_ID, "--summarize", "Summarize headers", "Summarize cluster headers into a single header description", typeid(bool), (void *) &summarizeHeader, ""),
         PARAM_SUMMARY_PREFIX(PARAM_SUMMARY_PREFIX_ID, "--summary-prefix", "Summary prefix", "Set the cluster summary prefix", typeid(std::string), (void *) &summaryPrefix, "", MMseqsParameter::COMMAND_EXPERT),
-        PARAM_OMIT_CONSENSUS(PARAM_OMIT_CONSENSUS_ID, "--omit-consensus", "Omit consensus", "Omit consensus sequence in alignment", typeid(bool), (void *) &omitConsensus, "", MMseqsParameter::COMMAND_EXPERT),
         PARAM_SKIP_QUERY(PARAM_SKIP_QUERY_ID, "--skip-query", "Skip query", "Skip the query sequence", typeid(bool), (void *) &skipQuery, "", MMseqsParameter::COMMAND_EXPERT),
         // convertmsa
         PARAM_IDENTIFIER_FIELD(PARAM_IDENTIFIER_FIELD_ID, "--identifier-field", "Identifier field", "Field from STOCKHOLM comments for choosing the MSA identifier: 0: ID, 1: AC. If the respective comment does not exist, the name of the first sequence will become the identifier", typeid(int), (void *) &identifierField, "^[0-1]{1}$", MMseqsParameter::COMMAND_COMMON),
@@ -146,6 +146,9 @@ Parameters::Parameters():
         PARAM_SLICE_SEARCH(PARAM_SLICE_SEARCH_ID, "--slice-search", "Slice search mode", "For bigger profile DB, run iteratively the search by greedily swapping the search results", typeid(bool), (void *) &sliceSearch, "", MMseqsParameter::COMMAND_PROFILE | MMseqsParameter::COMMAND_EXPERT),
         PARAM_STRAND(PARAM_STRAND_ID, "--strand", "Strand selection", "Strand selection only works for DNA/DNA search 0: reverse, 1: forward, 2: both", typeid(int), (void *) &strand, "^[0-2]{1}$", MMseqsParameter::COMMAND_EXPERT),
         PARAM_ORF_FILTER(PARAM_ORF_FILTER_ID, "--orf-filter", "ORF filter", "Prefilter query ORFs with non-selective before search", typeid(int), (void *) &orfFilter, "^[0-1]{1}$", MMseqsParameter::COMMAND_HIDDEN),
+        PARAM_ORF_FILTER_S(PARAM_ORF_FILTER_S_ID, "--orf-filter-s", "ORF filter sensitivity", "Sensitivity used for query ORF prefiltering", typeid(float), (void *) &orfFilterSens, "^[0-9]*(\\.[0-9]+)?$", MMseqsParameter::COMMAND_HIDDEN),
+        PARAM_ORF_FILTER_E(PARAM_ORF_FILTER_E_ID, "--orf-filter-e", "ORF filter e-value", "E-value threshold used for query ORF prefiltering", typeid(float), (void *) &orfFilterEval, "^([-+]?[0-9]*\\.?[0-9]+([eE][-+]?[0-9]+)?)|[0-9]*(\\.[0-9]+)?$", MMseqsParameter::COMMAND_HIDDEN),
+        PARAM_LCA_SEARCH(PARAM_LCA_SEARCH_ID, "--lca-search", "LCA search mode", "Efficient search for LCA candidates", typeid(bool), (void *) &lcaSearch, "", MMseqsParameter::COMMAND_PROFILE | MMseqsParameter::COMMAND_EXPERT),
         // easysearch
         PARAM_GREEDY_BEST_HITS(PARAM_GREEDY_BEST_HITS_ID, "--greedy-best-hits", "Greedy best hits", "Choose the best hits greedily to cover the query", typeid(bool), (void *) &greedyBestHits, ""),
         // extractorfs
@@ -221,7 +224,8 @@ Parameters::Parameters():
         // summarize headers
         PARAM_HEADER_TYPE(PARAM_HEADER_TYPE_ID, "--header-type", "Header type", "Header Type: 1: Uniclust, 2: Metaclust", typeid(int), (void *) &headerType, "[1-2]{1}"),
         // mergedbs
-        PARAM_MERGE_PREFIXES(PARAM_MERGE_PREFIXES_ID, "--prefixes", "Merge prefixes", "Comma separated list of prefixes for each entry", typeid(std::string), (void *) &mergePrefixes, ""),
+        PARAM_MERGE_PREFIXES(PARAM_MERGE_PREFIXES_ID, "--prefixes", "Merge prefixes", "Comma separated list of prefixes for each entry", typeid(std::string), (void *) &mergePrefixes, "", MMseqsParameter::COMMAND_EXPERT),
+        PARAM_MERGE_STOP_EMPTY(PARAM_MERGE_STOP_EMPTY_ID, "--merge-stop-empty", "Stop merge after empty", "Don't continue merging entries after an empty entry", typeid(bool), (void*)&mergeStopEmpty, "", MMseqsParameter::COMMAND_EXPERT),
         // summarizeresult
         PARAM_OVERLAP(PARAM_OVERLAP_ID, "--overlap", "Overlap threshold", "Maximum overlap of covered regions", typeid(float), (void *) &overlap, "^[0-9]*(\\.[0-9]+)?$"),
         // msa2profile
@@ -252,7 +256,7 @@ Parameters::Parameters():
         // expandaln
         PARAM_EXPANSION_MODE(PARAM_EXPANSION_MODE_ID, "--expansion-mode", "Expansion mode", "Update score, E-value, and sequence identity by 0: input alignment 1: rescoring the inferred backtrace", typeid(int), (void *) &expansionMode, "^[0-2]{1}$"),
         // taxonomy
-        PARAM_LCA_MODE(PARAM_LCA_MODE_ID, "--lca-mode", "LCA mode", "LCA Mode 1: Single Search LCA , 2: 2bLCA, 3: approx. 2bLCA, 4: top hit", typeid(int), (void *) &taxonomySearchMode, "^[1-4]{1}$"),
+        PARAM_LCA_MODE(PARAM_LCA_MODE_ID, "--lca-mode", "LCA mode", "LCA Mode 1: single search LCA , 2/3: accelerated 2bLCA, 4: top hit", typeid(int), (void *) &taxonomySearchMode, "^[1-4]{1}$"),
         PARAM_TAX_OUTPUT_MODE(PARAM_TAX_OUTPUT_MODE_ID, "--tax-output-mode", "Taxonomy output mode", "0: output LCA, 1: output alignment 2: output both", typeid(int), (void *) &taxonomyOutpuMode, "^[0-2]{1}$"),
         // createsubdb, filtertaxseqdb
         PARAM_SUBDB_MODE(PARAM_SUBDB_MODE_ID, "--subdb-mode", "Subdb mode", "Subdb mode 0: copy data 1: soft link data and write index", typeid(int), (void *) &subDbMode, "^[0-1]{1}$"),
@@ -327,7 +331,6 @@ Parameters::Parameters():
     align.push_back(&PARAM_COV_MODE);
     align.push_back(&PARAM_MAX_SEQ_LEN);
     align.push_back(&PARAM_NO_COMP_BIAS_CORR);
-    align.push_back(&PARAM_REALIGN);
     align.push_back(&PARAM_MAX_REJECTED);
     align.push_back(&PARAM_MAX_ACCEPT);
     align.push_back(&PARAM_INCLUDE_IDENTITY);
@@ -335,6 +338,9 @@ Parameters::Parameters():
     align.push_back(&PARAM_PCA);
     align.push_back(&PARAM_PCB);
     align.push_back(&PARAM_SCORE_BIAS);
+    align.push_back(&PARAM_REALIGN);
+    align.push_back(&PARAM_REALIGN_SCORE_BIAS);
+    align.push_back(&PARAM_REALIGN_MAX_SEQS);
     align.push_back(&PARAM_GAP_OPEN);
     align.push_back(&PARAM_GAP_EXTEND);
     align.push_back(&PARAM_ZDROP);
@@ -467,7 +473,6 @@ Parameters::Parameters():
     result2profile.push_back(&PARAM_FILTER_NDIFF);
     result2profile.push_back(&PARAM_PCA);
     result2profile.push_back(&PARAM_PCB);
-    result2profile.push_back(&PARAM_OMIT_CONSENSUS);
     result2profile.push_back(&PARAM_PRELOAD_MODE);
     result2profile.push_back(&PARAM_GAP_OPEN);
     result2profile.push_back(&PARAM_GAP_EXTEND);
@@ -516,8 +521,13 @@ Parameters::Parameters():
 
     // result2msa
     result2msa.push_back(&PARAM_SUB_MAT);
+    result2msa.push_back(&PARAM_GAP_OPEN);
+    result2msa.push_back(&PARAM_GAP_EXTEND);
     result2msa.push_back(&PARAM_ALLOW_DELETION);
     result2msa.push_back(&PARAM_NO_COMP_BIAS_CORR);
+    result2msa.push_back(&PARAM_MSA_FORMAT_MODE);
+    result2msa.push_back(&PARAM_SUMMARY_PREFIX);
+    result2msa.push_back(&PARAM_SKIP_QUERY);
     result2msa.push_back(&PARAM_FILTER_MSA);
     result2msa.push_back(&PARAM_FILTER_MAX_SEQ_ID);
     result2msa.push_back(&PARAM_FILTER_QID);
@@ -525,20 +535,12 @@ Parameters::Parameters():
     result2msa.push_back(&PARAM_FILTER_COV);
     result2msa.push_back(&PARAM_FILTER_NDIFF);
     result2msa.push_back(&PARAM_THREADS);
-    result2msa.push_back(&PARAM_COMPRESS_MSA);
-    result2msa.push_back(&PARAM_SUMMARIZE_HEADER);
-    result2msa.push_back(&PARAM_SUMMARY_PREFIX);
-    result2msa.push_back(&PARAM_OMIT_CONSENSUS);
-    result2msa.push_back(&PARAM_SKIP_QUERY);
-    result2msa.push_back(&PARAM_GAP_OPEN);
-    result2msa.push_back(&PARAM_GAP_EXTEND);
     result2msa.push_back(&PARAM_COMPRESSED);
-    //result2msa.push_back(&PARAM_FIRST_SEQ_REP_SEQ);
     result2msa.push_back(&PARAM_V);
 
     // result2dnamsa
-    result2dnamsa.push_back(&PARAM_THREADS);
     result2dnamsa.push_back(&PARAM_SKIP_QUERY);
+    result2dnamsa.push_back(&PARAM_THREADS);
     result2dnamsa.push_back(&PARAM_COMPRESSED);
     //result2msa.push_back(&PARAM_FIRST_SEQ_REP_SEQ);
     result2dnamsa.push_back(&PARAM_V);
@@ -888,6 +890,7 @@ Parameters::Parameters():
 
     // mergedbs
     mergedbs.push_back(&PARAM_MERGE_PREFIXES);
+    mergedbs.push_back(&PARAM_MERGE_STOP_EMPTY);
     mergedbs.push_back(&PARAM_COMPRESSED);
     mergedbs.push_back(&PARAM_V);
 
@@ -1090,6 +1093,9 @@ Parameters::Parameters():
     searchworkflow.push_back(&PARAM_SLICE_SEARCH);
     searchworkflow.push_back(&PARAM_STRAND);
     searchworkflow.push_back(&PARAM_ORF_FILTER);
+    searchworkflow.push_back(&PARAM_ORF_FILTER_E);
+    searchworkflow.push_back(&PARAM_ORF_FILTER_S);
+    searchworkflow.push_back(&PARAM_LCA_SEARCH);
     searchworkflow.push_back(&PARAM_DISK_SPACE_LIMIT);
     searchworkflow.push_back(&PARAM_RUNNER);
     searchworkflow.push_back(&PARAM_REUSELATEST);
@@ -1993,6 +1999,9 @@ void Parameters::setDefaults() {
     sliceSearch = false;
     strand = 1;
     orfFilter = 0;
+    orfFilterSens = 2.0;
+    orfFilterEval = 100;
+    lcaSearch = false;
 
     greedyBestHits = false;
 
@@ -2041,6 +2050,8 @@ void Parameters::setDefaults() {
     clusterSteps = 3;
     preloadMode = 0;
     scoreBias = 0.0;
+    realignScoreBias = -0.2f;
+    realignMaxSeqs = INT_MAX;
 
     // affinity clustering
     maxIteration=1000;
@@ -2073,11 +2084,7 @@ void Parameters::setDefaults() {
 
     // result2msa
     allowDeletion = false;
-    compressMSA = false;
-    summarizeHeader = false;
     summaryPrefix = "cl";
-    compressMSA = false;
-    omitConsensus = false;
     skipQuery = false;
 
     // convertmsa
@@ -2191,6 +2198,7 @@ void Parameters::setDefaults() {
 
     // mergedbs
     mergePrefixes = "";
+    mergeStopEmpty = false;
 
     // summarizetabs
     overlap = 0.0f;
@@ -2263,7 +2271,7 @@ void Parameters::setDefaults() {
     expansionMode = EXPAND_TRANSFER_EVALUE;
 
     // taxonomy
-    taxonomySearchMode = Parameters::TAXONOMY_TOP_HIT;
+    taxonomySearchMode = Parameters::TAXONOMY_ACCEL_2BLCA;
     taxonomyOutpuMode = Parameters::TAXONOMY_OUTPUT_LCA;
 
     citations = {
@@ -2299,12 +2307,50 @@ std::vector<MMseqsParameter*> Parameters::combineList(const std::vector<MMseqsPa
     return retVec;
 }
 
-size_t Parameters::hashParameter(const std::vector<std::string> &filenames, const std::vector<MMseqsParameter*> &par){
+size_t Parameters::hashParameter(const std::vector<DbType> &dbtypes, const std::vector<std::string> &filenames, const std::vector<MMseqsParameter*> &par){
     std::string hashString;
     hashString.reserve(1024);
+
+    struct stat stat_buf;
+    bool stopAfterVariadic = false;
     for (size_t i = 0; i < filenames.size(); ++i){
         hashString.append(filenames[i]);
-        hashString.append(" ");
+        if (stopAfterVariadic == false && i < dbtypes.size()) {
+            const DbType& type = dbtypes[i];
+            if (type.accessMode != DbType::ACCESS_MODE_INPUT) {
+                continue;
+            }
+
+            if (type.specialType & DbType::VARIADIC) {
+                stopAfterVariadic = true;
+            }
+
+            if (filenames[i] == "stdin") {
+                continue;
+            }
+
+            if (::stat(filenames[i].c_str(), &stat_buf) == 0) {
+                hashString.append(SSTR(stat_buf.st_size));
+#ifdef __APPLE__
+                hashString.append(SSTR(stat_buf.st_mtimespec.tv_sec));
+#else
+                hashString.append(SSTR(stat_buf.st_mtime));
+#endif
+                continue;
+            }
+
+            std::string index(filenames[i]);
+            index.append(".index");
+            if (::stat(index.c_str(), &stat_buf) == 0) {
+                hashString.append(SSTR(stat_buf.st_size));
+#ifdef __APPLE__
+                hashString.append(SSTR(stat_buf.st_mtimespec.tv_sec));
+#else
+                hashString.append(SSTR(stat_buf.st_mtime));
+#endif
+                continue;
+            }
+        }
     }
     hashString.append(createParameterString(par));
     hashString.append(version);
