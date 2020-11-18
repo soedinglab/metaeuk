@@ -131,7 +131,7 @@ predictions' taxonomic labels: *Ostreococcus tauri*, *Ostreococcus mediterraneus
 - A protein sequence database annotated with taxonomic information (**seqTaxDb**). See details [here](https://github.com/soedinglab/MMseqs2/wiki#creating-a-seqtaxdb). You could download such a resource with >88M entries [here](http://wwwuser.gwdg.de/~compbiol/metaeuk/2020_TAX_DB).
 
 #### Command:
-    metaeuk taxtocontig <i:contigsDB> <i:predsResults.fas> <i:predsResults.headersMap.tsv> <i:taxAnnotTargetDb> <o:taxResult> <tmpDir> --majority 0.5 --tax-lineage --lca-mode 2
+    metaeuk taxtocontig <i:contigsDB> <i:predsResults.fas> <i:predsResults.headersMap.tsv> <i:taxAnnotTargetDb> <o:taxResult> <tmpDir> --majority 0.5 --tax-lineage 1 --lca-mode 2
     
 #### Output:
 The run ends with two files: **taxResult_per_pred.tsv** and **taxResult_per_contig.tsv**, each of which is in [taxonomy result TSV format](https://github.com/soedinglab/MMseqs2/wiki#taxonomy-output-and-tsv)
