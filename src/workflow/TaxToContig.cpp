@@ -16,7 +16,7 @@ int taxtocontig(int argc, const char **argv, const Command& command) {
     par.parseParameters(argc, argv, command, true, 0, 0);
 
     std::string tmpDir = par.db6;
-    std::string hash = SSTR(par.hashParameter(par.filenames, *command.params));
+    std::string hash = SSTR(par.hashParameter(command.databases, par.filenames, *command.params));
     if (par.reuseLatest) {
         hash = FileUtil::getHashFromSymLink(tmpDir + "/latest");
     }
