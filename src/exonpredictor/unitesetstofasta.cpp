@@ -63,7 +63,7 @@ void preparePredDataAndHeader (const Prediction & pred, const std::string & targ
         int exonAdjustedNucleotideLen = exonNucleotideLen;
         if (lastTargetPosMatched >= targetMatchStart) {
             int diffInAAs = lastTargetPosMatched - targetMatchStart + 1;
-            exonAdjustedContigStart += (3 * diffInAAs * pred.strand);
+            exonAdjustedContigStart += (3 * diffInAAs);
             exonAdjustedNucleotideLen -= (3 * diffInAAs);
         }
         int lowContigCoord = (pred.strand == PLUS) ? exonAdjustedContigStart : (-1 * exonContigEnd);
