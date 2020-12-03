@@ -49,7 +49,7 @@ A **gene call** is an optimal set of exons predicted based on similarity to a sp
      -e                  maximal E-Value to retain a match between a putative protein fragment and a reference taraget 
      --metaeuk-eval      maximal combined E-Value to retain an optimal exon set
      --metaeuk-tcov      minimal length ratio of combined set to target 
-     --slice-search      if refernceDB is a profile database, should be added
+     --slice-search      if referenceDB is a profile database, should be added
      
 
 ### easy-predict workflow:
