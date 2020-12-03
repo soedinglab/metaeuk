@@ -95,7 +95,7 @@ The header is composed of several sections, separated by pipes ('|'):
 
 *>T_acc|C_acc|S|bitscore|E-Value|number_exons|low_coord|high_coord|exon1_coords|exon2_coords|...*
 
-*coord* refers to the coordination on the contig. It is advisable to keep T_acc and C_acc short and without pipes. The exon_coords are of the structure:
+*coord* refers to the coordination on the contig (first base has coordinate 0). It is advisable to keep T_acc and C_acc short and without pipes. The exon_coords are of the structure:
 *low[taken_low]:high[taken_high]:nucleotide_length[taken_nucleotide_length]*
 
 Since MetaEuk allows for a very short overlap on T of two putative exons (see P2 and P3 in the illustration below), when joining the sequences of the exons, one of them is shortened. The coordinates of the codons taken from this exon will be in the square brackets (*[taken_low]*, *[taken_high]* and *[taken_nucleotide_length]*). These refer to the orange section of P3 below, while the coordinates outside the brackets refer to the yellow+orange section of P3.
