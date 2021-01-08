@@ -103,7 +103,7 @@ Since MetaEuk allows for a very short overlap on T of two putative exons (see P2
 <p align="center"><img src="https://github.com/soedinglab/metaeuk/blob/master/imgs/small_overlap_allowed.png" height="150"/></p>
 
 Example header (two exons on the minus strand):
-*>ERR1719262_736507|ERR868377_k119_2347399|-|341|6.2e-93|2|54324|54855|54855[54855]:54754[54754]:102[102]|54656[54668]:54324[54324]:333[321]*
+*>protein_acc|contig_acc|-|1146|0|2|3|1875|1875[1875]:970[970]:906[906]|893[869]:3[3]:891[867]*
 
 
 ### Creating a TSV map of predictions to their TCS group members:
