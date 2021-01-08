@@ -103,6 +103,7 @@ Since MetaEuk allows for a very short overlap on T of two putative exons (see P2
 <p align="center"><img src="https://github.com/soedinglab/metaeuk/blob/master/imgs/small_overlap_allowed.png" height="150"/></p>
 
 Example header (two exons on the minus strand):
+
 *>protein_acc|contig_acc|-|1146|0|2|3|1875|1875[1875]:970[970]:906[906]|893[869]:3[3]:891[867]*
 
 
