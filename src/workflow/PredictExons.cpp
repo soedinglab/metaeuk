@@ -22,7 +22,7 @@ int predictexons(int argc, const char **argv, const Command& command) {
     int targetDbType = FileUtil::parseDbType(par.db2.c_str());
     if (Parameters::isEqualDbtype(targetDbType, Parameters::DBTYPE_HMM_PROFILE)) {
         Debug(Debug::INFO) << "Enforcing exhaustive profile search mode due to profile target database\n";
-        par.lcaSearch = true;
+        par.exhaustiveSearch = true;
     }
     par.printParameters(command.cmd, argc, argv, *command.params);
 
