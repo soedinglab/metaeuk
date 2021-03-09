@@ -8,6 +8,9 @@
 #include "Timer.h"
 #include "Parameters.h"
 
+#define SIMDE_ENABLE_NATIVE_ALIASES
+#include <simde/simde-common.h>
+
 #include <cstdlib>
 #include <cstdio>
 #include <sstream>
@@ -142,8 +145,8 @@ void DBWriter::open(size_t bufferSize) {
         }
 
         dataFilesBuffer[i] = new(std::nothrow) char[bufferSize];
-        incrementMemory(bufferSize);
         Util::checkAllocation(dataFilesBuffer[i], "Cannot allocate buffer for DBWriter");
+        incrementMemory(bufferSize);
         this->bufferSize = bufferSize;
 
         // set buffer to 64
@@ -195,6 +198,9 @@ void DBWriter::writeDbtypeFile(const char* path, int dbtype, bool isCompressed) 
     std::string name = std::string(path) + ".dbtype";
     FILE* file = FileUtil::openAndDelete(name.c_str(), "wb");
     dbtype = isCompressed ? dbtype | (1 << 31) : dbtype & ~(1 << 31);
+#if SIMDE_ENDIAN_ORDER == SIMDE_ENDIAN_BIG
+    dbtype = __builtin_bswap32(dbtype);
+#endif
     size_t written = fwrite(&dbtype, sizeof(int), 1, file);
     if (written != 1) {
         Debug(Debug::ERROR) << "Can not write to data file " << name << "\n";
@@ -230,6 +236,7 @@ void DBWriter::close(bool merge, bool needsSort) {
         }
     }
 
+    merge = getenv("MMSEQS_FORCE_MERGE") != NULL ? true : merge;
     mergeResults(dataFileName, indexFileName, (const char **) dataFileNames, (const char **) indexFileNames,
                  threads, merge, ((mode & Parameters::WRITER_LEXICOGRAPHIC_MODE) != 0), needsSort);
 
