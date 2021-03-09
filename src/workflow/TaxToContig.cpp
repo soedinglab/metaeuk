@@ -7,7 +7,7 @@
 
 void setTaxToContigDefaults(Parameters *p) {
     p->majorityThr = 0.5;
-    p->taxonomyOutpuMode = 2;
+    p->taxonomyOutputMode = 2;
 }
 
 int taxtocontig(int argc, const char **argv, const Command& command) {
@@ -27,7 +27,7 @@ int taxtocontig(int argc, const char **argv, const Command& command) {
     CommandCaller cmd;
     
     // the call to aggregatetaxweights requires that we output both the taxonomy and the alignment
-    par.taxonomyOutpuMode = 2;
+    par.taxonomyOutputMode = 2;
     cmd.addVariable("TAXONOMY_PAR", par.createParameterString(par.taxonomy).c_str());
     cmd.addVariable("AGGREGATETAX_PAR", par.createParameterString(par.aggregatetax).c_str());
     cmd.addVariable("VERBOSITY_COMP_PAR", par.createParameterString(par.verbandcompression).c_str());
