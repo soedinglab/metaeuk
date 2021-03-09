@@ -86,6 +86,7 @@ private:
     bool compBiasCorrection;
 
     int altAlignment;
+    int alignmentOutputMode;
 
     const unsigned int maxAccept;
     const unsigned int maxReject;

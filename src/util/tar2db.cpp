@@ -40,7 +40,12 @@ int mtar_gzopen(mtar_t *tar, const char *filename) {
         return MTAR_EOPENFAIL;
     }
 
-    // Return ok
+#if defined(ZLIB_VERNUM) && ZLIB_VERNUM >= 0x1240
+    if (gzbuffer((gzFile)tar->stream, 1 * 1024 * 1024) != 0) {
+        Debug(Debug::WARNING) << "Could not set gzbuffer size, performance might be bad\n";
+    }
+#endif
+
     return MTAR_ESUCCESS;
 }
 #endif
@@ -71,17 +76,18 @@ int tar2db(int argc, const char **argv, const Command& command) {
     std::string sourceFile = dataFile + ".source";
     FILE *source = FileUtil::openAndDelete(sourceFile.c_str(), "w");
 
-    std::string lookupFile = dataFile + ".lookup";
-    FILE *lookup = FileUtil::openAndDelete(lookupFile.c_str(), "w");
-
     DBWriter writer(dataFile.c_str(), indexFile.c_str(), par.threads, par.compressed, par.outputDbType);
     writer.open();
-    Debug::Progress progress;
-    char buffer[4096];
 
+    std::string lookupFile = dataFile + ".lookup";
+    DBWriter lookupWriter(lookupFile.c_str(), (lookupFile + ".index").c_str(), par.threads, 0, Parameters::DBTYPE_OMIT_FILE);
+    lookupWriter.open();
+
+    Debug::Progress progress;
 
     size_t globalKey = 0;
     for (size_t i = 0; i < filenames.size(); i++) {
+        char buffer[4096];
         size_t len = snprintf(buffer, sizeof(buffer), "%zu\t%s\n", i, FileUtil::baseName(filenames[i]).c_str());
         int written = fwrite(buffer, sizeof(char), len, source);
         if (written != (int) len) {
@@ -89,6 +95,7 @@ int tar2db(int argc, const char **argv, const Command& command) {
             EXIT(EXIT_FAILURE);
         }
 
+        int localThreads = par.threads;
         mtar_t tar;
         if (Util::endsWith(".tar.gz", filenames[i]) || Util::endsWith(".tgz", filenames[i])) {
 #ifdef HAVE_ZLIB
@@ -96,6 +103,7 @@ int tar2db(int argc, const char **argv, const Command& command) {
                 Debug(Debug::ERROR) << "Cannot open file " << filenames[i] << "\n";
                 EXIT(EXIT_FAILURE);
             }
+            localThreads = 1;
 #else
             Debug(Debug::ERROR) << "MMseqs2 was not compiled with zlib support. Cannot read compressed input.\n";
             EXIT(EXIT_FAILURE);
@@ -107,11 +115,12 @@ int tar2db(int argc, const char **argv, const Command& command) {
             }
         }
 
-#pragma omp parallel shared(tar, buffer)
+#pragma omp parallel shared(tar) num_threads(localThreads)
         {
-            size_t bufferSize = 10 * 1024;
+            char buffer[4096];
+            size_t bufferSize = 1024 * 1024;
             char *dataBuffer = (char *) malloc(bufferSize);
-            size_t inflateSize = 10 * 1024;
+            size_t inflateSize = 1024 * 1024;
             char *inflateBuffer = (char *) malloc(inflateSize);
             mtar_header_t header;
             size_t currentKey = 0;
@@ -143,11 +152,11 @@ int tar2db(int argc, const char **argv, const Command& command) {
                 {
                     if (tar.isFinished == 0 && (mtar_read_header(&tar, &header)) != MTAR_ENULLRECORD) {
                         if (header.type == MTAR_TREG) {
-                            progress.updateProgress();
                             if (include.isMatch(header.name) == false || exclude.isMatch(header.name) == true) {
                                 __sync_fetch_and_add(&(globalKey), 1);
+                                proceed = true;
                                 writeEntry = false;
-                            }else{
+                            } else {
                                 if (header.size > bufferSize) {
                                     bufferSize = header.size * 1.5;
                                     dataBuffer = (char *) realloc(dataBuffer, bufferSize);
@@ -157,16 +166,12 @@ int tar2db(int argc, const char **argv, const Command& command) {
                                     EXIT(EXIT_FAILURE);
                                 }
                                 proceed = true;
+                                writeEntry = true;
                                 currentKey = __sync_fetch_and_add(&(globalKey), 1);
-
-                                size_t len = snprintf(buffer, sizeof(buffer), "%zu\t%s\t%zu\n", currentKey,
-                                          FileUtil::baseName(header.name).c_str(), i);
-                                int written = fwrite(buffer, sizeof(char), len, lookup);
-                                if (written != (int) len) {
-                                    Debug(Debug::ERROR) << "Cannot write to lookup file " << lookupFile << "\n";
-                                    EXIT(EXIT_FAILURE);
-                                }
                             }
+                        } else {
+                            proceed = true;
+                            writeEntry = false;
                         }
                     } else {
                         tar.isFinished = 1;
@@ -174,7 +179,8 @@ int tar2db(int argc, const char **argv, const Command& command) {
                         writeEntry = false;
                     }
                 }
-                if(proceed && writeEntry){
+                if (proceed && writeEntry) {
+                    progress.updateProgress();
                     if (Util::endsWith(".gz", header.name)) {
 #ifdef HAVE_ZLIB
                         inflateReset(&strm);
@@ -225,7 +231,8 @@ int tar2db(int argc, const char **argv, const Command& command) {
                     } else {
                         writer.writeData(dataBuffer, header.size, currentKey, thread_idx);
                     }
-
+                    size_t len = snprintf(buffer, sizeof(buffer), "%zu\t%s\t%zu\n", currentKey, FileUtil::baseName(header.name).c_str(), i);
+                    lookupWriter.writeData(buffer, len, thread_idx, false, false);
                 }
             }
 
@@ -238,17 +245,13 @@ int tar2db(int argc, const char **argv, const Command& command) {
 
         mtar_close(&tar);
     } // filename for
-    if (fclose(lookup) != 0) {
-        Debug(Debug::ERROR) << "Cannot close file " << lookupFile << "\n";
-        EXIT(EXIT_FAILURE);
-    }
+    writer.close();
+    lookupWriter.close(true);
+    FileUtil::remove(lookupWriter.getIndexFileName());
     if (fclose(source) != 0) {
         Debug(Debug::ERROR) << "Cannot close file " << sourceFile << "\n";
         EXIT(EXIT_FAILURE);
     }
-    writer.close();
-
 
     return EXIT_SUCCESS;
 }
-

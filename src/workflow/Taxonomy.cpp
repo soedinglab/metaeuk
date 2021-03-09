@@ -20,7 +20,6 @@ void setTaxonomyDefaults(Parameters *p) {
     p->orfStartMode = 1;
     p->orfMinLength = 30;
     p->orfMaxLength = 32734;
-    p->showTaxLineage = 0;
     p->orfFilter = true;
 }
 void setTaxonomyMustPassAlong(Parameters *p) {
@@ -33,33 +32,16 @@ void setTaxonomyMustPassAlong(Parameters *p) {
     p->PARAM_ORF_START_MODE.wasSet = true;
     p->PARAM_ORF_MIN_LENGTH.wasSet = true;
     p->PARAM_ORF_MAX_LENGTH.wasSet = true;
-    p->PARAM_TAXON_ADD_LINEAGE.wasSet = true;
-
 }
 
 int taxonomy(int argc, const char **argv, const Command& command) {
     Parameters& par = Parameters::getInstance();
 
-    par.PARAM_ADD_BACKTRACE.addCategory(MMseqsParameter::COMMAND_EXPERT);
-    par.PARAM_MAX_REJECTED.addCategory(MMseqsParameter::COMMAND_EXPERT);
-    par.PARAM_DB_OUTPUT.addCategory(MMseqsParameter::COMMAND_EXPERT);
-    par.PARAM_OVERLAP.addCategory(MMseqsParameter::COMMAND_EXPERT);
-    par.PARAM_DB_OUTPUT.addCategory(MMseqsParameter::COMMAND_EXPERT);
-    par.PARAM_RESCORE_MODE.addCategory(MMseqsParameter::COMMAND_EXPERT);
-    par.PARAM_NUM_ITERATIONS.addCategory(MMseqsParameter::COMMAND_EXPERT);
-    par.PARAM_PICK_ID_FROM.addCategory(MMseqsParameter::COMMAND_EXPERT);
-    for (size_t i = 0; i < par.createdb.size(); i++) {
-        par.createdb[i]->addCategory(MMseqsParameter::COMMAND_EXPERT);
+    for (size_t i = 0; i < par.searchworkflow.size(); i++) {
+        par.searchworkflow[i]->addCategory(MMseqsParameter::COMMAND_EXPERT);
     }
-    for (size_t i = 0; i < par.extractorfs.size(); i++) {
-        par.extractorfs[i]->addCategory(MMseqsParameter::COMMAND_EXPERT);
-    }
-    for (size_t i = 0; i < par.translatenucs.size(); i++) {
-        par.translatenucs[i]->addCategory(MMseqsParameter::COMMAND_EXPERT);
-    }
-    for (size_t i = 0; i < par.result2profile.size(); i++) {
-        par.result2profile[i]->addCategory(MMseqsParameter::COMMAND_EXPERT);
-    }
+    par.PARAM_S.removeCategory(MMseqsParameter::COMMAND_EXPERT);
+    par.PARAM_E.removeCategory(MMseqsParameter::COMMAND_EXPERT);
     par.PARAM_COMPRESSED.removeCategory(MMseqsParameter::COMMAND_EXPERT);
     par.PARAM_THREADS.removeCategory(MMseqsParameter::COMMAND_EXPERT);
     par.PARAM_V.removeCategory(MMseqsParameter::COMMAND_EXPERT);
@@ -69,8 +51,8 @@ int taxonomy(int argc, const char **argv, const Command& command) {
     setTaxonomyMustPassAlong(&par);
 
     if (par.taxonomySearchMode == Parameters::TAXONOMY_2BLCA) {
-        Debug(Debug::WARNING) << "2bLCA was replaced by Accelerated 2bLCA\n";
-        par.taxonomySearchMode = Parameters::TAXONOMY_ACCEL_2BLCA;
+        Debug(Debug::WARNING) << "2bLCA was replaced by approximate 2bLCA\n";
+        par.taxonomySearchMode = Parameters::TAXONOMY_APPROX_2BLCA;
     }
 
     std::string indexStr = PrefilteringIndexReader::searchForIndex(par.db2);
@@ -93,8 +75,8 @@ int taxonomy(int argc, const char **argv, const Command& command) {
 
     int searchMode = computeSearchMode(queryDbType, targetDbType, targetSrcDbType, par.searchType);
     if ((searchMode & Parameters::SEARCH_MODE_FLAG_QUERY_NUCLEOTIDE) && (searchMode & Parameters::SEARCH_MODE_FLAG_TARGET_NUCLEOTIDE)) {
-        if (par.taxonomySearchMode == Parameters::TAXONOMY_ACCEL_2BLCA) {
-            Debug(Debug::WARNING) << "Accel. 2bLCA cannot be used with nucl-nucl taxonomy, using top-hit instead";
+        if (par.taxonomySearchMode == Parameters::TAXONOMY_APPROX_2BLCA) {
+            Debug(Debug::WARNING) << "Accel. 2bLCA cannot be used with nucl-nucl taxonomy, using top-hit instead\n";
             par.taxonomySearchMode = Parameters::TAXONOMY_TOP_HIT;
         }
     }
@@ -123,10 +105,12 @@ int taxonomy(int argc, const char **argv, const Command& command) {
         // never show lineage for the orfs
         par.showTaxLineage = 0;
         par.PARAM_TAXON_ADD_LINEAGE.wasSet = true;
-        par.taxonomyOutpuMode = 2;
+        int taxonomyOutputMode = par.taxonomyOutputMode;
+        par.taxonomyOutputMode = Parameters::TAXONOMY_OUTPUT_BOTH;
         par.PARAM_TAX_OUTPUT_MODE.wasSet = true;
         cmd.addVariable("TAXONOMY_PAR", par.createParameterString(par.taxonomy, true).c_str());
         par.showTaxLineage = showTaxLineageOrig;
+        par.taxonomyOutputMode = taxonomyOutputMode;
         cmd.addVariable("AGGREGATETAX_PAR", par.createParameterString(par.aggregatetax).c_str());
         cmd.addVariable("SWAPDB_PAR", par.createParameterString(par.swapdb).c_str());
 
@@ -149,24 +133,24 @@ int taxonomy(int argc, const char **argv, const Command& command) {
     } else {
         if (par.taxonomySearchMode == Parameters::TAXONOMY_TOP_HIT) {
             cmd.addVariable("TOPHIT_MODE", "1");
-        } else if (par.taxonomySearchMode == Parameters::TAXONOMY_ACCEL_2BLCA) {
+        } else if (par.taxonomySearchMode == Parameters::TAXONOMY_APPROX_2BLCA) {
             par.lcaSearch = true;
             par.PARAM_LCA_SEARCH.wasSet = true;
             cmd.addVariable("TOPHIT_MODE", NULL);
         }
         cmd.addVariable("SEARCH_PAR", par.createParameterString(par.searchworkflow, true).c_str());
 
-        if (par.taxonomyOutpuMode == Parameters::TAXONOMY_OUTPUT_LCA) {
-            cmd.addVariable("TAX_OUTPUT", "0");
-            cmd.addVariable("LCA_PAR", par.createParameterString(par.lca).c_str());
-        } else if (par.taxonomyOutpuMode == Parameters::TAXONOMY_OUTPUT_BOTH) {
-            cmd.addVariable("TAX_OUTPUT", "2");
-            cmd.addVariable("LCA_PAR", par.createParameterString(par.lca).c_str());
-        } else {
-            cmd.addVariable("TAX_OUTPUT", "1");
-        }
         program = tmpDir + "/taxonomy.sh";
         FileUtil::writeFile(program.c_str(), taxonomy_sh, taxonomy_sh_len);
+    }
+    if (par.taxonomyOutputMode == Parameters::TAXONOMY_OUTPUT_LCA) {
+        cmd.addVariable("TAX_OUTPUT", "0");
+        cmd.addVariable("LCA_PAR", par.createParameterString(par.lca).c_str());
+    } else if (par.taxonomyOutputMode == Parameters::TAXONOMY_OUTPUT_BOTH) {
+        cmd.addVariable("TAX_OUTPUT", "2");
+        cmd.addVariable("LCA_PAR", par.createParameterString(par.lca).c_str());
+    } else {
+        cmd.addVariable("TAX_OUTPUT", "1");
     }
     cmd.execProgram(program.c_str(), par.filenames);
 
