@@ -31,8 +31,9 @@ struct PotentialExon {
         // from O<-->C alignment:
         exonKey = Util::fast_atoi<int>(exonData[10]);
 
-        int potentialExonContigStartBeforeTrim = Util::fast_atoi<int>(exonData[17]);
-        int potentialExonContigEndBeforeTrim = Util::fast_atoi<int>(exonData[18]);
+        // these coordinates are kept in case someone wants to know where the edge of the fragement was:
+        potentialExonContigStartBeforeTrim = Util::fast_atoi<int>(exonData[17]);
+        potentialExonContigEndBeforeTrim = Util::fast_atoi<int>(exonData[18]);
         
         // adjust strand and contig positions based on match to T
         // plus strand:
@@ -62,7 +63,7 @@ struct PotentialExon {
     }
 
     void setByDPRes (const char ** exonData) {
-        // assumption - exonData has 17 columns!
+        // assumption - exonData has 19 columns!
 
         // from predictions part (same for all exons in prediction):
         targetKey = Util::fast_atoi<int>(exonData[0]);
@@ -82,13 +83,17 @@ struct PotentialExon {
         contigEnd = Util::fast_atoi<int>(exonData[15]);
         nucleotideLen = Util::fast_atoi<int>(exonData[16]);
 
+        // these allow following up on where the stop codon at the border of the exon was:
+        potentialExonContigStartBeforeTrim = Util::fast_atoi<int>(exonData[17]);
+        potentialExonContigEndBeforeTrim = Util::fast_atoi<int>(exonData[18]);
+
         // compute contribution to target coverage
         targetCov = (double)(targetMatchEnd - targetMatchStart + 1) / targetLen;
         aaLen = nucleotideLen / 3;
     }
 
     static size_t exonToBuffer (char * exonBuffer, const PotentialExon & exon) {
-        // writes 10 columns format
+        // writes 12 columns format
         char * basePos = exonBuffer;
         
         char * tmpBuff = Itoa::u32toa_sse2((uint32_t) exon.exonKey, exonBuffer);
@@ -144,6 +149,11 @@ struct PotentialExon {
         tmpBuff = Itoa::i32toa_sse2(exon.contigEnd, tmpBuff);
         *(tmpBuff-1) = '\t';
         tmpBuff = Itoa::i32toa_sse2(exon.nucleotideLen, tmpBuff);
+        *(tmpBuff-1) = '\t';
+
+        tmpBuff = Itoa::i32toa_sse2(exon.potentialExonContigStartBeforeTrim, tmpBuff);
+        *(tmpBuff-1) = '\t';
+        tmpBuff = Itoa::i32toa_sse2(exon.potentialExonContigEndBeforeTrim, tmpBuff);
 
         *(tmpBuff-1) = '\n';
         *(tmpBuff) = '\0';
@@ -185,6 +195,9 @@ struct PotentialExon {
     int contigEnd;
     int nucleotideLen;
     int aaLen;
+
+    int potentialExonContigStartBeforeTrim;
+    int potentialExonContigEndBeforeTrim;
 };
 
 class Prediction {

@@ -203,9 +203,9 @@ int unitesetstofasta(int argn, const char **argv, const Command& command) {
                 const size_t columns = Util::getWordsOfLine(results, entry, 255);
                 // each line informs of a prediction and a single exon
                 // the first 7 columns describe the entire prediction
-                // the last 10 columns describe a single exon
-                if (columns != 17) {
-                    Debug(Debug::ERROR) << "There should be 17 columns in the input file. This doesn't seem to be the case.\n";
+                // the last 12 columns describe a single exon
+                if (columns != 19) {
+                    Debug(Debug::ERROR) << "There should be 19 columns in the input file. This doesn't seem to be the case.\n";
                     EXIT(EXIT_FAILURE);
                 }
 
