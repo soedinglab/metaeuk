@@ -110,7 +110,7 @@ void preparePredDataAndHeader (const Prediction & pred, const std::string & targ
         if (strand == PLUS) {
             stopCodonPosition = lastCodingPosition + 1;
         } else {
-            stopCodonPosition = lastCodingPosition - 4;
+            stopCodonPosition = lastCodingPosition - 3;
         }
         
         // handle edge case of last codon on the edge of the contig. 
