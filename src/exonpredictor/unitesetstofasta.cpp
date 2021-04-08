@@ -234,11 +234,15 @@ int unitesetstofasta(int argn, const char **argv, const Command& command) {
             bool isFirstIteration = true;
             
             // get contig data and header:
-            const char* contigData = contigsData.getDataByDBKey(contigKey, thread_idx);
+            size_t contigId = contigsData.getId(contigKey);
+            if (contigId == UINT_MAX) {
+                Debug(Debug::ERROR) << "Sequence " << contigKey << " does not exist in the sequence database\n";
+                EXIT(EXIT_FAILURE);
+            }
+            const char* contigData = contigsData.getData(contigId, thread_idx);
+            size_t contigLen = contigsData.getSeqLen(contigId);
             const char* contigHeader = contigsHeaders.getDataByDBKey(contigKey, thread_idx);
             std::string contigHeaderAcc = Util::parseFastaHeader(contigHeader);
-            size_t contigId = contigsData.getId(contigKey);
-            size_t contigLen = contigsData.getSeqLen(contigId);
 
             // process a specific contig
             while (*results != '\0') {
