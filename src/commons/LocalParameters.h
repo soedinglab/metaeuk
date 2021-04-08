@@ -108,7 +108,6 @@ private:
         unitesetstofasta.push_back(&PARAM_WRITE_TKEY);
         unitesetstofasta.push_back(&PARAM_WRITE_FRAG_COORDS);
         unitesetstofasta.push_back(&PARAM_THREADS);
-        unitesetstofasta.push_back(&PARAM_COMPRESSED);
         unitesetstofasta.push_back(&PARAM_V);
 
         easypredictworkflow = combineList(searchworkflow, collectoptimalset);

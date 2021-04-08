@@ -179,20 +179,20 @@ int unitesetstofasta(int argn, const char **argv, const Command& command) {
     std::string fastaAaFileNameIndex = par.db4Index;
 
     // out AA fasta
-    DBWriter fastaAaWriter(fastaAaFileName.c_str(), fastaAaFileNameIndex.c_str(), par.threads, par.compressed, Parameters::DBTYPE_OMIT_FILE);
+    DBWriter fastaAaWriter(fastaAaFileName.c_str(), fastaAaFileNameIndex.c_str(), par.threads, 0, Parameters::DBTYPE_OMIT_FILE);
     fastaAaWriter.open();
 
     std::string fastaCodonFileName = par.db4 + ".codon.fas";
     std::string fastaCodonFileNameIndex = par.db4 + ".codon.index";
 
     // out codon fasta
-    DBWriter fastaCodonWriter(fastaCodonFileName.c_str(), fastaCodonFileNameIndex.c_str(), par.threads, par.compressed, Parameters::DBTYPE_OMIT_FILE);
+    DBWriter fastaCodonWriter(fastaCodonFileName.c_str(), fastaCodonFileNameIndex.c_str(), par.threads, 0, Parameters::DBTYPE_OMIT_FILE);
     fastaCodonWriter.open();
 
     // out mapping - MetaEuk header to contig, target, etc. Mimicking the headers produced by extractorfs so this can later be plugged in easily
     std::string mapFileName = par.db4 + ".headersMap.tsv";
     std::string mapFileNameIndex = par.db4 + ".headersMap.tsv.index"; // not used
-    DBWriter mapWriter(mapFileName.c_str(), mapFileNameIndex.c_str(), par.threads, par.compressed, Parameters::DBTYPE_OMIT_FILE);
+    DBWriter mapWriter(mapFileName.c_str(), mapFileNameIndex.c_str(), par.threads, 0, Parameters::DBTYPE_OMIT_FILE);
     mapWriter.open();
 
     // for the translated result
