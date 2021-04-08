@@ -5,8 +5,6 @@
 #include "Debug.h"
 #include "Util.h"
 #include "FileUtil.h"
-#include "MathUtil.h"
-#include "itoa.h"
 #include "Orf.h"
 #include "TranslateNucl.h"
 
@@ -214,9 +212,9 @@ int unitesetstofasta(int argn, const char **argv, const Command& command) {
         Prediction plusPred;
         Prediction minusPred;
 
-        char translatedSeqBuff[Parameters::MAX_SEQ_LEN];
-        char targetKeyBuff[40];
-        
+        size_t translatedSeqBuffSize = par.maxSeqLen * sizeof(char);
+        char* translatedSeqBuff = (char*)malloc(translatedSeqBuffSize);
+
 #pragma omp for schedule(dynamic, 100)
         for (size_t id = 0; id < predsPerContig.getSize(); id++) {
             progress.updateProgress();
@@ -271,8 +269,7 @@ int unitesetstofasta(int argn, const char **argv, const Command& command) {
                     const char* targetHeader = targetsHeaders.getDataByDBKey(currTargetKey, thread_idx);
                     std::string targetHeaderAcc;
                     if (par.writeTargetKey == true) {
-                        Itoa::u32toa_sse2(static_cast<uint32_t>(currTargetKey), targetKeyBuff);
-                        targetHeaderAcc = std::string(targetKeyBuff);
+                        targetHeaderAcc = SSTR(currTargetKey);
                     } else {
                         targetHeaderAcc = Util::parseFastaHeader(targetHeader);
                     }
@@ -294,6 +291,11 @@ int unitesetstofasta(int argn, const char **argv, const Command& command) {
                             EXIT(EXIT_FAILURE);
                         }
                         size_t aaLen = nuclLen / 3;
+                        if ((aaLen + 1) > translatedSeqBuffSize) {
+                            translatedSeqBuffSize = (aaLen + 1) * 1.5 * sizeof(char);
+                            translatedSeqBuff = (char*)realloc(translatedSeqBuff, translatedSeqBuffSize);
+                            Util::checkAllocation(translatedSeqBuff, "Cannot reallocate translatedSeqBuff");
+                        }
                         translateNucl.translate(translatedSeqBuff, result.c_str(), nuclLen);
                         translatedSeqBuff[aaLen] = '\n';
                         fastaAaWriter.writeData(translatedSeqBuff, (aaLen + 1), 0, thread_idx, false, false);
@@ -316,6 +318,11 @@ int unitesetstofasta(int argn, const char **argv, const Command& command) {
                             EXIT(EXIT_FAILURE);
                         }
                         size_t aaLen = nuclLen / 3;
+                        if ((aaLen + 1) > translatedSeqBuffSize) {
+                            translatedSeqBuffSize = (aaLen + 1) * 1.5 * sizeof(char);
+                            translatedSeqBuff = (char*)realloc(translatedSeqBuff, translatedSeqBuffSize);
+                            Util::checkAllocation(translatedSeqBuff, "Cannot reallocate translatedSeqBuff");
+                        }
                         translateNucl.translate(translatedSeqBuff, result.c_str(), nuclLen);
                         translatedSeqBuff[aaLen] = '\n';
                         fastaAaWriter.writeData(translatedSeqBuff, (aaLen + 1), 0, thread_idx, false, false);
@@ -345,8 +352,7 @@ int unitesetstofasta(int argn, const char **argv, const Command& command) {
             const char* targetHeader = targetsHeaders.getDataByDBKey(currTargetKey, thread_idx);
             std::string targetHeaderAcc;
             if (par.writeTargetKey == true) {
-                Itoa::u32toa_sse2(static_cast<uint32_t>(currTargetKey), targetKeyBuff);
-                targetHeaderAcc = std::string(targetKeyBuff);
+                targetHeaderAcc = SSTR(currTargetKey);
             } else {
                 targetHeaderAcc = Util::parseFastaHeader(targetHeader);
             }
@@ -368,6 +374,11 @@ int unitesetstofasta(int argn, const char **argv, const Command& command) {
                     EXIT(EXIT_FAILURE);
                 }
                 size_t aaLen = nuclLen / 3;
+                if ((aaLen + 1) > translatedSeqBuffSize) {
+                    translatedSeqBuffSize = (aaLen + 1) * 1.5 * sizeof(char);
+                    translatedSeqBuff = (char*)realloc(translatedSeqBuff, translatedSeqBuffSize);
+                    Util::checkAllocation(translatedSeqBuff, "Cannot reallocate translatedSeqBuff");
+                }
                 translateNucl.translate(translatedSeqBuff, result.c_str(), nuclLen);
                 translatedSeqBuff[aaLen] = '\n';
                 fastaAaWriter.writeData(translatedSeqBuff, (aaLen + 1), 0, thread_idx, false, false);
@@ -390,6 +401,11 @@ int unitesetstofasta(int argn, const char **argv, const Command& command) {
                     EXIT(EXIT_FAILURE);
                 }
                 size_t aaLen = nuclLen / 3;
+                if ((aaLen + 1) > translatedSeqBuffSize) {
+                    translatedSeqBuffSize = (aaLen + 1) * 1.5 * sizeof(char);
+                    translatedSeqBuff = (char*)realloc(translatedSeqBuff, translatedSeqBuffSize);
+                    Util::checkAllocation(translatedSeqBuff, "Cannot reallocate translatedSeqBuff");
+                }
                 translateNucl.translate(translatedSeqBuff, result.c_str(), nuclLen);
                 translatedSeqBuff[aaLen] = '\n';
                 fastaAaWriter.writeData(translatedSeqBuff, (aaLen + 1), 0, thread_idx, false, false);
@@ -399,6 +415,7 @@ int unitesetstofasta(int argn, const char **argv, const Command& command) {
             plusPred.clearPred();
             minusPred.clearPred();
         }
+        free(translatedSeqBuff);
     }
     fastaAaWriter.close(true);
     fastaCodonWriter.close(true);

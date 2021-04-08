@@ -107,6 +107,7 @@ private:
         unitesetstofasta.push_back(&PARAM_TRANSLATION_TABLE);
         unitesetstofasta.push_back(&PARAM_WRITE_TKEY);
         unitesetstofasta.push_back(&PARAM_WRITE_FRAG_COORDS);
+        unitesetstofasta.push_back(&PARAM_MAX_SEQ_LEN);
         unitesetstofasta.push_back(&PARAM_THREADS);
         unitesetstofasta.push_back(&PARAM_V);
 
