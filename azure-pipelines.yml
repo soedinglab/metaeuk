@@ -158,6 +158,7 @@ jobs:
     dependsOn:
       - build_macos_1015
       - build_ubuntu_1804
+      - build_ubuntu_cross_2004
     steps:
       - script: |
           cd "${BUILD_SOURCESDIRECTORY}"
