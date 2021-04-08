@@ -4,10 +4,10 @@
 [![BioConda Install](https://img.shields.io/conda/dn/bioconda/metaeuk.svg?style=flag&label=BioConda%20install)](https://anaconda.org/bioconda/metaeuk)
 [![Biocontainer Pulls](https://img.shields.io/endpoint?url=https%3A%2F%2Fmmseqs.com%2Fbiocontainer.php%3Fcontainer%3Dmetaeuk)](https://biocontainers.pro/#/tools/metaeuk)
 [![Docker Pulls](https://img.shields.io/docker/pulls/soedinglab/metaeuk.svg)](https://hub.docker.com/r/soedinglab/metaeuk)
-[![Build Status](https://dev.azure.com/elilevy/MetaEuk/_apis/build/status/soedinglab.metaeuk?branchName=master)](https://dev.azure.com/themartinsteinegger/mmseqs2/_build/latest?definitionId=2&branchName=master)
+[![Build Status](https://dev.azure.com/elilevy/MetaEuk/_apis/build/status/soedinglab.metaeuk?branchName=master)](https://dev.azure.com/elilevy/MetaEuk/_build/latest?definitionId=2&branchName=master)
 [![Chat Support](https://chat.mmseqs.com/api/v1/shield.svg?type=online&name=chat&icon=false)](https://chat.mmseqs.com/channel/metaeuk)
 
-MetaEuk is a modular toolkit designed for large-scale gene discovery and annotation in eukaryotic metagenomic contigs. Metaeuk combines the fast and sensitive homology search capabilities of [MMseqs2](https://github.com/soedinglab/MMseqs2) with a dynamic programming procedure to recover optimal exons sets. It reduces redundancies in multiple discoveries of the same gene and resolves conflicting gene predictions on the same strand. MetaEuk is GPL-licensed open source software that is implemented in C++ and available for Linux and macOS. The software is designed to run on multiple cores.
+MetaEuk is a modular toolkit designed for large-scale gene discovery and annotation in eukaryotic metagenomic contigs. MetaEuk combines the fast and sensitive homology search capabilities of [MMseqs2](https://github.com/soedinglab/MMseqs2) with a dynamic programming procedure to recover optimal exons sets. It reduces redundancies in multiple discoveries of the same gene and resolves conflicting gene predictions on the same strand. MetaEuk is GPLv3-licensed open source software that is implemented in C++ and available for Linux and macOS. The software is designed to run efficiently on multiple cores.
 
 ## Publication
 
@@ -17,11 +17,19 @@ MetaEuk is a modular toolkit designed for large-scale gene discovery and annotat
 
 ## Installation
 MetaEuk can be used by compiling from source (see below) or downloading a [statically compiled version](https://mmseqs.com/metaeuk/). It requires a 64-bit system (check with `uname -a | grep x86_64`) with at least the SSE4.1 instruction set (check by executing `cat /proc/cpuinfo | grep sse4_1` on Linux or `sysctl -a | grep machdep.cpu.features | grep SSE4.1` on MacOS).
-     
-     # static build sse4.1
-     wget https://mmseqs.com/metaeuk/metaeuk-linux-sse41.tar.gz; tar xvfz metaeuk-linux-sse41.tar.gz; export PATH=$(pwd)/metaeuk/bin/:$PATH
-     # static build AVX2
-     wget https://mmseqs.com/metaeuk/metaeuk-linux-avx2.tar.gz; tar xvfz metaeuk-linux-avx2.tar.gz; export PATH=$(pwd)/metaeuk/bin/:$PATH
+
+```
+# install via conda
+conda install -c conda-forge -c bioconda metaeuk
+# static Linux AVX2 build
+wget https://mmseqs.com/metaeuk/metaeuk-linux-avx2.tar.gz; tar xzvf metaeuk-linux-avx2.tar.gz; export PATH=$(pwd)/metaeuk/bin/:$PATH
+# static Linux SSE4.1 build
+wget https://mmseqs.com/metaeuk/metaeuk-linux-sse41.tar.gz; tar xzvf metaeuk-linux-sse41.tar.gz; export PATH=$(pwd)/metaeuk/bin/:$PATH
+# static macOS build (universal binary with SSE4.1/AVX2/M1 NEON)
+wget https://mmseqs.com/metaeuk/metaeuk-osx-universal.tar.gz; tar xzvf metaeuk-osx-universal.tar.gz; export PATH=$(pwd)/metaeuk/bin/:$PATH
+```
+
+Precompiled binaries for other architectures (ARM64, PPC64LE) and very old AMD/Intel CPUs (SSE2 only) are available at https://mmseqs.com/metaeuk.
 
 ## Input 
 MetaEuk will search for eukaryotic protein-coding genes in **contigs** based on similarity to a reference set of **proteins** or **protein profiles**. The starting point are Fasta files of sequences (you can use contigs.fna and proteins.faa from the tests/two_contigs directory as a small toy example).
@@ -30,7 +38,7 @@ You could **either** use the ```easy-predict``` workflow directly on the Fasta f
 Read [here](https://github.com/soedinglab/mmseqs2/wiki#how-to-create-a-target-profile-database-from-pfam) to learn more on how to create a protein profile database using MMseqs2. Once created, this database can be used as referenceDB in the commands below.
 
 ## Terminology
-A **gene call** is an optimal set of exons predicted based on similarity to a specific target (**T**) in a specific contig (**C**) and strand (**S**). In the following it is referred to as a **TCS** or as a **call**. After redundancy reduction (see details below), the **representative TCS** is reffered to as **prediction**.
+A **gene call** is an optimal set of exons predicted based on similarity to a specific target (**T**) in a specific contig (**C**) and strand (**S**). In the following it is referred to as a **TCS** or as a **call**. After redundancy reduction (see details below), the **representative TCS** is referred to as **prediction**.
 
 ## Running MetaEuk 
 ### Main Modules:
@@ -46,7 +54,7 @@ A **gene call** is an optimal set of exons predicted based on similarity to a sp
 ### Important parameters: 
 
      --min-length        minimal number of codons in putative protein fragment
-     -e                  maximal E-Value to retain a match between a putative protein fragment and a reference taraget 
+     -e                  maximal E-Value to retain a match between a putative protein fragment and a reference target 
      --metaeuk-eval      maximal combined E-Value to retain an optimal exon set
      --metaeuk-tcov      minimal length ratio of combined set to target 
      --slice-search      if referenceDB is a profile database, should be added
@@ -54,7 +62,7 @@ A **gene call** is an optimal set of exons predicted based on similarity to a sp
 
 ### easy-predict workflow:
 
-This workflow combines the following MetaEuk modules into a single step: predictexons, reduceredundancy and unitesetstofasta (each of which is detailed below). Its input are contigs (either as a Fasta file or a previously created database) and targets (either as a Fasta file of protein sequences or a previously created database of proteins or protein profiles). It will run the modules and output the predictions in Fasta foramt.
+This workflow combines the following MetaEuk modules into a single step: predictexons, reduceredundancy and unitesetstofasta (each of which is detailed below). Its inputs are contigs (either as a Fasta file or a previously created database) and targets (either as a FASTA file of protein sequences or a previously created database of proteins or protein profiles). It will run the modules and output the predictions in FASTA format.
     
     metaeuk easy-predict contigsFasta/contigsDB proteinsFasta/referenceDB predsResults tempFolder
     
@@ -120,7 +128,7 @@ can help mapping from each representative prediction after the redundancy reduct
 
 ### Taxonomic assignment with taxtocontig:
 
-After obtaining MetaEuk predictions, the *taxtocontig* workflow allows assigning taxonomic labels to the predicted MetaEuk proteins and confer these predictions to their contigs. This workflow internally runs [*taxonomy*](https://github.com/soedinglab/MMseqs2/wiki#the-concept-of-lca) on the MetaEuk prediciotions, using any `--lca-mode`. It then performs majority voting among the taxonomically labeled predictions on a given contig to select a label for the contig. The parameter ```--majority``` indicates the minimal fraction of labeled predictions that agree in their taxonomic assignment (1.0 - consensus, 0.5 - at least 50%, etc.). The contig's label will be the last common ancestor (LCA) of the fraction of labeled predictions in agreement.
+After obtaining MetaEuk predictions, the *taxtocontig* workflow allows assigning taxonomic labels to the predicted MetaEuk proteins and confer these predictions to their contigs. This workflow internally runs [*taxonomy*](https://github.com/soedinglab/MMseqs2/wiki#the-concept-of-lca) on the MetaEuk predictions, using any `--lca-mode`. It then performs majority voting among the taxonomically labeled predictions on a given contig to select a label for the contig. The parameter ```--majority``` indicates the minimal fraction of labeled predictions that agree in their taxonomic assignment (1.0 - consensus, 0.5 - at least 50%, etc.). The contig's label will be the last common ancestor (LCA) of the fraction of labeled predictions in agreement.
 
 #### Example:
 predictions' taxonomic labels: *Ostreococcus tauri*, *Ostreococcus mediterraneus*, *unclassified*, *Bathycoccus prasinos*
@@ -138,19 +146,19 @@ predictions' taxonomic labels: *Ostreococcus tauri*, *Ostreococcus mediterraneus
 The run ends with two files: **taxResult_per_pred.tsv** and **taxResult_per_contig.tsv**, each of which is in [taxonomy result TSV format](https://github.com/soedinglab/MMseqs2/wiki#taxonomy-output-and-tsv)
 
 ## Compile from source
-Compiling MetaEuk from source has the advantage that it will be optimized to the specific system, which should improve its performance. To compile MetaEuk `git`, `g++` (4.6 or higher) and `cmake` (3.0 or higher) are required. Afterwards, the MetaEuk binary will be located in the `build/bin` directory.
+Compiling MetaEuk from source has the advantage that it will be optimized to the specific system, which should improve its performance. To compile MetaEuk `git`, `g++` (4.9 or higher) and `cmake` (3.0 or higher) are required. Afterwards, the MetaEuk binary will be located in the `build/bin` directory.
 
-      git clone git@github.com:soedinglab/metaeuk.git .
+      git clone https://github.com/soedinglab/metaeuk.git .
       mkdir build
       cd build
-      cmake -DCMAKE_BUILD_TYPE=Release -DHAVE_MPI=1 -DCMAKE_INSTALL_PREFIX=. ..
+      cmake -DCMAKE_BUILD_TYPE=Release -DCMAKE_INSTALL_PREFIX=. ..
       make -j
       make install
       export PATH="$(pwd)/bin/:$PATH"
         
 :exclamation: If you want to compile metaeuk on macOS, please install and use `gcc` from Homebrew. The default macOS `clang` compiler does not support OpenMP and MetaEuk will not be able to run multithreaded. Use the following cmake call:
 
-      CXX="$(brew --prefix)/bin/g++-8" cmake -DCMAKE_BUILD_TYPE=RELEASE -DCMAKE_INSTALL_PREFIX=. ..
+      CXX="$(brew --prefix)/bin/g++-10" cmake -DCMAKE_BUILD_TYPE=RELEASE -DCMAKE_INSTALL_PREFIX=. ..
 
 ## Hardware requirements
 MetaEuk will scale its memory consumption based on the available main memory of the machine. MetaEuk needs a CPU with at least the SSE4.1 instruction set to run. 
