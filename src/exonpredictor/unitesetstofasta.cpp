@@ -31,6 +31,12 @@ void preparePredDataAndHeader (const Prediction & pred, const std::string & targ
     joinedHeaderStream.str("");
     joinedExonsStream.str("");
 
+    // if list is empty - return:
+    size_t numExonsInPred = pred.optimalExonSet.size();
+    if (numExonsInPred == 0) {
+        return;
+    }
+
     // initialize header:
     joinedHeaderStream << targetHeaderAcc << "|" << contigHeaderAcc << "|";
     if (pred.strand == PLUS) {
@@ -93,6 +99,35 @@ void preparePredDataAndHeader (const Prediction & pred, const std::string & targ
             joinedExonsStream << exonContigRevCompSeq;
         }
     }
+
+    // if flag is on, add the stop codon after the last exon (if exists)
+    if ((writeFragCoords == true) && 
+        (pred.optimalExonSet[numExonsInPred - 1].potentialExonContigEndBeforeTrim == abs(pred.optimalExonSet[numExonsInPred - 1].contigEnd))) {
+        
+        int lastCodingPosition = pred.optimalExonSet[numExonsInPred - 1].potentialExonContigEndBeforeTrim;
+        int strand = pred.optimalExonSet[numExonsInPred - 1].strand;
+        int stopCodonPosition = 0;
+        if (strand == PLUS) {
+            stopCodonPosition = lastCodingPosition + 1;
+        } else {
+            stopCodonPosition = lastCodingPosition - 4;
+        }
+        
+        // handle edge case of last codon on the edge of the contig. 
+        // don't touch memory that shouldn't be touched.
+        size_t lenOfContig = strlen(contigData);
+        if ((stopCodonPosition <= (int)(lenOfContig - 2)) && (stopCodonPosition >= 0)) {
+            std::string stopCodonSeq(&contigData[stopCodonPosition], 3);
+            if (strand == PLUS) {
+                joinedExonsStream << stopCodonSeq;
+            } else {
+                std::string stopCodonSeqRevCompSeq(stopCodonSeq);
+                reverseComplement (stopCodonSeq, stopCodonSeqRevCompSeq);
+                joinedExonsStream << stopCodonSeqRevCompSeq;
+            }
+        }
+    }
+
     joinedHeaderStream << "\n";
     joinedExonsStream << "\n";
 }
