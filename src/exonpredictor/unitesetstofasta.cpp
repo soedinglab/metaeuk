@@ -25,7 +25,8 @@ void reverseComplement (const std::string & seq, std::string & revCompSeq) {
 }
 
 void preparePredDataAndHeader (const Prediction & pred, const std::string & targetHeaderAcc, const std::string & contigHeaderAcc, 
-                                    const char* contigData, std::ostringstream & joinedHeaderStream, std::ostringstream & joinedExonsStream, const int writeFragCoords) {
+                                    const char* contigData, std::ostringstream & joinedHeaderStream, std::ostringstream & joinedExonsStream, 
+                                    const int writeFragCoords, const size_t contigLen) {
     
     // clear streams:
     joinedHeaderStream.str("");
@@ -115,8 +116,7 @@ void preparePredDataAndHeader (const Prediction & pred, const std::string & targ
         
         // handle edge case of last codon on the edge of the contig. 
         // don't touch memory that shouldn't be touched.
-        size_t lenOfContig = strlen(contigData);
-        if ((stopCodonPosition <= (int)(lenOfContig - 2)) && (stopCodonPosition >= 0)) {
+        if ((stopCodonPosition <= (int)(contigLen - 2)) && (stopCodonPosition >= 0)) {
             std::string stopCodonSeq(&contigData[stopCodonPosition], 3);
             if (strand == PLUS) {
                 joinedExonsStream << stopCodonSeq;
@@ -239,6 +239,8 @@ int unitesetstofasta(int argn, const char **argv, const Command& command) {
             const char* contigData = contigsData.getDataByDBKey(contigKey, thread_idx);
             const char* contigHeader = contigsHeaders.getDataByDBKey(contigKey, thread_idx);
             std::string contigHeaderAcc = Util::parseFastaHeader(contigHeader);
+            size_t contigId = contigsData.getId(contigKey);
+            size_t contigLen = contigsData.getSeqLen(contigId);
 
             // process a specific contig
             while (*results != '\0') {
@@ -276,7 +278,7 @@ int unitesetstofasta(int argn, const char **argv, const Command& command) {
                     }
                     
                     if (plusPred.optimalExonSet.size() > 0) {
-                        preparePredDataAndHeader(plusPred, targetHeaderAcc, contigHeaderAcc, contigData, joinedHeaderStream, joinedExonsStream, par.writeFragCoords);
+                        preparePredDataAndHeader(plusPred, targetHeaderAcc, contigHeaderAcc, contigData, joinedHeaderStream, joinedExonsStream, par.writeFragCoords, contigLen);
                         std::string result = ">" + joinedHeaderStream.str();
                         fastaAaWriter.writeData(result.c_str(), result.size(), 0, thread_idx, false, false);
                         fastaCodonWriter.writeData(result.c_str(), result.size(), 0, thread_idx, false, false);
@@ -298,7 +300,7 @@ int unitesetstofasta(int argn, const char **argv, const Command& command) {
                         fastaCodonWriter.writeData(result.c_str(), result.size(), 0, thread_idx, false, false);
                     }
                     if (minusPred.optimalExonSet.size() > 0) {
-                        preparePredDataAndHeader(minusPred, targetHeaderAcc, contigHeaderAcc, contigData, joinedHeaderStream, joinedExonsStream, par.writeFragCoords);
+                        preparePredDataAndHeader(minusPred, targetHeaderAcc, contigHeaderAcc, contigData, joinedHeaderStream, joinedExonsStream, par.writeFragCoords, contigLen);
                         std::string result = ">" + joinedHeaderStream.str();
                         fastaAaWriter.writeData(result.c_str(), result.size(), 0, thread_idx, false, false);
                         fastaCodonWriter.writeData(result.c_str(), result.size(), 0, thread_idx, false, false);
@@ -350,7 +352,7 @@ int unitesetstofasta(int argn, const char **argv, const Command& command) {
             }
             
             if (plusPred.optimalExonSet.size() > 0) {
-                preparePredDataAndHeader(plusPred, targetHeaderAcc, contigHeaderAcc, contigData, joinedHeaderStream, joinedExonsStream, par.writeFragCoords);
+                preparePredDataAndHeader(plusPred, targetHeaderAcc, contigHeaderAcc, contigData, joinedHeaderStream, joinedExonsStream, par.writeFragCoords, contigLen);
                 std::string result = ">" + joinedHeaderStream.str();
                 fastaAaWriter.writeData(result.c_str(), result.size(), 0, thread_idx, false, false);
                 fastaCodonWriter.writeData(result.c_str(), result.size(), 0, thread_idx, false, false);
@@ -372,7 +374,7 @@ int unitesetstofasta(int argn, const char **argv, const Command& command) {
                 fastaCodonWriter.writeData(result.c_str(), result.size(), 0, thread_idx, false, false);
             }
             if (minusPred.optimalExonSet.size() > 0) {
-                preparePredDataAndHeader(minusPred, targetHeaderAcc, contigHeaderAcc, contigData, joinedHeaderStream, joinedExonsStream, par.writeFragCoords);
+                preparePredDataAndHeader(minusPred, targetHeaderAcc, contigHeaderAcc, contigData, joinedHeaderStream, joinedExonsStream, par.writeFragCoords, contigLen);
                 std::string result = ">" + joinedHeaderStream.str();
                 fastaAaWriter.writeData(result.c_str(), result.size(), 0, thread_idx, false, false);
                 fastaCodonWriter.writeData(result.c_str(), result.size(), 0, thread_idx, false, false);
