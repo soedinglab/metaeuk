@@ -114,6 +114,12 @@ Example header (two exons on the minus strand):
 
 *>protein_acc|contig_acc|-|1146|0|2|3|1875|1875[1875]:970[970]:906[906]|893[869]:3[3]:891[867]*
 
+Optionally, by setting the flag `--write-frag-coords 1`, information about the position of stop codons will be added to the output. In this case the exon_coords will be given in the following structure:
+
+*[fragment_low]low[taken_low]:[fragment_high]high[taken_high]:nucleotide_length[taken_nucleotide_length]*
+
+In its initial stage, MetaEuk extracts putative coding fragments between stop codons. It later discover exons within them by matching targets. The fragment coordinates in square brackets refer to the original fragment in which the exon was found. In addition to reporting these coordinates, MetaEuk will print the stop codon (`*` in the protein output) right at the end of the last exon, if it exists.
+
 
 ### Creating a TSV map of predictions to their TCS group members:
 
