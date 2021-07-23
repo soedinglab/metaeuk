@@ -49,6 +49,11 @@ A **gene call** is an optimal set of exons predicted based on similarity to a sp
       unitesetstofasta  	Create fasta output from optimal exon sets (and a TSV map between headers and internal identifiers)
       groupstoacc     	Create a TSV output from representative to calls
       taxtocontig     	Assign taxonomic labels to MetaEuk predictions and contigs by majority voting
+      
+ 
+### Using MMseqs2 commands within MetaEuk:
+MMseqs2 commands are available through MetaEuk and no additional MMseqs2 installation is required.
+For example, the MMseqs2 command `mmseqs createdb` can be replaced with `metaeuk createdb`, `mmseqs databases` with `metaeuk databases`, etc. Please see also the [MMseqs2 Wiki](https://github.com/soedinglab/MMseqs2/wiki) for more info about MMseqs2 commands.
 
 
 ### Important parameters: 
@@ -134,7 +139,7 @@ can help mapping from each representative prediction after the redundancy reduct
 
 ### Taxonomic assignment with taxtocontig:
 
-After obtaining MetaEuk predictions, the *taxtocontig* workflow allows assigning taxonomic labels to the predicted MetaEuk proteins and confer these predictions to their contigs. This workflow internally runs [*taxonomy*](https://github.com/soedinglab/MMseqs2/wiki#the-concept-of-lca) on the MetaEuk predictions, using any `--lca-mode`. It then performs majority voting among the taxonomically labeled predictions on a given contig to select a label for the contig. The parameter ```--majority``` indicates the minimal fraction of labeled predictions that agree in their taxonomic assignment (1.0 - consensus, 0.5 - at least 50%, etc.). The contig's label will be the last common ancestor (LCA) of the fraction of labeled predictions in agreement.
+After obtaining MetaEuk predictions, the *taxtocontig* workflow allows assigning taxonomic labels to the predicted MetaEuk proteins and confer these predictions to their contigs. This workflow internally runs [*taxonomy*](https://github.com/soedinglab/MMseqs2/wiki#the-concept-of-lca) on the MetaEuk predictions, using any `--lca-mode`. It then performs majority voting among the taxonomically labeled predictions on a given contig to select a label for the contig. The parameter ```--majority``` indicates the minimal fraction of labeled predictions that agree in their taxonomic assignment (1.0 - consensus, 0.5 - at least 50%, etc.). The contig's label will be the last common ancestor (LCA) of the fraction of labeled predictions in agreement. Please note 
 
 #### Example:
 predictions' taxonomic labels: *Ostreococcus tauri*, *Ostreococcus mediterraneus*, *unclassified*, *Bathycoccus prasinos*
