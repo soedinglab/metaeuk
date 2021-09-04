@@ -123,7 +123,7 @@ Optionally, by setting the flag `--write-frag-coords 1`, information about the p
 
 *[fragment_low]low[taken_low]:[fragment_high]high[taken_high]:nucleotide_length[taken_nucleotide_length]*
 
-In its initial stage, MetaEuk extracts putative coding fragments between stop codons. It later discover exons within them by matching targets. The fragment coordinates in square brackets refer to the original fragment in which the exon was found. In addition to reporting these coordinates, MetaEuk will print the stop codon (`*` in the protein output) right at the end of the last exon, if it exists.
+In its initial stage, MetaEuk extracts putative coding fragments between stop codons. It later discovers exons within them by matching targets. The fragment coordinates in square brackets refer to the original fragment in which the exon was found. In addition to reporting these coordinates, MetaEuk will print the stop codon (`*` in the protein output) right at the end of the last exon, if it exists.
 
 
 ### Creating a TSV map of predictions to their TCS group members:
