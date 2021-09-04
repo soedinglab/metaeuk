@@ -22,7 +22,7 @@ void reverseComplement (const std::string & seq, std::string & revCompSeq) {
     }
 }
 
-void preparePredDataAndHeader (const Prediction & pred, const std::string & targetHeaderAcc, const std::string & contigHeaderAcc, 
+void preparePredDataAndHeader (Prediction & pred, const std::string & targetHeaderAcc, const std::string & contigHeaderAcc, 
                                     const char* contigData, std::ostringstream & joinedHeaderStream, std::ostringstream & joinedExonsStream, 
                                     const int writeFragCoords, const size_t contigLen) {
     
@@ -72,7 +72,10 @@ void preparePredDataAndHeader (const Prediction & pred, const std::string & targ
             exonAdjustedNucleotideLen -= (3 * diffInAAs);
         }
         int lowContigCoord = (pred.strand == PLUS) ? exonAdjustedContigStart : (-1 * exonContigEnd);
-
+        
+        // update the field:
+        pred.optimalExonSet[i].adjustedContigStart = exonAdjustedContigStart;
+        
         // extract the segment from the contig:
         std::string exonContigSeq(&contigData[lowContigCoord], (size_t)exonAdjustedNucleotideLen);
         // update the last AA of the target that was matched:
@@ -154,6 +157,75 @@ void preparePredHeaderToInfo (const unsigned int contigKey, const Prediction & p
     joinedPredHeadToInfoStream << joinedHeaderStr;
 }
 
+void preparePredHeaderToGFF (const std::string & contigHeaderAcc, const Prediction & pred, const std::string & targetHeaderAcc, 
+                                std::ostringstream & joinedPredHeadToGFFStream) {
+    // clear stream:
+    joinedPredHeadToGFFStream.str("");
+
+    // structure follows GFF format
+    // Enteties "gene" and "mRNA" are the same
+    // "exon" reflects the first reported coords
+    // "CDS" reflects the second reported coords, might be trimmed a bit due to
+    // the allowed short overlap on the target
+    // GFF: 1-base offset so we add 1 to MetaEuk coords
+    std::string sourceStr = "MetaEuk";
+    std::string strandStr = "+";
+    if (pred.strand != PLUS) {
+        strandStr[strandStr.length() - 1] = '-';
+    }
+
+    std::string TCS = targetHeaderAcc + "|" + contigHeaderAcc + "|" + strandStr;
+    
+    // start with writing the gene and mrna:
+    const char *levels[4] = { "gene", "mRNA", "exon", "CDS" };  
+    for (size_t i = 0; i < 2; i++) {
+        joinedPredHeadToGFFStream << contigHeaderAcc << "\t" << levels[i] << "\t" ;
+        joinedPredHeadToGFFStream << sourceStr << "\t";
+        joinedPredHeadToGFFStream << (pred.lowContigCoord + 1) << "\t" << (pred.highContigCoord + 1);
+        joinedPredHeadToGFFStream << "\t" << pred.totalBitscore << "\t";
+        joinedPredHeadToGFFStream << strandStr << "\t";
+        joinedPredHeadToGFFStream << "." << "\t";
+        joinedPredHeadToGFFStream << "Target_ID=" << targetHeaderAcc << ";";
+        if (strcmp(levels[i],"gene") == 0) {
+            joinedPredHeadToGFFStream << "TCS_ID=" << TCS << "\n";
+        } else {
+            joinedPredHeadToGFFStream << "TCS_ID=" << TCS << "_mRNA;";
+            joinedPredHeadToGFFStream << "Parent=" << TCS << "\n";
+        }
+    }
+
+    // write exons and cds
+    for (size_t j = 0; j < pred.numExons; ++j) {
+        
+        size_t exonContigStart = abs(pred.optimalExonSet[j].contigStart) + 1;
+        size_t exonAdjustedContigStart = abs(pred.optimalExonSet[j].adjustedContigStart) + 1;
+        size_t exonContigEnd = abs(pred.optimalExonSet[j].contigEnd) + 1;
+        
+        for (size_t i = 2; i < 4; i++) {
+            joinedPredHeadToGFFStream << contigHeaderAcc << "\t" << levels[i] << "\t" ;
+            joinedPredHeadToGFFStream << sourceStr << "\t";
+
+            if (strcmp(levels[i],"exon") == 0) {
+                joinedPredHeadToGFFStream << exonContigStart << "\t" << exonContigEnd;
+                joinedPredHeadToGFFStream << "\t" << pred.optimalExonSet[j].bitScore << "\t";
+                joinedPredHeadToGFFStream << strandStr << "\t";
+                joinedPredHeadToGFFStream << "." << "\t";
+                joinedPredHeadToGFFStream << "Target_ID=" << targetHeaderAcc << ";";
+                joinedPredHeadToGFFStream << "TCS_ID=" << TCS << "_exon;";
+                joinedPredHeadToGFFStream << "Parent=" << TCS << "_mRNA\n";
+            } else {
+                joinedPredHeadToGFFStream << exonAdjustedContigStart << "\t" << exonContigEnd;
+                joinedPredHeadToGFFStream << "\t" << pred.optimalExonSet[j].bitScore << "\t";
+                joinedPredHeadToGFFStream << strandStr << "\t";
+                joinedPredHeadToGFFStream << "." << "\t";
+                joinedPredHeadToGFFStream << "Target_ID=" << targetHeaderAcc << ";";
+                joinedPredHeadToGFFStream << "TCS_ID=" << TCS << "_CDS;";
+                joinedPredHeadToGFFStream << "Parent=" << TCS << "_exon\n";
+            }
+        }
+    }
+}
+
 int unitesetstofasta(int argn, const char **argv, const Command& command) {
     LocalParameters& par = LocalParameters::getLocalInstance();
     par.parseParameters(argn, argv, command, true, 0, 0);
@@ -193,6 +265,12 @@ int unitesetstofasta(int argn, const char **argv, const Command& command) {
     DBWriter mapWriter(mapFileName.c_str(), mapFileNameIndex.c_str(), par.threads, 0, Parameters::DBTYPE_OMIT_FILE);
     mapWriter.open();
 
+    // out GFF
+    std::string gffFileName = par.db4 + ".gff";
+    std::string gffFileNameIndex = par.db4 + ".gff.index"; // not used
+    DBWriter gffWriter(gffFileName.c_str(), gffFileNameIndex.c_str(), par.threads, 0, Parameters::DBTYPE_OMIT_FILE);
+    gffWriter.open();
+
     // for the translated result
     TranslateNucl translateNucl(static_cast<TranslateNucl::GenCode>(par.translationTable));
 
@@ -207,6 +285,7 @@ int unitesetstofasta(int argn, const char **argv, const Command& command) {
         std::ostringstream joinedHeaderStream;
         std::ostringstream joinedExonsStream;
         std::ostringstream predHeaderToInfoStream;
+        std::ostringstream predHeaderToGffStream;
         const char *entry[255];
 
         Prediction plusPred;
@@ -288,6 +367,11 @@ int unitesetstofasta(int argn, const char **argv, const Command& command) {
                         std::string headerInfo = predHeaderToInfoStream.str();
                         mapWriter.writeData(headerInfo.c_str(), headerInfo.size(), 0, thread_idx, false, false);
 
+                        // write GFF:
+                        preparePredHeaderToGFF(contigHeaderAcc, plusPred, targetHeaderAcc, predHeaderToGffStream);
+                        std::string gffInfo = predHeaderToGffStream.str();
+                        gffWriter.writeData(gffInfo.c_str(), gffInfo.size(), 0, thread_idx, false, false);
+
                         result = joinedExonsStream.str();
                         size_t nuclLen = result.size() - 1; // \n at the end of result...
                         if (nuclLen % 3 != 0) {
@@ -314,6 +398,11 @@ int unitesetstofasta(int argn, const char **argv, const Command& command) {
                         preparePredHeaderToInfo(contigKey, minusPred, joinedHeaderStream.str(), predHeaderToInfoStream);
                         std::string headerInfo = predHeaderToInfoStream.str();
                         mapWriter.writeData(headerInfo.c_str(), headerInfo.size(), 0, thread_idx, false, false);
+
+                        // write GFF:
+                        preparePredHeaderToGFF(contigHeaderAcc, minusPred, targetHeaderAcc, predHeaderToGffStream);
+                        std::string gffInfo = predHeaderToGffStream.str();
+                        gffWriter.writeData(gffInfo.c_str(), gffInfo.size(), 0, thread_idx, false, false);
 
                         result = joinedExonsStream.str();
                         size_t nuclLen = result.size() - 1; // \n at the end of result...
@@ -370,6 +459,11 @@ int unitesetstofasta(int argn, const char **argv, const Command& command) {
                 preparePredHeaderToInfo(contigKey, plusPred, joinedHeaderStream.str(), predHeaderToInfoStream);
                 std::string headerInfo = predHeaderToInfoStream.str();
                 mapWriter.writeData(headerInfo.c_str(), headerInfo.size(), 0, thread_idx, false, false);
+
+                // write GFF:
+                preparePredHeaderToGFF(contigHeaderAcc, plusPred, targetHeaderAcc, predHeaderToGffStream);
+                std::string gffInfo = predHeaderToGffStream.str();
+                gffWriter.writeData(gffInfo.c_str(), gffInfo.size(), 0, thread_idx, false, false);
                 
                 result = joinedExonsStream.str();
                 size_t nuclLen = result.size() - 1; // \n at the end of result...
@@ -398,6 +492,11 @@ int unitesetstofasta(int argn, const char **argv, const Command& command) {
                 std::string headerInfo = predHeaderToInfoStream.str();
                 mapWriter.writeData(headerInfo.c_str(), headerInfo.size(), 0, thread_idx, false, false);
                 
+                // write GFF:
+                preparePredHeaderToGFF(contigHeaderAcc, minusPred, targetHeaderAcc, predHeaderToGffStream);
+                std::string gffInfo = predHeaderToGffStream.str();
+                gffWriter.writeData(gffInfo.c_str(), gffInfo.size(), 0, thread_idx, false, false);
+
                 result = joinedExonsStream.str();
                 size_t nuclLen = result.size() - 1; // \n at the end of result...
                 if (nuclLen % 3 != 0) {
@@ -428,6 +527,9 @@ int unitesetstofasta(int argn, const char **argv, const Command& command) {
 
     mapWriter.close(true);
     FileUtil::remove(mapFileNameIndex.c_str());
+
+    gffWriter.close(true);
+    FileUtil::remove(gffFileNameIndex.c_str());
  
     contigsData.close();
     contigsHeaders.close();

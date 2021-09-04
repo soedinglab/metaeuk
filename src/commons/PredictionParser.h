@@ -198,6 +198,11 @@ struct PotentialExon {
 
     int potentialExonContigStartBeforeTrim;
     int potentialExonContigEndBeforeTrim;
+    
+    // this field will be updated when all exons are written
+    // due to allowing short overlaps on the target, they can differ
+    // from the contigStart
+    int adjustedContigStart;
 };
 
 class Prediction {
