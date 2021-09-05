@@ -206,7 +206,11 @@ void preparePredHeaderToGFF (const std::string & contigHeaderAcc, const Predicti
             joinedPredHeadToGFFStream << sourceStr << "\t";
 
             if (strcmp(levels[i],"exon") == 0) {
-                joinedPredHeadToGFFStream << exonContigStart << "\t" << exonContigEnd;
+                if (pred.strand == PLUS) {
+                    joinedPredHeadToGFFStream << exonContigStart << "\t" << exonContigEnd;
+                } else {
+                    joinedPredHeadToGFFStream << exonContigEnd << "\t" << exonContigStart;
+                }
                 joinedPredHeadToGFFStream << "\t" << pred.optimalExonSet[j].bitScore << "\t";
                 joinedPredHeadToGFFStream << strandStr << "\t";
                 joinedPredHeadToGFFStream << "." << "\t";
@@ -214,7 +218,11 @@ void preparePredHeaderToGFF (const std::string & contigHeaderAcc, const Predicti
                 joinedPredHeadToGFFStream << "TCS_ID=" << TCS << "_exon;";
                 joinedPredHeadToGFFStream << "Parent=" << TCS << "_mRNA\n";
             } else {
-                joinedPredHeadToGFFStream << exonAdjustedContigStart << "\t" << exonContigEnd;
+                if (pred.strand == PLUS) {
+                    joinedPredHeadToGFFStream << exonAdjustedContigStart << "\t" << exonContigEnd;
+                } else {
+                    joinedPredHeadToGFFStream << exonContigEnd << "\t" << exonAdjustedContigStart;
+                }
                 joinedPredHeadToGFFStream << "\t" << pred.optimalExonSet[j].bitScore << "\t";
                 joinedPredHeadToGFFStream << strandStr << "\t";
                 joinedPredHeadToGFFStream << "." << "\t";
