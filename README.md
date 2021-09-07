@@ -67,11 +67,11 @@ For example, the MMseqs2 command `mmseqs createdb` can be replaced with `metaeuk
 
 ### easy-predict workflow:
 
-This workflow combines the following MetaEuk modules into a single step: predictexons, reduceredundancy and unitesetstofasta (each of which is detailed below). Its inputs are contigs (either as a Fasta file or a previously created database) and targets (either as a FASTA file of protein sequences or a previously created database of proteins or protein profiles). It will run the modules and output the predictions in FASTA format (as well as a GFF format).
+This workflow combines the following MetaEuk modules into a single step: predictexons, reduceredundancy and unitesetstofasta (each of which is detailed below). Its inputs are contigs (either as a Fasta file or a previously created database) and targets (either as a Fasta file of protein sequences or a previously created database of proteins or protein profiles). It will run the modules and output the predictions in Fasta format (as well as a GFF format).
     
     metaeuk easy-predict contigsFasta/contigsDB proteinsFasta/referenceDB predsResults tempFolder
     
-It will result in **predsResults.fas** (protein sequences), **predsResults.codon.fas** and **predsResults.headersMap.tsv**
+It will result in **predsResults.fas** (protein sequences), **predsResults.codon.fas**, **predsResults.headersMap.tsv** and **predsResults.gff**.
 
 
 ### Calling optimal exons sets:
@@ -111,7 +111,7 @@ The header is composed of several sections, separated by pipes ('|'):
 *coord* refers to the coordination on the contig (first base has coordinate 0). It is advisable to keep T_acc and C_acc short and without pipes. The exon_coords are of the structure:
 *low[taken_low]:high[taken_high]:nucleotide_length[taken_nucleotide_length]*
 
-Since MetaEuk allows for a very short overlap on T of two putative exons (see P2 and P3 in the illustration below), when joining the sequences of the exons, one of them is shortened. The coordinates of the codons taken from this exon will be in the square brackets (*[taken_low]*, *[taken_high]* and *[taken_nucleotide_length]*). These refer to the orange section of P3 below, while the coordinates outside the brackets refer to the yellow+orange section of P3.
+Since MetaEuk allows for a very short overlap on T of two putative exons (see P2 and P3 in the illustration below), when joining the sequences of the exons, one of them is shortened. The coordinates of the codons taken from this exon will be in square brackets (*[taken_low]*, *[taken_high]* and *[taken_nucleotide_length]*). These refer to the orange section of P3 below, while the coordinates outside the brackets refer to the yellow+orange section of P3.
 
 <p align="center"><img src="https://github.com/soedinglab/metaeuk/blob/master/imgs/small_overlap_allowed.png" height="150"/></p>
 
@@ -127,7 +127,7 @@ In its initial stage, MetaEuk extracts putative coding fragments between stop co
 
 ##### The MetaEuk GFF:
 
-In addition to writing a FASTA file, MetaEuk writes a GFF file. Please note that GFF is not perfectably suitable for MetaEuk because MetaEuk doesn't predict non-coding regions. This means that the MetaEuk `gene` starts and ends where the first and last codons could be matched. The `gene` and `mRNA` categories are the same in the MetaEuk GFF. The `exon` and `CDS` coordinates will be the same unless a small target overlap was allowed, due to which, the MetaEuk exon was shortened (see above). In this case, the `CDS` will be shorter. In the sixth column you can find their individual bitsocres. The contig index starts at 1 and the start coordinate is always smaller than the end coordinate, as required by GFF. The last column contains the *TCS* identifier. Here is an example where a MetaEuk header of two exons is reported in GFF format:
+In addition to writing a Fasta file, MetaEuk writes a GFF file. Please note that GFF is not perfectly suitable for MetaEuk because MetaEuk doesn't predict non-coding regions. This means that the MetaEuk gene starts and ends where the first and last codons could be matched. The gene and mRNA categories are the same in the MetaEuk GFF. The exon and CDS coordinates will be the same unless a small target overlap was allowed, due to which, the MetaEuk exon was shortened (see above). In this case, the CDS will report the shortening. In the sixth column you can find their individual bitsocres. The contig index starts at 1 and the start coordinate is always smaller than the end coordinate, as required by GFF. The last column contains the **TCS** identifier. Here is an example where a MetaEuk header of two exons is reported in GFF format:
 
 *>protein_acc|contig_acc|-|508|1.15e-150|2|100|911|911[911]:582[582]:330[330]|501[501]:100[100]:402[402]*
 
