@@ -43,10 +43,10 @@ A **gene call** is an optimal set of exons predicted based on similarity to a sp
 ## Running MetaEuk 
 ### Main Modules:
 
-      easy-predict      	Predict proteins from contigs (fasta/db) based on similarities to targets (fasta/db) and return a fasta 
+      easy-predict      	Predict proteins from contigs (fasta/db) based on similarities to targets (fasta/db) and return a fasta & GFF
       predictexons      	Call optimal exon sets based on protein similarity
       reduceredundancy  	Cluster metaeuk calls which share an exon and select representative
-      unitesetstofasta  	Create fasta output from optimal exon sets (and a TSV map between headers and internal identifiers)
+      unitesetstofasta  	Create fasta output from optimal exon sets (and (1) a TSV map between headers and internal identifiers, (2) GFF summary)
       groupstoacc     	Create a TSV output from representative to calls
       taxtocontig     	Assign taxonomic labels to MetaEuk predictions and contigs by majority voting
       
@@ -67,7 +67,7 @@ For example, the MMseqs2 command `mmseqs createdb` can be replaced with `metaeuk
 
 ### easy-predict workflow:
 
-This workflow combines the following MetaEuk modules into a single step: predictexons, reduceredundancy and unitesetstofasta (each of which is detailed below). Its inputs are contigs (either as a Fasta file or a previously created database) and targets (either as a FASTA file of protein sequences or a previously created database of proteins or protein profiles). It will run the modules and output the predictions in FASTA format.
+This workflow combines the following MetaEuk modules into a single step: predictexons, reduceredundancy and unitesetstofasta (each of which is detailed below). Its inputs are contigs (either as a Fasta file or a previously created database) and targets (either as a FASTA file of protein sequences or a previously created database of proteins or protein profiles). It will run the modules and output the predictions in FASTA format (as well as a GFF format).
     
     metaeuk easy-predict contigsFasta/contigsDB proteinsFasta/referenceDB predsResults tempFolder
     
@@ -93,13 +93,13 @@ Upon completion, it will output: predsResultDB and predGroupsDB. predsResultDB c
 
 
 
-### Converting to Fasta:
+### Converting to Fasta (and GFF):
 
 The callsResultDB/predsResultDB produced by the modules above, can be used to extract the sequences of the predicted protein-coding genes.
     
     metaeuk unitesetstofasta contigsDB referenceDB predsResultDB predsResults
     
-It will result in **predsResults.fas** (protein sequences), **predsResults.codon.fas** and **predsResults.headersMap.tsv**
+It will result in **predsResults.fas** (protein sequences), **predsResults.codon.fas**, **predsResults.headersMap.tsv** and **predsResults.gff**
 
 
 #### The MetaEuk header:
@@ -124,6 +124,21 @@ Optionally, by setting the flag `--write-frag-coords 1`, information about the p
 *[fragment_low]low[taken_low]:[fragment_high]high[taken_high]:nucleotide_length[taken_nucleotide_length]*
 
 In its initial stage, MetaEuk extracts putative coding fragments between stop codons. It later discovers exons within them by matching targets. The fragment coordinates in square brackets refer to the original fragment in which the exon was found. In addition to reporting these coordinates, MetaEuk will print the stop codon (`*` in the protein output) right at the end of the last exon, if it exists.
+
+##### The MetaEuk GFF:
+
+In addition to writing a FASTA file, MetaEuk writes a GFF file. Please note that GFF is not perfectably suitable for MetaEuk because MetaEuk doesn't predict non-coding regions. This means that the MetaEuk `gene` starts and ends where the first and last codons could be matched. The `gene` and `mRNA` categories are the same in the MetaEuk GFF. The `exon` and `CDS` coordinates will be the same unless a small target overlap was allowed, due to which, the MetaEuk exon was shortened (see above). In this case, the `CDS` will be shorter. In the sixth column you can find their individual bitsocres. The contig index starts at 1 and the start coordinate is always smaller than the end coordinate, as required by GFF. The last column contains the *TCS* identifier. Here is an example where a MetaEuk header of two exons is reported in GFF format:
+
+*>protein_acc|contig_acc|-|508|1.15e-150|2|100|911|911[911]:582[582]:330[330]|501[501]:100[100]:402[402]*
+
+
+    contig_acc    gene    MetaEuk 101     912     508     -       .       Target_ID=protein_acc;TCS_ID=protein_acc|contig_acc|-
+    contig_acc    mRNA    MetaEuk 101     912     508     -       .       Target_ID=protein_acc;TCS_ID=protein_acc|contig_acc|-_mRNA;Parent=protein_acc|contig_acc|-
+    contig_acc    exon    MetaEuk 583     912     234     -       .       Target_ID=protein_acc;TCS_ID=protein_acc|contig_acc|-_exon;Parent=protein_acc|contig_acc|-_mRNA
+    contig_acc    CDS     MetaEuk 583     912     234     -       .       Target_ID=protein_acc;TCS_ID=protein_acc|contig_acc|-_CDS;Parent=protein_acc|contig_acc|-_exon
+    contig_acc    exon    MetaEuk 101     502     273     -       .       Target_ID=protein_acc;TCS_ID=protein_acc|contig_acc|-_exon;Parent=protein_acc|contig_acc|-_mRNA
+    contig_acc    CDS     MetaEuk 101     502     273     -       .       Target_ID=protein_acc;TCS_ID=protein_acc|contig_acc|-_CDS;Parent=protein_acc|contig_acc|-_exon
+
 
 
 ### Creating a TSV map of predictions to their TCS group members:
