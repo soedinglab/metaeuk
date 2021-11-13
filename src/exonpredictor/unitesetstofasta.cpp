@@ -179,8 +179,8 @@ void preparePredHeaderToGFF (const std::string & contigHeaderAcc, const Predicti
     // start with writing the gene and mrna:
     const char *levels[4] = { "gene", "mRNA", "exon", "CDS" };  
     for (size_t i = 0; i < 2; i++) {
-        joinedPredHeadToGFFStream << contigHeaderAcc << "\t" << levels[i] << "\t" ;
-        joinedPredHeadToGFFStream << sourceStr << "\t";
+        joinedPredHeadToGFFStream << contigHeaderAcc << "\t" << sourceStr << "\t" ;
+        joinedPredHeadToGFFStream << levels[i] << "\t";
         joinedPredHeadToGFFStream << (pred.lowContigCoord + 1) << "\t" << (pred.highContigCoord + 1);
         joinedPredHeadToGFFStream << "\t" << pred.totalBitscore << "\t";
         joinedPredHeadToGFFStream << strandStr << "\t";
@@ -202,8 +202,8 @@ void preparePredHeaderToGFF (const std::string & contigHeaderAcc, const Predicti
         size_t exonContigEnd = abs(pred.optimalExonSet[j].contigEnd) + 1;
         
         for (size_t i = 2; i < 4; i++) {
-            joinedPredHeadToGFFStream << contigHeaderAcc << "\t" << levels[i] << "\t" ;
-            joinedPredHeadToGFFStream << sourceStr << "\t";
+            joinedPredHeadToGFFStream << contigHeaderAcc << "\t" << sourceStr << "\t" ;
+            joinedPredHeadToGFFStream << levels[i] << "\t";
 
             if (strcmp(levels[i],"exon") == 0) {
                 if (pred.strand == PLUS) {
@@ -215,7 +215,7 @@ void preparePredHeaderToGFF (const std::string & contigHeaderAcc, const Predicti
                 joinedPredHeadToGFFStream << strandStr << "\t";
                 joinedPredHeadToGFFStream << "." << "\t";
                 joinedPredHeadToGFFStream << "Target_ID=" << targetHeaderAcc << ";";
-                joinedPredHeadToGFFStream << "TCS_ID=" << TCS << "_exon;";
+                joinedPredHeadToGFFStream << "TCS_ID=" << TCS << "_exon_" << j << ";";
                 joinedPredHeadToGFFStream << "Parent=" << TCS << "_mRNA\n";
             } else {
                 if (pred.strand == PLUS) {
@@ -227,8 +227,8 @@ void preparePredHeaderToGFF (const std::string & contigHeaderAcc, const Predicti
                 joinedPredHeadToGFFStream << strandStr << "\t";
                 joinedPredHeadToGFFStream << "." << "\t";
                 joinedPredHeadToGFFStream << "Target_ID=" << targetHeaderAcc << ";";
-                joinedPredHeadToGFFStream << "TCS_ID=" << TCS << "_CDS;";
-                joinedPredHeadToGFFStream << "Parent=" << TCS << "_exon\n";
+                joinedPredHeadToGFFStream << "TCS_ID=" << TCS << "_CDS_" << j << ";";
+                joinedPredHeadToGFFStream << "Parent=" << TCS << "_exon_" << j << "\n";
             }
         }
     }
