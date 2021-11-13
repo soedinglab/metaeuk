@@ -132,12 +132,12 @@ In addition to writing a Fasta file, MetaEuk writes a GFF file. Please note that
 *>protein_acc|contig_acc|-|508|1.15e-150|2|100|911|911[911]:582[582]:330[330]|501[501]:100[100]:402[402]*
 
 
-    contig_acc    gene    MetaEuk 101     912     508     -       .       Target_ID=protein_acc;TCS_ID=protein_acc|contig_acc|-
-    contig_acc    mRNA    MetaEuk 101     912     508     -       .       Target_ID=protein_acc;TCS_ID=protein_acc|contig_acc|-_mRNA;Parent=protein_acc|contig_acc|-
-    contig_acc    exon    MetaEuk 583     912     234     -       .       Target_ID=protein_acc;TCS_ID=protein_acc|contig_acc|-_exon;Parent=protein_acc|contig_acc|-_mRNA
-    contig_acc    CDS     MetaEuk 583     912     234     -       .       Target_ID=protein_acc;TCS_ID=protein_acc|contig_acc|-_CDS;Parent=protein_acc|contig_acc|-_exon
-    contig_acc    exon    MetaEuk 101     502     273     -       .       Target_ID=protein_acc;TCS_ID=protein_acc|contig_acc|-_exon;Parent=protein_acc|contig_acc|-_mRNA
-    contig_acc    CDS     MetaEuk 101     502     273     -       .       Target_ID=protein_acc;TCS_ID=protein_acc|contig_acc|-_CDS;Parent=protein_acc|contig_acc|-_exon
+    contig_acc    MetaEuk    gene    101     912     508     -       .       Target_ID=protein_acc;TCS_ID=protein_acc|contig_acc|-
+    contig_acc    MetaEuk    mRNA    101     912     508     -       .       Target_ID=protein_acc;TCS_ID=protein_acc|contig_acc|-_mRNA;Parent=protein_acc|contig_acc|-
+    contig_acc    MetaEuk    exon    583     912     234     -       .       Target_ID=protein_acc;TCS_ID=protein_acc|contig_acc|-_exon_0;Parent=protein_acc|contig_acc|-_mRNA
+    contig_acc    MetaEuk    CDS    583     912     234     -       .       Target_ID=protein_acc;TCS_ID=protein_acc|contig_acc|-_CDS_0;Parent=protein_acc|contig_acc|-_exon_0
+    contig_acc    MetaEuk    exon    101     502     273     -       .       Target_ID=protein_acc;TCS_ID=protein_acc|contig_acc|-_exon_1;Parent=protein_acc|contig_acc|-_mRNA
+    contig_acc    MetaEuk    CDS    101     502     273     -       .       Target_ID=protein_acc;TCS_ID=protein_acc|contig_acc|-_CDS_1;Parent=protein_acc|contig_acc|-_exon_1
 
 
 
