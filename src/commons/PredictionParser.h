@@ -59,7 +59,9 @@ struct PotentialExon {
         aaLen = nucleotideLen / 3;
 
         // compute contribution to target coverage
-        targetCov = (double)(targetMatchEnd - targetMatchStart + 1) / targetLen; 
+        targetCov = (double)(targetMatchEnd - targetMatchStart + 1) / targetLen;
+
+        isUsed = false;
     }
 
     void setByDPRes (const char ** exonData) {
@@ -162,6 +164,10 @@ struct PotentialExon {
 
     // allow comparing PotentialExons by their start on the contig
     static bool comparePotentialExons (const PotentialExon & aPotentialExon, const PotentialExon & anotherPotentialExon) {
+        if(aPotentialExon.isUsed < anotherPotentialExon.isUsed)
+            return true;
+        if(aPotentialExon.isUsed > anotherPotentialExon.isUsed)
+            return false;
         if(aPotentialExon.contigStart < anotherPotentialExon.contigStart)
             return true;
         if(aPotentialExon.contigStart > anotherPotentialExon.contigStart)
@@ -203,6 +209,10 @@ struct PotentialExon {
     // due to allowing short overlaps on the target, they can differ
     // from the contigStart
     int adjustedContigStart;
+
+    // this field will be updated when finding an optimal set to 
+    // allow for sub-optimal sets to be found in future iterations
+    bool isUsed;
 };
 
 class Prediction {
@@ -229,10 +239,12 @@ class Prediction {
         // initialize cluster assignment:
         isClustered = false;
         clusterId = 0;
+        clusterLowCoord = 0;
 
         // initialize cluster no overlap assignment:
         isNoOverlapClustered = false;
         noOverlapClusterId = 0;
+        noOverlapClusterLowCoord = 0;
     }
 
     void setByDPRes (const char** entry) {
@@ -247,10 +259,12 @@ class Prediction {
         // initialize cluster assignment:
         isClustered = false;
         clusterId = 0;
+        clusterLowCoord = 0;
 
         // initialize cluster no overlap assignment:
         isNoOverlapClustered = false;
         noOverlapClusterId = 0;
+        noOverlapClusterLowCoord = 0;
     }
 
     void clearPred () {
@@ -268,10 +282,12 @@ class Prediction {
         // initialize cluster assignment:
         isClustered = false;
         clusterId = 0;
+        clusterLowCoord = 0;
 
         // initialize cluster no overlap assignment:
         isNoOverlapClustered = false;
         noOverlapClusterId = 0;
+        noOverlapClusterLowCoord = 0;
     }
 
     void addExon (const char ** exonData) {
@@ -281,11 +297,17 @@ class Prediction {
     }
 
     static int getTargetKey (const char** entry) {
+        // TODO shouldn't this return an unsigned int...
         return (Util::fast_atoi<int>(entry[0]));
     }
 
     static int getStrand (const char** entry) {
         return (Util::fast_atoi<int>(entry[1]));
+    }
+
+    static int getLowContigCoord (const char** entry) {
+        // TODO later assumption is that this returns an unsigned int...
+        return (Util::fast_atoi<int>(entry[5]));
     }
 
     // to allow sorting a vector of predictions by their start on the contig
@@ -374,19 +396,25 @@ class Prediction {
     }
 
     static size_t predictionClusterToBuffer (char * clusterBuffer, const Prediction & prediction) {
-        // write: Representative(T,S) , Member(T,S)
+        // write: Representative(T,S,low_coord) , Member(T,S,low_coord)
         char * basePos = clusterBuffer;
         char * tmpBuff = basePos;
 
         // clusterId is the TargetKey of the representative. The representative is on the same strand
+        // since allowing sub-optimal exon sets, clusterLowCoord was added
+        // together clusterId+clusterLowCoord are unique
         tmpBuff = Itoa::u32toa_sse2(static_cast<uint32_t>(prediction.clusterId), tmpBuff);
         *(tmpBuff-1) = '\t';
         tmpBuff = Itoa::i32toa_sse2(static_cast<uint32_t>(prediction.strand), tmpBuff);
+        *(tmpBuff-1) = '\t';
+        tmpBuff = Itoa::i32toa_sse2(static_cast<uint32_t>(prediction.clusterLowCoord), tmpBuff);
         *(tmpBuff-1) = '\t';
 
         tmpBuff = Itoa::u32toa_sse2(static_cast<uint32_t>(prediction.targetKey), tmpBuff);
         *(tmpBuff-1) = '\t';
         tmpBuff = Itoa::i32toa_sse2(static_cast<uint32_t>(prediction.strand), tmpBuff);
+        *(tmpBuff-1) = '\t';
+        tmpBuff = Itoa::i32toa_sse2(static_cast<int32_t>(prediction.lowContigCoord), tmpBuff);
         *(tmpBuff-1) = '\n';
 
         // close buffer
@@ -407,9 +435,11 @@ class Prediction {
     // members for grouping
     bool isClustered;
     unsigned int clusterId; // will hold the target key of the final representative
+    unsigned int clusterLowCoord; // will hold the low coord of the final representative
 
     bool isNoOverlapClustered; // will allow excluding same-strand overlaps
     unsigned int noOverlapClusterId; // will hold the target key of the final representative after resolving overlaps
+    unsigned int noOverlapClusterLowCoord; // will hold the low coord of the final representative after resolving overlaps
 };
 
 #endif // PREDICTION_PARSER_H

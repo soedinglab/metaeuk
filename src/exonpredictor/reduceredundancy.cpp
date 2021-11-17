@@ -25,7 +25,7 @@ void clusterPredictions (std::vector<Prediction> &contigPredictions, std::vector
     // sort the vector by contigStart (sub sorted by length, bitscore and targetKey):
     std::stable_sort(contigPredictions.begin(), contigPredictions.end(), Prediction::comparePredictionsByContigStart);
 
-    std::vector<size_t> currClusterPredsInd; // keeps track of the indices of contigPredictions that arein currCluster
+    std::vector<size_t> currClusterPredsInd; // keeps track of the indices of contigPredictions that are in currCluster
     
     // the index i iterates over cluster tmp_representatives.
     // after member collection is done, tmp_representative is replaced by the member with the highest bitscore
@@ -37,6 +37,7 @@ void clusterPredictions (std::vector<Prediction> &contigPredictions, std::vector
 
         // collect cluster members - i is the tmp_representative:
         size_t finalClusterId = contigPredictions[i].targetKey;
+        unsigned int finalClusterLowCoord = contigPredictions[i].lowContigCoord;
         contigPredictions[i].clusterId = contigPredictions[i].targetKey;
         unsigned int maxScore = contigPredictions[i].totalBitscore;
         contigPredictions[i].isClustered = true;
@@ -52,7 +53,7 @@ void clusterPredictions (std::vector<Prediction> &contigPredictions, std::vector
                 // overlap is over - no need to compare to other j - finish and move to the next i
                 break;
             }
-            
+
             bool doIandJshareAnExon = false;
             for (size_t exon_id_i = 0; exon_id_i < contigPredictions[i].optimalExonSet.size(); ++exon_id_i) {
                 for (size_t exon_id_j = 0; exon_id_j < contigPredictions[j].optimalExonSet.size(); ++exon_id_j) {
@@ -74,6 +75,7 @@ void clusterPredictions (std::vector<Prediction> &contigPredictions, std::vector
                 if (contigPredictions[j].totalBitscore > maxScore) {
                     maxScore = contigPredictions[j].totalBitscore;
                     finalClusterId = contigPredictions[j].targetKey;
+                    finalClusterLowCoord = contigPredictions[j].lowContigCoord;
                 }
 
                 // will be used to assign finalClusterId later
@@ -83,13 +85,17 @@ void clusterPredictions (std::vector<Prediction> &contigPredictions, std::vector
 
         // collecting all j members for tmp_representative i is finished.
         // assign finalClusterId (target key of best scoring representative)
+        // and finalClusterLowCoord (low contig coord of best scoring representative)
         size_t numPutInVec = 0;
         for (size_t k = 0; k < currClusterPredsInd.size(); ++k) {
-            size_t indOfMemeber = currClusterPredsInd[k];
-            contigPredictions[indOfMemeber].clusterId = finalClusterId;
-            // if by now the clusterId is equal to finalClusterId --> this is the final representative
-            if (contigPredictions[indOfMemeber].clusterId == contigPredictions[indOfMemeber].targetKey) {
-                repContigPredictions.emplace_back(contigPredictions[indOfMemeber]);
+            size_t indOfMember = currClusterPredsInd[k];
+            contigPredictions[indOfMember].clusterId = finalClusterId;
+            contigPredictions[indOfMember].clusterLowCoord = finalClusterLowCoord;
+
+            // if by now the clusterId and lowCoord are equal to finalClusterId and finalClusterLowCoord  --> this is the final representative
+            if ((contigPredictions[indOfMember].clusterId == contigPredictions[indOfMember].targetKey) &&
+                (contigPredictions[indOfMember].clusterLowCoord == contigPredictions[indOfMember].lowContigCoord)) {
+                repContigPredictions.emplace_back(contigPredictions[indOfMember]);
                 numPutInVec++;
             }
         }
@@ -114,6 +120,7 @@ void excludeSameStrandOverlaps (std::vector<Prediction> &repContigPredictions) {
         // initialize the new cluster:
         repContigPredictions[i].isNoOverlapClustered = true;
         repContigPredictions[i].noOverlapClusterId = repContigPredictions[i].targetKey;
+        repContigPredictions[i].noOverlapClusterLowCoord = repContigPredictions[i].lowContigCoord;
 
         // collect cluster members:
         for (size_t j = (i + 1); j < repContigPredictions.size(); ++j) {
@@ -133,6 +140,7 @@ void excludeSameStrandOverlaps (std::vector<Prediction> &repContigPredictions) {
                     // i begins in the middle of j or j begins in the middle of i ==> overlap
                     repContigPredictions[j].isNoOverlapClustered = true;
                     repContigPredictions[j].noOverlapClusterId = repContigPredictions[i].targetKey;
+                    repContigPredictions[j].noOverlapClusterLowCoord = repContigPredictions[i].noOverlapClusterLowCoord;
             }
         }
     }
@@ -218,6 +226,8 @@ int reduceredundancy(int argn, const char **argv, const Command& command) {
             unsigned int prevTargetKeyMinus = 0;
             bool isFirstIterationPlus = true;
             bool isFirstIterationMinus = true;
+            unsigned int prevLowContigCoordPlus = 0;
+            unsigned int prevLowContigCoordMinus = 0;
 
             // keep track of offset when a contig starts
             writerRepToMembers.writeStart(thread_idx);
@@ -236,6 +246,7 @@ int reduceredundancy(int argn, const char **argv, const Command& command) {
 
                 unsigned int targetKey = Prediction::getTargetKey(entry);
                 int strand = Prediction::getStrand(entry);
+                unsigned int lowContigCoord = Prediction::getLowContigCoord(entry);
 
                 // verify legal input
                 if (prevTargetKey > targetKey) {
@@ -245,7 +256,7 @@ int reduceredundancy(int argn, const char **argv, const Command& command) {
                 prevTargetKey = targetKey;
 
                 if (strand == PLUS) {
-                    if ((isFirstIterationPlus == true) || (prevTargetKeyPlus != targetKey)) {
+                    if ((isFirstIterationPlus == true) || (prevTargetKeyPlus != targetKey) || (prevLowContigCoordPlus != lowContigCoord)) {
                         Prediction pred;
                         pred.setByDPRes(entry);
                         plusContigPredictions.emplace_back(pred);
@@ -254,8 +265,9 @@ int reduceredundancy(int argn, const char **argv, const Command& command) {
                     // add the exon key
                     plusContigPredictions.back().addExon(entry);
                     prevTargetKeyPlus = targetKey;
+                    prevLowContigCoordPlus = lowContigCoord;
                 } else {
-                    if ((isFirstIterationMinus == true) || (prevTargetKeyMinus != targetKey)) {
+                    if ((isFirstIterationMinus == true) || (prevTargetKeyMinus != targetKey) || (prevLowContigCoordMinus != lowContigCoord)) {
                         Prediction pred;
                         pred.setByDPRes(entry);
                         minusContigPredictions.emplace_back(pred);
@@ -264,6 +276,7 @@ int reduceredundancy(int argn, const char **argv, const Command& command) {
                     // add the exon key
                     minusContigPredictions.back().addExon(entry);
                     prevTargetKeyMinus = targetKey;
+                    prevLowContigCoordMinus = lowContigCoord;
                 }
 
                 results = Util::skipLine(results);
@@ -280,7 +293,7 @@ int reduceredundancy(int argn, const char **argv, const Command& command) {
             writePredsClusters(plusContigPredictions, clusterBuffer, writerRepToMembers, thread_idx);
             writePredsClusters(minusContigPredictions, clusterBuffer, writerRepToMembers, thread_idx);
 
-            // join representatives from both strands and sort by targetKey to comply with expectd order of DP format
+            // join representatives from both strands and sort by targetKey to comply with expected order of DP format
             plusContigRepPreds.insert(plusContigRepPreds.end(), minusContigRepPreds.begin(), minusContigRepPreds.end());
             std::stable_sort(plusContigRepPreds.begin(), plusContigRepPreds.end(), Prediction::comparePredictionsByTarget);
             writeRepPredsInDPFormat(plusContigRepPreds, predictionBuffer, exonLineBuffer, par.overlapAllowed, writerGroupedPredictions, thread_idx);

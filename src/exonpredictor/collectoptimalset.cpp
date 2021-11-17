@@ -114,8 +114,20 @@ int findoptimalsetbydp(std::vector<PotentialExon> & potentialExonCandidates, std
         return (0);
     }
 
-    // sort vector by start on contig:
+    // sort vector by not-used(0)/used(1) and then by start on contig:
     std::stable_sort(potentialExonCandidates.begin(), potentialExonCandidates.end(), PotentialExon::comparePotentialExons);
+
+    // find the first used exon (placed at the end)
+    size_t firstIndexOfUsed = numPotentialExonCandidates;
+    for (size_t i = 0; i < potentialExonCandidates.size(); ++i) {
+        if (potentialExonCandidates[i].isUsed == true) {
+            firstIndexOfUsed = i;
+            break;
+        }
+    }
+    // remove all the used exons
+    potentialExonCandidates.resize(firstIndexOfUsed);
+    numPotentialExonCandidates = potentialExonCandidates.size();
 
     // prevIdsAndScoresBestPath will hold the DP computation results
     // Each row i represents a potentialExon. They are sorted according to the start on the contig.
@@ -196,13 +208,15 @@ int findoptimalsetbydp(std::vector<PotentialExon> & potentialExonCandidates, std
     size_t currExonId = lastPotentialExonInBestPath;
     while (prevIdsAndScoresBestPath[currExonId].prevPotentialExonId != currExonId) {
         optimalExonSet.emplace_back(potentialExonCandidates[currExonId]);
+        potentialExonCandidates[currExonId].isUsed = true;
         currExonId = prevIdsAndScoresBestPath[currExonId].prevPotentialExonId;
     }
     // include in the optimal set
     optimalExonSet.emplace_back(potentialExonCandidates[currExonId]);
+    potentialExonCandidates[currExonId].isUsed = true;
 
     // after the traceback, the first exon is in the last place in the vector
-    std::reverse(optimalExonSet.begin(), optimalExonSet.end()); 
+    std::reverse(optimalExonSet.begin(), optimalExonSet.end());
 
     return (bestPathScore);
 }
@@ -295,34 +309,43 @@ int collectoptimalset(int argn, const char **argv, const Command& command) {
                         Debug(Debug::ERROR) << "the targets are assumed to be sorted in increasing order. This doesn't seem to be the case.\n";
                         EXIT(EXIT_FAILURE);
                     }
-                    // sort + dynamic programming to find the optimals set:
-                    int totalBitScorePlus = findoptimalsetbydp(plusStrandPotentialExons, plusStrandOptimalExonSet, par.minIntronLength, par.maxIntronLength, par.maxAaOverlap, par.setGapOpenPenalty, par.setGapExtendPenalty, dMetaeukTargetCovThr);
-                    int totalBitScoreMinus = findoptimalsetbydp(minusStrandPotentialExons, minusStrandOptimalExonSet, par.minIntronLength, par.maxIntronLength, par.maxAaOverlap, par.setGapOpenPenalty, par.setGapExtendPenalty, dMetaeukTargetCovThr);
+                    
+                    size_t numIters = 0;
+                    while ((numIters < par.maxExonSets) && (plusStrandPotentialExons.size() > 0 || minusStrandPotentialExons.size() > 0)) {
+                        // sort + dynamic programming to find the optimals set:
+                        int totalBitScorePlus = findoptimalsetbydp(plusStrandPotentialExons, plusStrandOptimalExonSet, par.minIntronLength, par.maxIntronLength, par.maxAaOverlap, par.setGapOpenPenalty, par.setGapExtendPenalty, dMetaeukTargetCovThr);
+                        int totalBitScoreMinus = findoptimalsetbydp(minusStrandPotentialExons, minusStrandOptimalExonSet, par.minIntronLength, par.maxIntronLength, par.maxAaOverlap, par.setGapOpenPenalty, par.setGapExtendPenalty, dMetaeukTargetCovThr);
 
-                    // write optimal sets to result file:
-                    if (plusStrandOptimalExonSet.size() > 0) {
-                        // compute E-Values of the optimal set:
-                        // Evalue = m X n * 2^(-S), where m = totNumOfAAsInTargetDb, n = twoStrands, S = combinedNormalizedAlnBitScore
-                        double log2EvaluePlus = log2(totNumOfAAsInTargetDb) + log2(2) - totalBitScorePlus;
-                        double combinedEvaluePlus = pow(2, log2EvaluePlus);
-                        if (combinedEvaluePlus <= dMetaeukEvalueThr) {
-                            Prediction predToWrite(currTargetKey, PLUS, totalBitScorePlus, combinedEvaluePlus, plusStrandOptimalExonSet);
-                            Prediction::predictionToBuffer(predictionBuffer, exonLineBuffer, predToWrite);
-                            predWriter.writeAdd(predictionBuffer.c_str(), predictionBuffer.size(), thread_idx);
-                            predictionBuffer.clear();
+                        // write optimal sets to result file:
+                        if (plusStrandOptimalExonSet.size() > 0) {
+                            // compute E-Values of the optimal set:
+                            // Evalue = m X n * 2^(-S), where m = totNumOfAAsInTargetDb, n = twoStrands, S = combinedNormalizedAlnBitScore
+                            double log2EvaluePlus = log2(totNumOfAAsInTargetDb) + log2(2) - totalBitScorePlus;
+                            double combinedEvaluePlus = pow(2, log2EvaluePlus);
+                            if (combinedEvaluePlus <= dMetaeukEvalueThr) {
+                                Prediction predToWrite(currTargetKey, PLUS, totalBitScorePlus, combinedEvaluePlus, plusStrandOptimalExonSet);
+                                Prediction::predictionToBuffer(predictionBuffer, exonLineBuffer, predToWrite);
+                                predWriter.writeAdd(predictionBuffer.c_str(), predictionBuffer.size(), thread_idx);
+                                predictionBuffer.clear();
+                            }
                         }
-                    }
-                    if (minusStrandOptimalExonSet.size() > 0) {
-                        // compute E-Values of the optimal set:
-                        // Evalue = m X n * 2^(-S), where m = totNumOfAAsInTargetDb, n = twoStrands, S = combinedNormalizedAlnBitScore
-                        double log2EvalueMinus = log2(totNumOfAAsInTargetDb) + log2(2) - totalBitScoreMinus;
-                        double combinedEvalueMinus = pow(2, log2EvalueMinus);
-                        if (combinedEvalueMinus <= dMetaeukEvalueThr) {
-                            Prediction predToWrite(currTargetKey, MINUS, totalBitScoreMinus, combinedEvalueMinus, minusStrandOptimalExonSet);
-                            Prediction::predictionToBuffer(predictionBuffer, exonLineBuffer, predToWrite);
-                            predWriter.writeAdd(predictionBuffer.c_str(), predictionBuffer.size(), thread_idx);
-                            predictionBuffer.clear();
+                        if (minusStrandOptimalExonSet.size() > 0) {
+                            // compute E-Values of the optimal set:
+                            // Evalue = m X n * 2^(-S), where m = totNumOfAAsInTargetDb, n = twoStrands, S = combinedNormalizedAlnBitScore
+                            double log2EvalueMinus = log2(totNumOfAAsInTargetDb) + log2(2) - totalBitScoreMinus;
+                            double combinedEvalueMinus = pow(2, log2EvalueMinus);
+                            if (combinedEvalueMinus <= dMetaeukEvalueThr) {
+                                Prediction predToWrite(currTargetKey, MINUS, totalBitScoreMinus, combinedEvalueMinus, minusStrandOptimalExonSet);
+                                Prediction::predictionToBuffer(predictionBuffer, exonLineBuffer, predToWrite);
+                                predWriter.writeAdd(predictionBuffer.c_str(), predictionBuffer.size(), thread_idx);
+                                predictionBuffer.clear();
+                            }
                         }
+
+                        // empty optimal sets between writes:
+                        plusStrandOptimalExonSet.clear();
+                        minusStrandOptimalExonSet.clear();
+                        numIters++;
                     }
 
                     // empty vectors between targets:
@@ -346,34 +369,43 @@ int collectoptimalset(int argn, const char **argv, const Command& command) {
             }
 
             // one last time - required for the matches of the contig against the last target
-            // sort + dynamic programming to find the optimals set:
-            int totalBitScorePlus = findoptimalsetbydp(plusStrandPotentialExons, plusStrandOptimalExonSet, par.minIntronLength, par.maxIntronLength, par.maxAaOverlap, par.setGapOpenPenalty, par.setGapExtendPenalty, dMetaeukTargetCovThr);
-            int totalBitScoreMinus = findoptimalsetbydp(minusStrandPotentialExons, minusStrandOptimalExonSet, par.minIntronLength, par.maxIntronLength, par.maxAaOverlap, par.setGapOpenPenalty, par.setGapExtendPenalty, dMetaeukTargetCovThr);
-            
-            // write optimal sets to result file:
-            if (plusStrandOptimalExonSet.size() > 0) {
-                // compute E-Values of the optimal set:
-                // Evalue = m X n * 2^(-S), where m = totNumOfAAsInTargetDb, n = twoStrands, S = combinedNormalizedAlnBitScore
-                double log2EvaluePlus = log2(totNumOfAAsInTargetDb) + log2(2) - totalBitScorePlus;
-                double combinedEvaluePlus = pow(2, log2EvaluePlus);
-                if (combinedEvaluePlus <= dMetaeukEvalueThr) {
-                    Prediction predToWrite(currTargetKey, PLUS, totalBitScorePlus, combinedEvaluePlus, plusStrandOptimalExonSet);
-                    Prediction::predictionToBuffer(predictionBuffer, exonLineBuffer, predToWrite);
-                    predWriter.writeAdd(predictionBuffer.c_str(), predictionBuffer.size(), thread_idx);
-                    predictionBuffer.clear();
+            size_t numIters = 0;
+            while ((numIters < par.maxExonSets) && (plusStrandPotentialExons.size() > 0 || minusStrandPotentialExons.size() > 0)) {
+                    
+                // sort + dynamic programming to find the optimals set:
+                int totalBitScorePlus = findoptimalsetbydp(plusStrandPotentialExons, plusStrandOptimalExonSet, par.minIntronLength, par.maxIntronLength, par.maxAaOverlap, par.setGapOpenPenalty, par.setGapExtendPenalty, dMetaeukTargetCovThr);
+                int totalBitScoreMinus = findoptimalsetbydp(minusStrandPotentialExons, minusStrandOptimalExonSet, par.minIntronLength, par.maxIntronLength, par.maxAaOverlap, par.setGapOpenPenalty, par.setGapExtendPenalty, dMetaeukTargetCovThr);
+                
+                // write optimal sets to result file:
+                if (plusStrandOptimalExonSet.size() > 0) {
+                    // compute E-Values of the optimal set:
+                    // Evalue = m X n * 2^(-S), where m = totNumOfAAsInTargetDb, n = twoStrands, S = combinedNormalizedAlnBitScore
+                    double log2EvaluePlus = log2(totNumOfAAsInTargetDb) + log2(2) - totalBitScorePlus;
+                    double combinedEvaluePlus = pow(2, log2EvaluePlus);
+                    if (combinedEvaluePlus <= dMetaeukEvalueThr) {
+                        Prediction predToWrite(currTargetKey, PLUS, totalBitScorePlus, combinedEvaluePlus, plusStrandOptimalExonSet);
+                        Prediction::predictionToBuffer(predictionBuffer, exonLineBuffer, predToWrite);
+                        predWriter.writeAdd(predictionBuffer.c_str(), predictionBuffer.size(), thread_idx);
+                        predictionBuffer.clear();
+                    }
                 }
-            }
-            if (minusStrandOptimalExonSet.size() > 0) {
-                // compute E-Values of the optimal set:
-                // Evalue = m X n * 2^(-S), where m = totNumOfAAsInTargetDb, n = twoStrands, S = combinedNormalizedAlnBitScore
-                double log2EvalueMinus = log2(totNumOfAAsInTargetDb) + log2(2) - totalBitScoreMinus;
-                double combinedEvalueMinus = pow(2, log2EvalueMinus);
-                if (combinedEvalueMinus <= dMetaeukEvalueThr) {
-                    Prediction predToWrite(currTargetKey, MINUS, totalBitScoreMinus, combinedEvalueMinus, minusStrandOptimalExonSet);
-                    Prediction::predictionToBuffer(predictionBuffer, exonLineBuffer, predToWrite);
-                    predWriter.writeAdd(predictionBuffer.c_str(), predictionBuffer.size(), thread_idx);
-                    predictionBuffer.clear();
+                if (minusStrandOptimalExonSet.size() > 0) {
+                    // compute E-Values of the optimal set:
+                    // Evalue = m X n * 2^(-S), where m = totNumOfAAsInTargetDb, n = twoStrands, S = combinedNormalizedAlnBitScore
+                    double log2EvalueMinus = log2(totNumOfAAsInTargetDb) + log2(2) - totalBitScoreMinus;
+                    double combinedEvalueMinus = pow(2, log2EvalueMinus);
+                    if (combinedEvalueMinus <= dMetaeukEvalueThr) {
+                        Prediction predToWrite(currTargetKey, MINUS, totalBitScoreMinus, combinedEvalueMinus, minusStrandOptimalExonSet);
+                        Prediction::predictionToBuffer(predictionBuffer, exonLineBuffer, predToWrite);
+                        predWriter.writeAdd(predictionBuffer.c_str(), predictionBuffer.size(), thread_idx);
+                        predictionBuffer.clear();
+                    }
                 }
+
+                // empty optimal sets between writes:
+                plusStrandOptimalExonSet.clear();
+                minusStrandOptimalExonSet.clear();
+                numIters++;
             }
             // close the contig entry with a null byte
             predWriter.writeEnd(contigKey, thread_idx);

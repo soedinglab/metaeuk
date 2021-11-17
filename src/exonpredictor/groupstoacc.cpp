@@ -8,6 +8,7 @@
 #include "MathUtil.h"
 #include "itoa.h"
 
+
 #ifdef OPENMP
 #include <omp.h>
 #endif
@@ -58,15 +59,17 @@ int groupstoacc(int argn, const char **argv, const Command& command) {
             while (*results != '\0') {
                 const size_t columns = Util::getWordsOfLine(results, entry, 255);
                 // each line informs of a representative and of a member
-                if (columns != 4) {
-                    Debug(Debug::ERROR) << "There should be 4 columns in the input file. This doesn't seem to be the case.\n";
+                if (columns != 6) {
+                    Debug(Debug::ERROR) << "There should be 6 columns in the input file. This doesn't seem to be the case.\n";
                     EXIT(EXIT_FAILURE);
                 }
 
                 unsigned int repTargetKey = Util::fast_atoi<int>(entry[0]);
                 int repStrand = Util::fast_atoi<int>(entry[1]);
-                unsigned int memTargetKey = Util::fast_atoi<int>(entry[2]);
-                int memStrand = Util::fast_atoi<int>(entry[3]);
+                int repLowCoord = Util::fast_atoi<int>(entry[2]);
+                unsigned int memTargetKey = Util::fast_atoi<int>(entry[3]);
+                int memStrand = Util::fast_atoi<int>(entry[4]);
+                int memLowCoord = Util::fast_atoi<int>(entry[5]);
 
                 if (repStrand != memStrand) {
                     Debug(Debug::ERROR) << "A representative should always be on the same strand as its member. This doesn't seem to be the case.\n";
@@ -85,8 +88,8 @@ int groupstoacc(int argn, const char **argv, const Command& command) {
                 std::string memTargetHeaderAcc = Util::parseFastaHeader(memTargetHeader);
                 
                 strToWrite.clear();
-                strToWrite = repTargetHeaderAcc + "|" + contigHeaderAcc + "|" + strandStr + "\t" +
-                             memTargetHeaderAcc + "|" + contigHeaderAcc + "|" + strandStr + "\n";
+                strToWrite = repTargetHeaderAcc + "|" + contigHeaderAcc + "|" + strandStr + "|" + std::to_string(repLowCoord) + "\t" +
+                             memTargetHeaderAcc + "|" + contigHeaderAcc + "|" + strandStr + "|" + std::to_string(memLowCoord) + "\n";
 
                 writer.writeData(strToWrite.c_str(), strToWrite.size(), 0, thread_idx, false, false);
 

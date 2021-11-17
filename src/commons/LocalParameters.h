@@ -46,6 +46,9 @@ public:
     PARAMETER(PARAM_MAX_AA_OVERLAP)
     size_t maxAaOverlap;
 
+    PARAMETER(PARAM_MAX_EXON_SETS)
+    size_t maxExonSets;
+
     PARAMETER(PARAM_GAP_OPEN_PENALTY)
     int setGapOpenPenalty;
 
@@ -74,6 +77,7 @@ private:
         PARAM_MIN_INTRON_LENGTH(PARAM_MIN_INTRON_LENGTH_ID,"--min-intron", "Minimal intron length", "Minimal allowed intron length", typeid(int), (void *) &minIntronLength, "^[0-9]+$"),
         PARAM_MIN_EXON_AA_LENGTH(PARAM_MIN_EXON_AA_LENGTH_ID,"--min-exon-aa", "Minimal exon length aa", "Minimal allowed exon length in amino acids", typeid(int), (void *) &minExonAaLength, "^[0-9]+$"),
         PARAM_MAX_AA_OVERLAP(PARAM_MAX_AA_OVERLAP_ID,"--max-overlap", "Maximal overlap of exons", "Maximal allowed overlap of consecutive exons in amino acids", typeid(int), (void *) &maxAaOverlap, "^[0-9]+$"),
+        PARAM_MAX_EXON_SETS(PARAM_MAX_EXON_SETS_ID,"--max-exon-sets", "Maximal number of exon sets", "Maximal number of exons sets that match a given target. If >1 suboptimal solutions will be reported", typeid(int), (void *) &maxExonSets, "^[0-9]+$"),
         PARAM_GAP_OPEN_PENALTY(PARAM_GAP_OPEN_PENALTY_ID,"--set-gap-open", "Gap open penalty", "Gap open penalty (negative) for missed target amino acids between exons", typeid(int), (void *) &setGapOpenPenalty, "^-[0-9]+$"),
         PARAM_GAP_EXTEND_PENALTY(PARAM_GAP_EXTEND_PENALTY_ID,"--set-gap-extend", "Gap extend penalty", "Gap extend penalty (negative) for missed target amino acids between exons", typeid(int), (void *) &setGapExtendPenalty, "^-[0-9]+$"),
         PARAM_SHOULD_TRANSLATE(PARAM_SHOULD_TRANSLATE_ID,"--protein", "translate codons to AAs", "translate the joint exons coding sequence to amino acids [0,1]", typeid(int), (void *) &shouldTranslate, "^[0-1]{1}$"),
@@ -87,6 +91,7 @@ private:
         collectoptimalset.push_back(&PARAM_MIN_INTRON_LENGTH);
         collectoptimalset.push_back(&PARAM_MIN_EXON_AA_LENGTH);
         collectoptimalset.push_back(&PARAM_MAX_AA_OVERLAP);
+        collectoptimalset.push_back(&PARAM_MAX_EXON_SETS);
         collectoptimalset.push_back(&PARAM_GAP_OPEN_PENALTY);
         collectoptimalset.push_back(&PARAM_GAP_EXTEND_PENALTY);
         collectoptimalset.push_back(&PARAM_SCORE_BIAS);
@@ -131,6 +136,7 @@ private:
         minIntronLength = 15;
         minExonAaLength = 11;
         maxAaOverlap = 10; // should be smaller than minExonAaLength
+        maxExonSets = 1; // by default, find just the optimal
         setGapOpenPenalty = -1;
         setGapExtendPenalty = -1;
 

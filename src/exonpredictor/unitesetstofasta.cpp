@@ -174,7 +174,8 @@ void preparePredHeaderToGFF (const std::string & contigHeaderAcc, const Predicti
         strandStr[strandStr.length() - 1] = '-';
     }
 
-    std::string TCS = targetHeaderAcc + "|" + contigHeaderAcc + "|" + strandStr;
+    // the combination of T+C+S and lowContigStart should be unique
+    std::string TCS = targetHeaderAcc + "|" + contigHeaderAcc + "|" + strandStr + "|" + std::to_string(pred.lowContigCoord);
     
     // start with writing the gene and mrna:
     const char *levels[4] = { "gene", "mRNA", "exon", "CDS" };  
@@ -307,7 +308,6 @@ int unitesetstofasta(int argn, const char **argv, const Command& command) {
             progress.updateProgress();
 
             unsigned int contigKey = predsPerContig.getDbKey(id);
-
             char *results = predsPerContig.getData(id, thread_idx);
             
             // if the contig has no predictions - move on
@@ -319,6 +319,7 @@ int unitesetstofasta(int argn, const char **argv, const Command& command) {
 
             unsigned int currTargetKey = 0;
             bool isFirstIteration = true;
+            unsigned int currLowContigCoord = 0;
             
             // get contig data and header:
             size_t contigId = contigsData.getId(contigKey);
@@ -344,14 +345,16 @@ int unitesetstofasta(int argn, const char **argv, const Command& command) {
 
                 unsigned int targetKey = Prediction::getTargetKey(entry);
                 int strand = Prediction::getStrand(entry);
-
+                unsigned int lowContigCoord = Prediction::getLowContigCoord(entry);
+                
                 if (isFirstIteration) {
                     currTargetKey = targetKey;
                     isFirstIteration = false;
+                    currLowContigCoord = lowContigCoord;
                 }
 
-                // after collecting all the exons for the current target:
-                if (targetKey != currTargetKey) {
+                // after collecting all the exons for the current prediction:
+                if ((targetKey != currTargetKey) || (lowContigCoord != currLowContigCoord)) {
                     if (targetKey < currTargetKey) {
                         Debug(Debug::ERROR) << "The targets are assumed to be sorted in increasing order. This doesn't seem to be the case.\n";
                         EXIT(EXIT_FAILURE);
@@ -430,13 +433,14 @@ int unitesetstofasta(int argn, const char **argv, const Command& command) {
                         fastaCodonWriter.writeData(result.c_str(), result.size(), 0, thread_idx, false, false);
                     }
                     
-                    // move to another target:
+                    // move to another prediction:
                     plusPred.clearPred();
                     minusPred.clearPred();
                     currTargetKey = targetKey;
+                    currLowContigCoord = lowContigCoord;
                 }
                 
-                // add exon from same target:
+                // add exon from same prediction:
                 if (strand == PLUS) {
                     // these fields remain constant between exons of the same prediction
                     plusPred.setByDPRes(entry);
@@ -449,7 +453,7 @@ int unitesetstofasta(int argn, const char **argv, const Command& command) {
                 results = Util::skipLine(results);
             }
 
-            // handle the last target for the current contig:
+            // handle the last prediction for the current contig:
             const char* targetHeader = targetsHeaders.getDataByDBKey(currTargetKey, thread_idx);
             std::string targetHeaderAcc;
             if (par.writeTargetKey == true) {
