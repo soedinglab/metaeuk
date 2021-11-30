@@ -63,7 +63,7 @@ For example, the MMseqs2 command `mmseqs createdb` can be replaced with `metaeuk
      --metaeuk-eval      maximal combined E-Value to retain an optimal exon set
      --metaeuk-tcov      minimal length ratio of combined set to target 
      --exhaustive-search if referenceDB is a profile database, should be added (before version 4 called slice-search)
-     
+     --max-exon-sets     maximal number of exon sets on each contig and strand for a given target (from version 6)
 
 ### easy-predict workflow:
 
@@ -81,6 +81,15 @@ This module will extract all putative protein fragments from each contig and str
     metaeuk predictexons contigsDB referenceDB callsResultDB tempFolder --metaeuk-eval 0.0001 -e 100 --min-length 40
     
 Since this step involves a search, it is the most time-demanding of all analyses steps. Upon completion, it will output a database (contigs are keys), where each line contains information about a **TCS** and its exon (multi-exon **TCS**s will span several lines).
+
+
+#### Optional calling of sub-optimal exon sets:
+
+By default, MetaEuk calls a single and optimal compatible exon set from each **C** & **S** for each **T**. If you are interested in calling several matches to a certain **T** from each **C** & **S** (for example, to look for **gene duplications**), you can change the default value of ```max-exon-sets``` to the number of sets to look for (from version 6). A few important notes:
+
+* If ```max-exon-sets``` > 1, then it is no longer guaranteed that ***TCS*** is a unique identifier. Therefore, when parsing the output of such runs, it is recommended to use ***TCS*** together with ***low_contig*** (see details about the [MetaEuk header](https://github.com/soedinglab/metaeuk#the-metaeuk-header)).
+* If I run with ```--max-exon-sets``` > 1, am I guaranteed to get ALL the predictions I get when running ```--max-exon-sets 1```? **No!** You most likely see all of them but this is not guaranteed because some complex cases can arise due to the redundancy reduction stage. You can see an example for such a case under tests/sub_opt/readme.txt.
+* Running with ```max-exon-sets``` > 1 is mainly useful in case your contigs are long enough to contain several genes (less common in metagenomic data)
 
 
 ### Reducing redundancy:
@@ -132,20 +141,20 @@ In addition to writing a Fasta file, MetaEuk writes a GFF file. Please note that
 *>protein_acc|contig_acc|-|508|1.15e-150|2|100|911|911[911]:582[582]:330[330]|501[501]:100[100]:402[402]*
 
 
-    contig_acc    MetaEuk    gene    101     912     508     -       .       Target_ID=protein_acc;TCS_ID=protein_acc|contig_acc|-
-    contig_acc    MetaEuk    mRNA    101     912     508     -       .       Target_ID=protein_acc;TCS_ID=protein_acc|contig_acc|-_mRNA;Parent=protein_acc|contig_acc|-
-    contig_acc    MetaEuk    exon    583     912     234     -       .       Target_ID=protein_acc;TCS_ID=protein_acc|contig_acc|-_exon_0;Parent=protein_acc|contig_acc|-_mRNA
-    contig_acc    MetaEuk    CDS    583     912     234     -       .       Target_ID=protein_acc;TCS_ID=protein_acc|contig_acc|-_CDS_0;Parent=protein_acc|contig_acc|-_exon_0
-    contig_acc    MetaEuk    exon    101     502     273     -       .       Target_ID=protein_acc;TCS_ID=protein_acc|contig_acc|-_exon_1;Parent=protein_acc|contig_acc|-_mRNA
-    contig_acc    MetaEuk    CDS    101     502     273     -       .       Target_ID=protein_acc;TCS_ID=protein_acc|contig_acc|-_CDS_1;Parent=protein_acc|contig_acc|-_exon_1
+    contig_acc    MetaEuk    gene    101     912     508     -       .       Target_ID=protein_acc;TCS_ID=protein_acc|contig_acc|-|low_coord
+    contig_acc    MetaEuk    mRNA    101     912     508     -       .       Target_ID=protein_acc;TCS_ID=protein_acc|contig_acc|-|low_coord_mRNA;Parent=protein_acc|contig_acc|-|low_coord
+    contig_acc    MetaEuk    exon    583     912     234     -       .       Target_ID=protein_acc;TCS_ID=protein_acc|contig_acc|-|low_coord_exon_0;Parent=protein_acc|contig_acc|-|low_coord_mRNA
+    contig_acc    MetaEuk    CDS    583     912     234     -       .       Target_ID=protein_acc;TCS_ID=protein_acc|contig_acc|-|low_coord_CDS_0;Parent=protein_acc|contig_acc|-|low_coord_exon_0
+    contig_acc    MetaEuk    exon    101     502     273     -       .       Target_ID=protein_acc;TCS_ID=protein_acc|contig_acc|-|low_coord_exon_1;Parent=protein_acc|contig_acc|-|low_coord_mRNA
+    contig_acc    MetaEuk    CDS    101     502     273     -       .       Target_ID=protein_acc;TCS_ID=protein_acc|contig_acc|-|low_coord_CDS_1;Parent=protein_acc|contig_acc|-|low_coord_exon_1
 
 
 
 ### Creating a TSV map of predictions to their TCS group members:
 
-A TSV file, of lines of the format:
+A TSV file, of lines of the format (low_coord information added in version 6):
 
-*T_acc_rep|C_acc|S    T_acc_member|C_acc|S*
+*T_acc_rep|C_acc|S|low_coord_rep    T_acc_member|C_acc|S|low_coord_member*
 
 can help mapping from each representative prediction after the redundancy reduction stage to all its TCS group members. Since redundancy reduction is performed per contig and strand combination, there will always be agreement in these fields. Note, a representative also maps to itself.
 
