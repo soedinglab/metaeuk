@@ -36,25 +36,26 @@ Prefiltering::Prefiltering(const std::string &queryDB,
         spacedKmer(par.spacedKmer != 0),
         maskMode(par.maskMode),
         maskLowerCaseMode(par.maskLowerCaseMode),
+        maskProb(par.maskProb),
         splitMode(par.splitMode),
         scoringMatrixFile(par.scoringMatrixFile),
         seedScoringMatrixFile(par.seedScoringMatrixFile),
         targetSeqType(targetSeqType),
         maxResListLen(par.maxResListLen),
-        kmerScore(par.kmerScore),
         sensitivity(par.sensitivity),
         maxSeqLen(par.maxSeqLen),
         querySeqType(querySeqType),
         diagonalScoring(par.diagonalScoring),
         minDiagScoreThr(static_cast<unsigned int>(par.minDiagScoreThr)),
         aaBiasCorrection(par.compBiasCorrection != 0),
+        aaBiasCorrectionScale(par.compBiasCorrectionScale),
         covThr(par.covThr), covMode(par.covMode), includeIdentical(par.includeIdentity),
         preloadMode(par.preloadMode),
         threads(static_cast<unsigned int>(par.threads)), compressed(par.compressed) {
     sameQTDB = isSameQTDB();
 
     // init the substitution matrices
-    switch (querySeqType & 0x7FFFFFFF) {
+    switch (querySeqType & Parameters::DBTYPE_MASK) {
         case Parameters::DBTYPE_NUCLEOTIDES:
             kmerSubMat = getSubstitutionMatrix(scoringMatrixFile, par.alphabetSize, 1.0, false, true);
             ungappedSubMat = kmerSubMat;
@@ -68,11 +69,6 @@ Prefiltering::Prefiltering(const std::string &queryDB,
         case Parameters::DBTYPE_HMM_PROFILE:
             // needed for Background distributions
             kmerSubMat = getSubstitutionMatrix(scoringMatrixFile, par.alphabetSize, 8.0, false, false);
-            ungappedSubMat = getSubstitutionMatrix(scoringMatrixFile, par.alphabetSize, 2.0, false, false);
-            alphabetSize = kmerSubMat->alphabetSize;
-            break;
-        case Parameters::DBTYPE_PROFILE_STATE_PROFILE:
-            kmerSubMat = getSubstitutionMatrix(scoringMatrixFile, par.alphabetSize, 8.0, true, false);
             ungappedSubMat = getSubstitutionMatrix(scoringMatrixFile, par.alphabetSize, 2.0, false, false);
             alphabetSize = kmerSubMat->alphabetSize;
             break;
@@ -154,7 +150,7 @@ Prefiltering::Prefiltering(const std::string &queryDB,
             }
             spacedKmer = data.spacedKmer != 0;
             spacedKmerPattern = PrefilteringIndexReader::getSpacedPattern(tidxdbr);
-            seedScoringMatrixFile = MultiParam<char*>(PrefilteringIndexReader::getSubstitutionMatrix(tidxdbr));
+            seedScoringMatrixFile = MultiParam<NuclAA<std::string>>(PrefilteringIndexReader::getSubstitutionMatrix(tidxdbr));
         } else {
             Debug(Debug::ERROR) << "Outdated index version. Please recompute it with 'createindex'!\n";
             EXIT(EXIT_FAILURE);
@@ -170,7 +166,7 @@ Prefiltering::Prefiltering(const std::string &queryDB,
     maxResListLen = std::min(tdbr->getSize(), maxResListLen);
 
     // investigate if it makes sense to mask the profile consensus sequence
-    if (Parameters::isEqualDbtype(targetSeqType, Parameters::DBTYPE_HMM_PROFILE) || Parameters::isEqualDbtype(targetSeqType, Parameters::DBTYPE_PROFILE_STATE_SEQ)) {
+    if (Parameters::isEqualDbtype(targetSeqType, Parameters::DBTYPE_HMM_PROFILE)) {
         maskMode = 0;
     }
 
@@ -196,7 +192,10 @@ Prefiltering::Prefiltering(const std::string &queryDB,
     if(Parameters::isEqualDbtype(targetSeqType, Parameters::DBTYPE_NUCLEOTIDES) == false){
         const bool isProfileSearch = Parameters::isEqualDbtype(querySeqType, Parameters::DBTYPE_HMM_PROFILE) ||
                                      Parameters::isEqualDbtype(targetSeqType, Parameters::DBTYPE_HMM_PROFILE);
-        kmerThr = getKmerThreshold(sensitivity, isProfileSearch, kmerScore, kmerSize);
+        const bool queryCPC = DBReader<unsigned int>::getExtendedDbtype(querySeqType) & Parameters::DBTYPE_EXTENDED_CONTEXT_PSEUDO_COUNTS;
+        const bool targetCPC = DBReader<unsigned int>::getExtendedDbtype(targetSeqType) & Parameters::DBTYPE_EXTENDED_CONTEXT_PSEUDO_COUNTS;
+        const bool contextPseudoCnts = queryCPC || targetCPC;
+        kmerThr = getKmerThreshold(sensitivity, isProfileSearch, contextPseudoCnts, par.kmerScore.values, kmerSize);
     }else {
         kmerThr = 0;
     }
@@ -508,7 +507,6 @@ void Prefiltering::getIndexTable(int split, size_t dbFrom, size_t dbSize) {
 
         Sequence tseq(maxSeqLen, targetSeqType, kmerSubMat, kmerSize, spacedKmer, aaBiasCorrection, true, spacedKmerPattern);
         int localKmerThr = (Parameters::isEqualDbtype(querySeqType, Parameters::DBTYPE_HMM_PROFILE) ||
-                            Parameters::isEqualDbtype(querySeqType, Parameters::DBTYPE_PROFILE_STATE_PROFILE) ||
                             Parameters::isEqualDbtype(querySeqType, Parameters::DBTYPE_NUCLEOTIDES) ||
                             (Parameters::isEqualDbtype(targetSeqType, Parameters::DBTYPE_HMM_PROFILE) == false && takeOnlyBestKmer == true) ) ? 0 : kmerThr;
 
@@ -521,7 +519,7 @@ void Prefiltering::getIndexTable(int split, size_t dbFrom, size_t dbSize) {
         SequenceLookup **unmaskedLookup = maskMode == 0 ? &sequenceLookup : NULL;
 
         Debug(Debug::INFO) << "Index table k-mer threshold: " << localKmerThr << " at k-mer size " << kmerSize << " \n";
-        IndexBuilder::fillDatabase(indexTable, maskedLookup, unmaskedLookup, *kmerSubMat,  &tseq, tdbr, dbFrom, dbFrom + dbSize, localKmerThr, maskMode, maskLowerCaseMode);
+        IndexBuilder::fillDatabase(indexTable, maskedLookup, unmaskedLookup, *kmerSubMat,  &tseq, tdbr, dbFrom, dbFrom + dbSize, localKmerThr, maskMode, maskLowerCaseMode, maskProb);
 
         // sequenceLookup has to be temporarily present to speed up masking
         // afterwards its not needed anymore without diagonal scoring
@@ -781,7 +779,7 @@ bool Prefiltering::runSplit(const std::string &resultDB, const std::string &resu
 #endif
         Sequence seq(qdbr->getMaxSeqLen(), querySeqType, kmerSubMat, kmerSize, spacedKmer, aaBiasCorrection, true, spacedKmerPattern);
         QueryMatcher matcher(indexTable, sequenceLookup, kmerSubMat,  ungappedSubMat,
-                             kmerThr, kmerSize, dbSize, std::max(tdbr->getMaxSeqLen(),qdbr->getMaxSeqLen()), maxResListLen, aaBiasCorrection,
+                             kmerThr, kmerSize, dbSize, std::max(tdbr->getMaxSeqLen(),qdbr->getMaxSeqLen()), maxResListLen, aaBiasCorrection, aaBiasCorrectionScale,
                              diagonalScoring, minDiagScoreThr, takeOnlyBestKmer, targetSeqType==Parameters::DBTYPE_NUCLEOTIDES);
 
         if (seq.profile_matrix != NULL) {
@@ -957,20 +955,20 @@ void Prefiltering::printStatistics(const statistics_t &stats, std::list<int> **r
 }
 
 
-BaseMatrix *Prefiltering::getSubstitutionMatrix(const MultiParam<char*> &scoringMatrixFile, MultiParam<int> alphabetSize, float bitFactor, bool profileState, bool isNucl) {
+BaseMatrix *Prefiltering::getSubstitutionMatrix(const MultiParam<NuclAA<std::string>> &scoringMatrixFile, MultiParam<NuclAA<int>> alphabetSize, float bitFactor, bool profileState, bool isNucl) {
     BaseMatrix *subMat;
 
     if (isNucl){
-        subMat = new NucleotideMatrix(scoringMatrixFile.nucleotides, bitFactor, 0.0);
-    } else if (alphabetSize.aminoacids < 21) {
-        SubstitutionMatrix sMat(scoringMatrixFile.aminoacids, bitFactor, -0.2f);
-        subMat = new ReducedMatrix(sMat.probMatrix, sMat.subMatrixPseudoCounts, sMat.aa2num, sMat.num2aa, sMat.alphabetSize, alphabetSize.aminoacids, bitFactor);
+        subMat = new NucleotideMatrix(scoringMatrixFile.values.nucleotide().c_str(), bitFactor, 0.0);
+    } else if (alphabetSize.values.aminoacid() < 21) {
+        SubstitutionMatrix sMat(scoringMatrixFile.values.aminoacid().c_str(), bitFactor, -0.2f);
+        subMat = new ReducedMatrix(sMat.probMatrix, sMat.subMatrixPseudoCounts, sMat.aa2num, sMat.num2aa, sMat.alphabetSize, alphabetSize.values.aminoacid(), bitFactor);
     }else if(profileState == true){
-        SubstitutionMatrix sMat(scoringMatrixFile.aminoacids, bitFactor, -0.2f);
+        SubstitutionMatrix sMat(scoringMatrixFile.values.aminoacid().c_str(), bitFactor, -0.2f);
         subMat = new SubstitutionMatrixProfileStates(sMat.matrixName, sMat.probMatrix, sMat.pBack,
                                                      sMat.subMatrixPseudoCounts, bitFactor, 0.0, 8);
     } else {
-        subMat = new SubstitutionMatrix(scoringMatrixFile.aminoacids, bitFactor, -0.2f);
+        subMat = new SubstitutionMatrix(scoringMatrixFile.values.aminoacid().c_str(), bitFactor, -0.2f);
     }
     return subMat;
 }
@@ -984,37 +982,57 @@ void Prefiltering::mergePrefilterSplits(const std::string &outDB, const std::str
     }
 }
 
-int Prefiltering::getKmerThreshold(const float sensitivity, const bool isProfile, const int kmerScore, const int kmerSize) {
-    double kmerThrBest = kmerScore;
-    if (kmerScore == INT_MAX) {
-        if(isProfile){
+int Prefiltering::getKmerThreshold(const float sensitivity, const bool isProfile, const bool hasContextPseudoCnts, const SeqProf<int> kmerScore, const int kmerSize) {
+    if (isProfile == true && kmerScore.profile() != INT_MAX) {
+        return kmerScore.profile();
+    }
+    if (isProfile == false && kmerScore.sequence() != INT_MAX) {
+        return kmerScore.sequence();
+    }
+    float kmerThrBest = FLT_MAX;
+    if (isProfile == true) {
+        if (hasContextPseudoCnts == true) {
             if (kmerSize == 5) {
-                float base = 140.75;
+                float base = 97.75;
                 kmerThrBest = base - (sensitivity * 8.75);
             } else if (kmerSize == 6) {
-                float base = 155.75;
+                float base = 132.75;
                 kmerThrBest = base - (sensitivity * 8.75);
             } else if (kmerSize == 7) {
-                float base = 171.75;
+                float base = 158.75;
                 kmerThrBest = base - (sensitivity * 9.75);
             } else {
                 Debug(Debug::ERROR) << "The k-mer size " << kmerSize << " is not valid.\n";
                 EXIT(EXIT_FAILURE);
             }
-        }else{
+        } else {
             if (kmerSize == 5) {
-                float base = 160.75;
-                kmerThrBest = base - (sensitivity * 12.75);
+                float base = 108.8;
+                kmerThrBest = base - (sensitivity * 4.7);
             } else if (kmerSize == 6) {
-                float base = 163.2;
-                kmerThrBest = base - (sensitivity * 8.917);
+                float base = 134.35;
+                kmerThrBest = base - (sensitivity * 6.15);
             } else if (kmerSize == 7) {
-                float base = 186.15;
-                kmerThrBest = base - (sensitivity * 11.22);
+                float base = 149.15;
+                kmerThrBest = base - (sensitivity * 6.85);
             } else {
-                Debug(Debug::ERROR) << "The k-mer size " << kmerSize << " is not valid.\n";
+                Debug(Debug::ERROR) << "The k-mer size " << kmerSize << " is not valid\n";
                 EXIT(EXIT_FAILURE);
             }
+        }
+    } else {
+        if (kmerSize == 5) {
+            float base = 160.75;
+            kmerThrBest = base - (sensitivity * 12.75);
+        } else if (kmerSize == 6) {
+            float base = 163.2;
+            kmerThrBest = base - (sensitivity * 8.917);
+        } else if (kmerSize == 7) {
+            float base = 186.15;
+            kmerThrBest = base - (sensitivity * 11.22);
+        } else {
+            Debug(Debug::ERROR) << "The k-mer size " << kmerSize << " is not valid\n";
+            EXIT(EXIT_FAILURE);
         }
     }
     return static_cast<int>(kmerThrBest);

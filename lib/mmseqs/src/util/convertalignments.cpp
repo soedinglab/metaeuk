@@ -11,6 +11,7 @@
 #include "Orf.h"
 #include "MemoryMapped.h"
 #include "NcbiTaxonomy.h"
+#include "MappingReader.h"
 
 #define ZSTD_STATIC_LINKING_ONLY
 #include <zstd.h>
@@ -139,16 +140,17 @@ std::map<unsigned int, std::string> readSetToSource(const std::string& file) {
     return mapping;
 }
 
-static bool compareToFirstInt(const std::pair<unsigned int, unsigned int>& lhs, const std::pair<unsigned int, unsigned int>&  rhs){
-    return (lhs.first <= rhs.first);
-}
-
 int convertalignments(int argc, const char **argv, const Command &command) {
     Parameters &par = Parameters::getInstance();
     par.parseParameters(argc, argv, command, true, 0, 0);
 
     const bool sameDB = par.db1.compare(par.db2) == 0 ? true : false;
-    const int format = par.formatAlignmentMode;
+    int format = par.formatAlignmentMode;
+    bool addColumnHeaders = false;
+    if (format == Parameters::FORMAT_ALIGNMENT_BLAST_TAB_WITH_HEADERS) {
+        format = Parameters::FORMAT_ALIGNMENT_BLAST_TAB;
+        addColumnHeaders = true;
+    }
     const bool touch = (par.preloadMode != Parameters::PRELOAD_MODE_MMAP);
 
     bool needSequenceDB = false;
@@ -161,22 +163,15 @@ int convertalignments(int argc, const char **argv, const Command &command) {
     const std::vector<int> outcodes = Parameters::getOutputFormat(format, par.outfmt, needSequenceDB, needBacktrace, needFullHeaders,
                                                                   needLookup, needSource, needTaxonomyMapping, needTaxonomy);
 
-    NcbiTaxonomy * t = NULL;
-    std::vector<std::pair<unsigned int, unsigned int>> mapping;
+    NcbiTaxonomy* t = NULL;
     if(needTaxonomy){
         std::string db2NoIndexName = PrefilteringIndexReader::dbPathWithoutIndex(par.db2);
         t = NcbiTaxonomy::openTaxonomy(db2NoIndexName);
     }
-    if(needTaxonomy || needTaxonomyMapping){
+    MappingReader* mapping = NULL;
+    if (needTaxonomy || needTaxonomyMapping) {
         std::string db2NoIndexName = PrefilteringIndexReader::dbPathWithoutIndex(par.db2);
-        if(FileUtil::fileExists(std::string(db2NoIndexName + "_mapping").c_str()) == false){
-            Debug(Debug::ERROR) << db2NoIndexName + "_mapping" << " does not exist. Please create the taxonomy mapping!\n";
-            EXIT(EXIT_FAILURE);
-        }
-        bool isSorted = Util::readMapping( db2NoIndexName + "_mapping", mapping);
-        if(isSorted == false){
-            std::stable_sort(mapping.begin(), mapping.end(), compareToFirstInt);
-        }
+        mapping = new MappingReader(db2NoIndexName);
     }
 
     bool isTranslatedSearch = false;
@@ -238,13 +233,13 @@ int convertalignments(int argc, const char **argv, const Command &command) {
     int gapOpen, gapExtend;
     SubstitutionMatrix * subMat= NULL;
     if (targetNucs == true && queryNucs == true && isTranslatedSearch == false) {
-        subMat = new NucleotideMatrix(par.scoringMatrixFile.nucleotides, 1.0, 0.0);
-        gapOpen = par.gapOpen.nucleotides;
-        gapExtend = par.gapExtend.nucleotides;
+        subMat = new NucleotideMatrix(par.scoringMatrixFile.values.nucleotide().c_str(), 1.0, 0.0);
+        gapOpen = par.gapOpen.values.nucleotide();
+        gapExtend =  par.gapExtend.values.nucleotide();
     }else{
-        subMat = new SubstitutionMatrix(par.scoringMatrixFile.aminoacids, 2.0, 0.0);
-        gapOpen = par.gapOpen.aminoacids;
-        gapExtend = par.gapExtend.aminoacids;
+        subMat = new SubstitutionMatrix(par.scoringMatrixFile.values.aminoacid().c_str(), 2.0, 0.0);
+        gapOpen = par.gapOpen.values.aminoacid();
+        gapExtend = par.gapExtend.values.aminoacid();
     }
     EvalueComputation *evaluer = NULL;
     bool queryProfile = false;
@@ -314,6 +309,15 @@ int convertalignments(int argc, const char **argv, const Command &command) {
         const char* scriptBlock = "<script>render([";
         resultWriter.writeData(scriptBlock, strlen(scriptBlock), 0, 0, false, false);
         free(dst);
+    } else if (addColumnHeaders == true && outcodes.empty() == false) {
+        std::vector<std::string> outfmt = Util::split(par.outfmt, ",");
+        std::string header(outfmt[0]);
+        for(size_t i = 1; i < outfmt.size(); i++) {
+            header.append(1, '\t');
+            header.append(outfmt[i]);
+        }
+        header.append(1, '\n');
+        resultWriter.writeData(header.c_str(), header.length(), 0, 0, false, false);
     }
 
     Debug::Progress progress(alnDbr.getSize());
@@ -464,22 +468,13 @@ int convertalignments(int argc, const char **argv, const Command &command) {
                             char *targetSeqData = NULL;
                             targetProfData.clear();
                             unsigned int taxon = 0;
-
-                            if(needTaxonomy || needTaxonomyMapping) {
-                                std::pair<unsigned int, unsigned int> val;
-                                val.first = res.dbKey;
-                                std::vector<std::pair<unsigned int, unsigned int>>::iterator mappingIt;
-                                mappingIt = std::upper_bound(mapping.begin(), mapping.end(), val, compareToFirstInt);
-                                if (mappingIt == mapping.end() || mappingIt->first != val.first) {
-                                    taxon = 0;
+                            if (needTaxonomy || needTaxonomyMapping) {
+                                taxon = mapping->lookup(res.dbKey);
+                                if (taxon == 0) {
                                     taxonNode = NULL;
-                                }else{
-                                    taxon = mappingIt->second;
-                                    if(needTaxonomy){
-                                        taxonNode = t->taxonNode(taxon, false);
-                                    }
+                                } else if (needTaxonomy) {
+                                    taxonNode = t->taxonNode(taxon, false);
                                 }
-
                             }
 
                             if (needSequenceDB) {
@@ -788,8 +783,11 @@ int convertalignments(int argc, const char **argv, const Command &command) {
     if (isDb == false) {
         FileUtil::remove(par.db4Index.c_str());
     }
-    if(needTaxonomy){
+    if (needTaxonomy) {
         delete t;
+    }
+    if (mapping != NULL) {
+        delete mapping;
     }
     alnDbr.close();
     if (sameDB == false) {
