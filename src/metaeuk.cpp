@@ -1,4 +1,5 @@
 #include "Command.h"
+#include "DownloadDatabase.h"
 #include "LocalCommandDeclarations.h"
 #include "LocalParameters.h"
 
@@ -8,7 +9,10 @@ const char* tool_introduction = "MetaEuk is homology-based strategy to efficient
 const char* main_author = "Eli Levy Karin, eli.levy.karin@gmail.com";
 const char* show_extended_help = "1";
 const char* show_bash_info = NULL;
+extern const char* MMSEQS_CURRENT_INDEX_VERSION;
+const char* index_version_compatible = MMSEQS_CURRENT_INDEX_VERSION;
 bool hide_base_commands = true;
+bool hide_base_downloads = false;
 void (*validatorUpdate)(void) = 0;
 
 LocalParameters& localPar = LocalParameters::getLocalInstance();
@@ -88,3 +92,5 @@ std::vector<struct Command> commands = {
                                   {"targetsDB", DbType::ACCESS_MODE_INPUT, DbType::NEED_DATA, &DbValidator::sequenceDb},
                                   {"calledExonsDB", DbType::ACCESS_MODE_OUTPUT, DbType::NEED_DATA, NULL}}}
 };
+
+std::vector<DatabaseDownload> externalDownloads = {};
