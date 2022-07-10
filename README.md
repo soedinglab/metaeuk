@@ -87,7 +87,7 @@ Since this step involves a search, it is the most time-demanding of all analyses
 
 By default, MetaEuk calls a single and optimal compatible exon set from each **C** & **S** for each **T**. If you are interested in calling several matches to a certain **T** from each **C** & **S** (for example, to look for **gene duplications**), you can change the default value of ```max-exon-sets``` to the number of sets to look for (from version 6). A few important notes:
 
-* If ```max-exon-sets``` > 1, then it is no longer guaranteed that ***TCS*** is a unique identifier. Therefore, when parsing the output of such runs, it is recommended to use ***TCS*** together with ***low_contig*** (see details about the [MetaEuk header](https://github.com/soedinglab/metaeuk#the-metaeuk-header)).
+* If ```max-exon-sets``` > 1, then it is no longer guaranteed that ***TCS*** is a unique identifier. Therefore, when parsing the output of such runs, it is recommended to use ***TCS*** together with ***low_contig*** as the identifier (see details about the [MetaEuk header](https://github.com/soedinglab/metaeuk#the-metaeuk-header)).
 * If I run with ```--max-exon-sets``` > 1, am I guaranteed to get ALL the predictions I get when running ```--max-exon-sets 1```? **No!** You most likely see all of them but this is not guaranteed because some complex cases can arise due to the redundancy reduction stage. You can see an example for such a case under tests/sub_opt/readme.txt.
 * Running with ```max-exon-sets``` > 1 is mainly useful in case your contigs are long enough to contain several genes (less common in metagenomic data)
 
