@@ -9,6 +9,28 @@
 
 MetaEuk is a modular toolkit designed for large-scale gene discovery and annotation in eukaryotic metagenomic contigs. MetaEuk combines the fast and sensitive homology search capabilities of [MMseqs2](https://github.com/soedinglab/MMseqs2) with a dynamic programming procedure to recover optimal exons sets. It reduces redundancies in multiple discoveries of the same gene and resolves conflicting gene predictions on the same strand. MetaEuk is GPLv3-licensed open source software that is implemented in C++ and available for Linux and macOS. The software is designed to run efficiently on multiple cores.
 
+<!--- TOC START -->
+Table of Contents
+-----------------
+- [Publication](#publication)
+- [Installation](#installation)
+- [Input](#input)
+- [Terminology](#terminology)
+- [Running MetaEuk](#running-metaeuk)
+    - [Main Modules](#main-modules)
+    - [Using MMseqs2 commands within MetaEuk](#using-mmseqs2-commands-within-metaeuk)
+    - [Important parameters](#important-parameters)
+    - [easy-predict workflow](#easy-predict-workflow)
+    - [Calling optimal exons sets](#calling-optimal-exons-sets)
+    - [Reducing redundancy](#reducing-redundancy)
+    - [Converting to Fasta and GFF](#converting-to-fasta-and-gff)
+    - [Taxonomic assignment with taxtocontig](#taxonomic-assignment-with-taxtocontig)
+- [Compile from source](#compile-from-source)
+- [Hardware requirements](#hardware-requirements)
+<!--- TOC END -->
+
+
+
 ## Publication
 
 [Levy Karin E, Mirdita M and Soeding J. MetaEuk – sensitive, high-throughput gene discovery and annotation for large-scale eukaryotic metagenomics. Microbiome. 2020; 8:48](https://rdcu.be/b3ozK)
@@ -102,7 +124,7 @@ Upon completion, it will output: predsResultDB and predGroupsDB. predsResultDB c
 
 
 
-### Converting to Fasta (and GFF):
+### Converting to Fasta and GFF:
 
 The callsResultDB/predsResultDB produced by the modules above, can be used to extract the sequences of the predicted protein-coding genes.
     
