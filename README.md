@@ -25,6 +25,7 @@ Table of Contents
     - [Reducing redundancy](#reducing-redundancy)
     - [Converting to Fasta and GFF](#converting-to-fasta-and-gff)
     - [Taxonomic assignment with taxtocontig](#taxonomic-assignment-with-taxtocontig)
+- [Available reference databases](#available-reference-databases)
 - [Compile from source](#compile-from-source)
 - [Hardware requirements](#hardware-requirements)
 <!--- TOC END -->
@@ -54,10 +55,7 @@ wget https://mmseqs.com/metaeuk/metaeuk-osx-universal.tar.gz; tar xzvf metaeuk-o
 Precompiled binaries for other architectures (ARM64, PPC64LE) and very old AMD/Intel CPUs (SSE2 only) are available at https://mmseqs.com/metaeuk.
 
 ## Input 
-MetaEuk will search for eukaryotic protein-coding genes in **contigs** based on similarity to a reference set of **proteins** or **protein profiles**. The starting point are Fasta files of sequences (you can use contigs.fna and proteins.faa from the tests/two_contigs directory as a small toy example).
-
-You could **either** use the ```easy-predict``` workflow directly on the Fasta files **or** convert them to databases by running the createdb command and later on specific MetaEuk modules.
-Read [here](https://github.com/soedinglab/mmseqs2/wiki#how-to-create-a-target-profile-database-from-pfam) to learn more on how to create a protein profile database using MMseqs2. Once created, this database can be used as referenceDB in the commands below.
+MetaEuk will search for eukaryotic protein-coding genes in **contigs** based on similarity to reference **proteins** or **protein profiles**. You could **either** use the ```easy-predict``` workflow directly on Fasta files **or** convert them to MMseqs2-formatted databases by running the `createdb` command and later on specific MetaEuk modules. Read [here](#available-reference-databases) about available reference database. You can use contigs.fna and proteins.faa from the tests/two_contigs directory as a small toy example.
 
 ## Terminology
 A **gene call** is an optimal set of exons predicted based on similarity to a specific target (**T**) in a specific contig (**C**) and strand (**S**). In the following it is referred to as a **TCS** or as a **call**. After redundancy reduction (see details below), the **representative TCS** is referred to as **prediction**.
@@ -201,6 +199,18 @@ predictions' taxonomic labels: *Ostreococcus tauri*, *Ostreococcus mediterraneus
     
 #### Output:
 The run ends with two files: **taxResult_per_pred.tsv** and **taxResult_per_contig.tsv**, each of which is in [taxonomy result TSV format](https://github.com/soedinglab/MMseqs2/wiki#taxonomy-output-and-tsv)
+
+## Available reference databases
+Any Fasta file containing protein sequences or MMseqs2-formatted database of proteins or protein profiles can be provided as a reference database to MetaEuk. 
+
+Don't have one yet? Not a problem! Here is what you can do:
+* Using the `databases` command, you can easily download several of the publicly available databases, as detailed [here](https://github.com/soedinglab/MMseqs2/wiki#downloading-databases). 
+Conveniently, many of these databases will be downloaded with taxonomic information, which will both allow you to filter them according to your need (for example, retain only eukaryotic sequences), as detailed [here](https://github.com/soedinglab/MMseqs2/wiki#filtering-a-seqtaxdb) and use them for [taxonomic assignment with MetaEuk](#taxonomic-assignment-with-taxtocontig) at a later stage, if desired.
+
+   Read [here](https://github.com/soedinglab/mmseqs2/wiki#how-to-create-a-target-profile-database-from-pfam) to learn more on how to create a protein profile database.
+
+* Additional resources include two databases [released alongside the MetaEuk publication](https://wwwuser.gwdg.de/~compbiol/metaeuk/). These are focused on Eukaryotes in the marine environment. The first contains [~6 million proteins predicted by MetaEuk](https://wwwuser.gwdg.de/~compbiol/metaeuk/2019_11/MetaEuk_preds_Tara_vs_euk_profiles_uniqs.fas.gz). The second consists of [~88 protein profiles](https://wwwuser.gwdg.de/~compbiol/metaeuk/2019_11/MERC_MMETSP_Uniclust50_profiles.tar.gz) created from, among others, eukaryotic proteins from the marine environment. Of note, due to changes in the profile database format, the second resource can be used "out of the box" with MetaEukV5 or lower. If you're running a newer version of MetaEuk and need this resource, it can be recreated in the right format. 
+
 
 ## Compile from source
 Compiling MetaEuk from source has the advantage that it will be optimized to the specific system, which should improve its performance. To compile MetaEuk `git`, `g++` (4.9 or higher) and `cmake` (3.0 or higher) are required. Afterwards, the MetaEuk binary will be located in the `build/bin` directory.
