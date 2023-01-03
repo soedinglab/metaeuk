@@ -183,8 +183,8 @@ int resultspercontig(int argc, const char **argv, const Command &command) {
 
             for (size_t i = 0; i < results.size(); i++) {
                 Matcher::result_t &orfToTarget = results[i].first;
-                bool hasBacktrace = (orfToTarget.backtrace.size() > 0);
-                size_t len = Matcher::resultToBuffer(buffer, orfToTarget, hasBacktrace, false);
+                // don't ever write a backtrace. old: bool hasBacktrace = (orfToTarget.backtrace.size() > 0);
+                size_t len = Matcher::resultToBuffer(buffer, orfToTarget, false, false);
                 // -1 for newline
                 ss.append(buffer, len - 1);
                 // add "\t"

@@ -102,6 +102,7 @@ private:
         // predictexonsworkflow = combineList(extractorfs, translatenucs); // available through searchworkflow
         predictexonsworkflow = combineList(searchworkflow, collectoptimalset);
         predictexonsworkflow.push_back(&PARAM_REVERSE_FRAGMENTS);
+        predictexonsworkflow = removeParameter(predictexonsworkflow, PARAM_NUM_ITERATIONS);
 
         reduceredundancy.push_back(&PARAM_ALLOW_OVERLAP);
         reduceredundancy.push_back(&PARAM_THREADS);
@@ -116,10 +117,8 @@ private:
         unitesetstofasta.push_back(&PARAM_THREADS);
         unitesetstofasta.push_back(&PARAM_V);
 
-        easypredictworkflow = combineList(searchworkflow, collectoptimalset);
-        easypredictworkflow = combineList(easypredictworkflow, reduceredundancy);
+        easypredictworkflow = combineList(predictexonsworkflow, reduceredundancy);
         easypredictworkflow = combineList(easypredictworkflow, unitesetstofasta);
-        easypredictworkflow.push_back(&PARAM_REVERSE_FRAGMENTS);
 
         taxpercontigworkflow = combineList(taxonomy, aggregatetax);
         
