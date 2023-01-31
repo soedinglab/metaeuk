@@ -66,14 +66,14 @@ fi
 # create tsv for predictions
 if notExists "${TAX_ASSIGNMENT_BASENAME}_tax_per_pred.tsv"; then
     # shellcheck disable=SC2086
-    "$MMSEQS" createtsv "${TMP_PATH}/preds" "${TMP_PATH}/tax_per_pred" "${TAX_ASSIGNMENT_BASENAME}_tax_per_pred.tsv" \
+    "$MMSEQS" createtsv "${TMP_PATH}/preds" "${TMP_PATH}/tax_per_pred" "${TAX_ASSIGNMENT_BASENAME}_tax_per_pred.tsv" ${CREATETSV_PAR} \
         || fail "createtsv on predictions died"
 fi
 
 # create tsv for contigs
 if notExists "${TAX_ASSIGNMENT_BASENAME}_tax_per_contig.tsv"; then
     # shellcheck disable=SC2086
-    "$MMSEQS" createtsv "${CONTIGS_DB}" "${TMP_PATH}/tax_per_contig" "${TAX_ASSIGNMENT_BASENAME}_tax_per_contig.tsv" \
+    "$MMSEQS" createtsv "${CONTIGS_DB}" "${TMP_PATH}/tax_per_contig" "${TAX_ASSIGNMENT_BASENAME}_tax_per_contig.tsv" ${CREATETSV_PAR} \
         || fail "createtsv on contigs died"
 fi
 

@@ -30,6 +30,7 @@ int taxtocontig(int argc, const char **argv, const Command& command) {
     par.taxonomyOutputMode = 2;
     cmd.addVariable("TAXONOMY_PAR", par.createParameterString(par.taxonomy).c_str());
     cmd.addVariable("AGGREGATETAX_PAR", par.createParameterString(par.aggregatetax).c_str());
+    cmd.addVariable("CREATETSV_PAR", par.createParameterString(par.createtsv).c_str());
     cmd.addVariable("VERBOSITY_COMP_PAR", par.createParameterString(par.verbandcompression).c_str());
     cmd.addVariable("THREAD_COMP_PAR", par.createParameterString(par.threadsandcompression).c_str());
 
