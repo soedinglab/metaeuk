@@ -151,7 +151,7 @@ int findoptimalsetbydp(std::vector<PotentialExon> & potentialExonCandidates, std
         
         // sanity check - all exons refer to the same target
         if (potentialExonCandidates[id].targetLen != targetLength) {
-            Debug(Debug::ERROR) << "two exons are analyzed in the context of differnt targets.\n";
+            Debug(Debug::ERROR) << "two exons are analyzed in the context of different targets.\n";
             EXIT(EXIT_FAILURE);
         }
     }
