@@ -36,7 +36,7 @@ int easypredict(int argc, const char **argv, const Command& command) {
     cmd.addVariable("VERBOSITY_COMP_PAR", par.createParameterString(par.verbandcompression).c_str());
     cmd.addVariable("THREAD_COMP_PAR", par.createParameterString(par.threadsandcompression).c_str());
 
-    std::string program(tmpDir + "/easypredict.sh");
+    std::string program("/bin/sh " + tmpDir + "/easypredict.sh");
     FileUtil::writeFile(program, easypredict_sh, easypredict_sh_len);
     cmd.execProgram(program.c_str(), par.filenames);
 
