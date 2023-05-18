@@ -234,7 +234,7 @@ jobs:
       - task: ArchiveFiles@2
         inputs:
           rootFolderOrFile: $(Build.SourcesDirectory)/metaeuk
-          archiveFile: $(Build.SourcesDirectory)/metaeuk-linux-ppc64le-POWER8.tar.gz
+          archiveFile: $(Build.SourcesDirectory)/metaeuk-linux-ppc64le-power8.tar.gz
           includeRootFolder: true
           archiveType: tar
       - task: DownloadPipelineArtifact@1
@@ -246,7 +246,7 @@ jobs:
       - task: ArchiveFiles@2
         inputs:
           rootFolderOrFile: $(Build.SourcesDirectory)/metaeuk
-          archiveFile: $(Build.SourcesDirectory)/metaeuk-linux-ppc64le-POWER9.tar.gz
+          archiveFile: $(Build.SourcesDirectory)/metaeuk-linux-ppc64le-power9.tar.gz
           includeRootFolder: true
           archiveType: tar
       - task: DownloadSecureFile@1
