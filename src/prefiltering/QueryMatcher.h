@@ -20,16 +20,14 @@ struct statistics_t{
     size_t querySeqLen;
     size_t diagonalOverflow;
     size_t resultsPassedPrefPerSeq;
-    size_t truncated;
-    statistics_t() : kmersPerPos(0.0) , dbMatches(0) , doubleMatches(0), querySeqLen(0), diagonalOverflow(0), resultsPassedPrefPerSeq(0), truncated(0) {};
+    statistics_t() : kmersPerPos(0.0) , dbMatches(0) , doubleMatches(0), querySeqLen(0), diagonalOverflow(0), resultsPassedPrefPerSeq(0) {};
     statistics_t(double kmersPerPos, size_t dbMatches,
-                 size_t doubleMatches, size_t querySeqLen, size_t diagonalOverflow, size_t resultsPassedPrefPerSeq, size_t truncated) : kmersPerPos(kmersPerPos),
+                 size_t doubleMatches, size_t querySeqLen, size_t diagonalOverflow, size_t resultsPassedPrefPerSeq) : kmersPerPos(kmersPerPos),
                                                                                                                       dbMatches(dbMatches),
                                                                                                                       doubleMatches(doubleMatches),
                                                                                                                       querySeqLen(querySeqLen),
                                                                                                                       diagonalOverflow(diagonalOverflow),
-                                                                                                                      resultsPassedPrefPerSeq(resultsPassedPrefPerSeq),
-                                                                                                                      truncated(truncated){};
+                                                                                                                      resultsPassedPrefPerSeq(resultsPassedPrefPerSeq){};
 };
 
 struct hit_t {
@@ -50,6 +48,8 @@ struct hit_t {
     }
 };
 
+class QueryMatcherHook;
+
 class QueryMatcher {
 public:
     QueryMatcher(IndexTable *indexTable, SequenceLookup *sequenceLookup,
@@ -62,6 +62,10 @@ public:
     // returns result for the sequence
     // identityId is the id of the identitical sequence in the target database if there is any, UINT_MAX otherwise
     std::pair<hit_t*, size_t> matchQuery(Sequence *querySeq, unsigned int identityId,  bool isNucleotide);
+
+    void setQueryMatcherHook(QueryMatcherHook* hook) {
+        this->hook = hook;
+    }
 
     // set substituion matrix for KmerGenerator
     void setProfileMatrix(ScoreMatrix **matrix){
@@ -195,6 +199,8 @@ protected:
 
     const static size_t SCORE_RANGE = 256;
 
+    QueryMatcherHook* hook;
+
     void updateScoreBins(CounterResult *result, size_t elementCount);
 
     static unsigned int computeScoreThreshold(unsigned int * scoreSizes, size_t maxHitsPerQuery) {
@@ -256,6 +262,14 @@ protected:
     size_t mergeElements(CounterResult *foundDiagonals, size_t hitCounter);
 
     size_t keepMaxScoreElementOnly(CounterResult *foundDiagonals, size_t resultSize);
+
+    friend class QueryMatcherTaxonomyHook;
+};
+
+class QueryMatcherHook {
+public:
+    virtual ~QueryMatcherHook() {};
+    virtual size_t afterDiagonalMatchingHook(QueryMatcher& matcher, size_t resultSize) = 0;
 };
 
 #endif //MMSEQS_QUERYTEMPLATEMATCHEREXACTMATCH_H

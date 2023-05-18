@@ -4,6 +4,7 @@
 #include "ExtendedSubstitutionMatrix.h"
 #include "SubstitutionMatrixProfileStates.h"
 #include "DBWriter.h"
+#include "QueryMatcherTaxonomyHook.h"
 
 #include "PatternCompiler.h"
 #include "FileUtil.h"
@@ -219,9 +220,19 @@ Prefiltering::Prefiltering(const std::string &queryDB,
         _3merSubMatrix = getScoreMatrix(*kmerSubMat, 3);
         kmerSubMat->alphabetSize = alphabetSize;
     }
+
+    if (par.taxonList.length() > 0) {
+        taxonomyHook = new QueryMatcherTaxonomyHook(targetDB, tdbr, par.taxonList);
+    } else {
+        taxonomyHook = NULL;
+    }
 }
 
 Prefiltering::~Prefiltering() {
+    if (taxonomyHook != NULL) {
+        delete taxonomyHook;
+    }
+
     if (sameQTDB == false) {
         qdbr->close();
         delete qdbr;
@@ -515,8 +526,8 @@ void Prefiltering::getIndexTable(int split, size_t dbFrom, size_t dbSize) {
                                   Parameters::isEqualDbtype(targetSeqType,Parameters::DBTYPE_AMINO_ACIDS))
                                  ? alphabetSize -1 : alphabetSize;
         indexTable = new IndexTable(adjustAlphabetSize, kmerSize, false);
+        SequenceLookup **unmaskedLookup = maskMode == 0 && maskLowerCaseMode == 0 ? &sequenceLookup : NULL;
         SequenceLookup **maskedLookup   = maskMode == 1 || maskLowerCaseMode == 1 ? &sequenceLookup : NULL;
-        SequenceLookup **unmaskedLookup = maskMode == 0 ? &sequenceLookup : NULL;
 
         Debug(Debug::INFO) << "Index table k-mer threshold: " << localKmerThr << " at k-mer size " << kmerSize << " \n";
         IndexBuilder::fillDatabase(indexTable, maskedLookup, unmaskedLookup, *kmerSubMat,  &tseq, tdbr, dbFrom, dbFrom + dbSize, localKmerThr, maskMode, maskLowerCaseMode, maskProb);
@@ -746,7 +757,6 @@ bool Prefiltering::runSplit(const std::string &resultDB, const std::string &resu
     size_t resSize = 0;
     size_t realResSize = 0;
     size_t diagonalOverflow = 0;
-    size_t trancatedCounter = 0;
     size_t totalQueryDBSize = querySize;
 
     size_t localThreads = 1;
@@ -790,11 +800,15 @@ bool Prefiltering::runSplit(const std::string &resultDB, const std::string &resu
             matcher.setSubstitutionMatrix(NULL, NULL);
         }
 
+        if (taxonomyHook != NULL) {
+            matcher.setQueryMatcherHook(taxonomyHook);
+        }
+
         char buffer[128];
         std::string result;
         result.reserve(1000000);
 
-#pragma omp for schedule(dynamic, 2) reduction (+: kmersPerPos, resSize, dbMatches, doubleMatches, querySeqLenSum, diagonalOverflow, trancatedCounter)
+#pragma omp for schedule(dynamic, 1) reduction (+: kmersPerPos, resSize, dbMatches, doubleMatches, querySeqLenSum, diagonalOverflow)
         for (size_t id = queryFrom; id < queryFrom + querySize; id++) {
             progress.updateProgress();
             // get query sequence
@@ -816,6 +830,9 @@ bool Prefiltering::runSplit(const std::string &resultDB, const std::string &resu
                 }
             }
             // calculate prefiltering results
+            if (taxonomyHook != NULL) {
+                taxonomyHook->setDbFrom(dbFrom);
+            }
             std::pair<hit_t *, size_t> prefResults = matcher.matchQuery(&seq, targetSeqId, targetSeqType==Parameters::DBTYPE_NUCLEOTIDES);
             size_t resultSize = prefResults.second;
             const float queryLength = static_cast<float>(qdbr->getSeqLen(id));
@@ -857,7 +874,6 @@ bool Prefiltering::runSplit(const std::string &resultDB, const std::string &resu
                 doubleMatches += matcher.getStatistics()->doubleMatches;
                 querySeqLenSum += seq.L;
                 diagonalOverflow += matcher.getStatistics()->diagonalOverflow;
-                trancatedCounter += matcher.getStatistics()->truncated;
                 resSize += resultSize;
                 realResSize += std::min(resultSize, maxResListLen);
                 reslens[thread_idx]->emplace_back(resultSize);
@@ -870,7 +886,7 @@ bool Prefiltering::runSplit(const std::string &resultDB, const std::string &resu
                            dbMatches / totalQueryDBSize,
                            doubleMatches / totalQueryDBSize,
                            querySeqLenSum, diagonalOverflow,
-                           resSize / totalQueryDBSize, trancatedCounter);
+                           resSize / totalQueryDBSize);
 
         size_t empty = 0;
         for (size_t id = 0; id < querySize; id++) {
@@ -940,7 +956,6 @@ void Prefiltering::printStatistics(const statistics_t &stats, std::list<int> **r
     Debug(Debug::INFO) << "\n" << stats.kmersPerPos << " k-mers per position\n";
     Debug(Debug::INFO) << stats.dbMatches << " DB matches per sequence\n";
     Debug(Debug::INFO) << stats.diagonalOverflow << " overflows\n";
-    Debug(Debug::INFO) << stats.truncated << " queries produce too many hits (truncated result)\n";
     Debug(Debug::INFO) << stats.resultsPassedPrefPerSeq << " sequences passed prefiltering per query sequence";
     if (stats.resultsPassedPrefPerSeq > maxResults)
         Debug(Debug::WARNING) << " (ATTENTION: max. " << maxResults
@@ -990,6 +1005,12 @@ int Prefiltering::getKmerThreshold(const float sensitivity, const bool isProfile
         return kmerScore.sequence();
     }
     float kmerThrBest = FLT_MAX;
+    int paramType = isProfile ? Parameters::DBTYPE_HMM_PROFILE : Parameters::DBTYPE_AMINO_ACIDS;
+    for(size_t i = 0; i < externalThreshold.size(); i++){
+        if(kmerSize == externalThreshold[i].kmerSize && externalThreshold[i].sequenceType == paramType){
+            return static_cast<int>(externalThreshold[i].base - (externalThreshold[i].sensPerStep * sensitivity));
+        }
+    }
     if (isProfile == true) {
         if (hasContextPseudoCnts == true) {
             if (kmerSize == 5) {
@@ -1051,7 +1072,8 @@ size_t Prefiltering::estimateMemoryConsumption(int split, size_t dbSize, size_t 
     // This memory is an approx. for Countint32Array and QueryTemplateLocalFast
     size_t threadSize = threads * (
             (dbSizeSplit * 2 * sizeof(IndexEntryLocal)) // databaseHits in QueryMatcher
-            + (dbSizeSplit * sizeof(CounterResult)) // databaseHits in QueryMatcher
+            + (dbSizeSplit * 1.5 * sizeof(CounterResult)) // databaseHits in QueryMatcher
+            // 1.5 is a security factor
             + (maxResListLen * sizeof(hit_t))
             + (dbSizeSplit * 2 * sizeof(CounterResult) * 2) // BINS * binSize, (binSize = dbSize * 2 / BINS)
               // 2 is a security factor the size can increase during run
@@ -1111,5 +1133,6 @@ std::pair<int, int> Prefiltering::optimizeSplit(size_t totalMemoryInByte, DBRead
 
     return std::make_pair(-1, -1);
 }
+
 
 
