@@ -2,6 +2,7 @@
 #include "DownloadDatabase.h"
 #include "LocalCommandDeclarations.h"
 #include "LocalParameters.h"
+#include "Prefiltering.h"
 
 const char* binary_name = "metaeuk";
 const char* tool_name = "metaeuk";
@@ -14,6 +15,7 @@ const char* index_version_compatible = MMSEQS_CURRENT_INDEX_VERSION;
 bool hide_base_commands = true;
 bool hide_base_downloads = false;
 void (*validatorUpdate)(void) = 0;
+std::vector<KmerThreshold> externalThreshold = {};
 
 LocalParameters& localPar = LocalParameters::getLocalInstance();
 std::vector<struct Command> commands = {
