@@ -13,6 +13,18 @@
 #include <list>
 #include <utility>
 
+class QueryMatcherTaxonomyHook;
+
+struct KmerThreshold{
+    int sequenceType;
+    int kmerSize;
+    float base;
+    float sensPerStep;
+};
+
+extern std::vector<KmerThreshold> externalThreshold;
+
+
 class Prefiltering {
 public:
     Prefiltering(
@@ -99,6 +111,7 @@ private:
     int preloadMode;
     const unsigned int threads;
     int compressed;
+    QueryMatcherTaxonomyHook* taxonomyHook;
 
     bool runSplit(const std::string &resultDB, const std::string &resultDBIndex, size_t split, bool merge);
 
@@ -127,3 +140,4 @@ private:
 };
 
 #endif
+

@@ -85,7 +85,9 @@ Parameters::Parameters():
         PARAM_ALT_ALIGNMENT(PARAM_ALT_ALIGNMENT_ID, "--alt-ali", "Alternative alignments", "Show up to this many alternative alignments", typeid(int), (void *) &altAlignment, "^[0-9]{1}[0-9]*$", MMseqsParameter::COMMAND_ALIGN),
         PARAM_GAP_OPEN(PARAM_GAP_OPEN_ID, "--gap-open", "Gap open cost", "Gap open cost", typeid(MultiParam<NuclAA<int>>), (void *) &gapOpen, "^[0-9]{1}[0-9]*$", MMseqsParameter::COMMAND_ALIGN | MMseqsParameter::COMMAND_EXPERT),
         PARAM_GAP_EXTEND(PARAM_GAP_EXTEND_ID, "--gap-extend", "Gap extension cost", "Gap extension cost", typeid(MultiParam<NuclAA<int>>), (void *) &gapExtend, "^[0-9]{1}[0-9]*$", MMseqsParameter::COMMAND_ALIGN | MMseqsParameter::COMMAND_EXPERT),
+#ifdef GAP_POS_SCORING
         PARAM_GAP_PSEUDOCOUNT(PARAM_GAP_PSEUDOCOUNT_ID, "--gap-pc", "Gap pseudo count", "Pseudo count for calculating position-specific gap opening penalties", typeid(int), &gapPseudoCount, "^[0-9]+$", MMseqsParameter::COMMAND_ALIGN|MMseqsParameter::COMMAND_EXPERT),
+#endif
         PARAM_ZDROP(PARAM_ZDROP_ID, "--zdrop", "Zdrop", "Maximal allowed difference between score values before alignment is truncated  (nucleotide alignment only)", typeid(int), (void*) &zdrop, "^[0-9]{1}[0-9]*$", MMseqsParameter::COMMAND_ALIGN | MMseqsParameter::COMMAND_EXPERT),
         // clustering
         PARAM_CLUSTER_MODE(PARAM_CLUSTER_MODE_ID, "--cluster-mode", "Cluster mode", "0: Set-Cover (greedy)\n1: Connected component (BLASTclust)\n2,3: Greedy clustering by sequence length (CDHIT)", typeid(int), (void *) &clusteringMode, "[0-3]{1}$", MMseqsParameter::COMMAND_CLUST),
@@ -141,7 +143,7 @@ Parameters::Parameters():
         PARAM_IDX_SEQ_SRC(PARAM_IDX_SEQ_SRC_ID, "--idx-seq-src", "Sequence source", "0: auto, 1: split/translated sequences, 2: input sequences", typeid(int), (void *) &idxSeqSrc, "^[0-2]{1}$", MMseqsParameter::COMMAND_MISC),
 
         // result2stats
-        PARAM_STAT(PARAM_STAT_ID, "--stat", "Statistics to be computed", "One of: linecount, mean, doolittle, charges, seqlen, firstline", typeid(std::string), (void *) &stat, ""),
+        PARAM_STAT(PARAM_STAT_ID, "--stat", "Statistics to be computed", "One of: linecount, mean, min, max, doolittle, charges, seqlen, firstline", typeid(std::string), (void *) &stat, ""),
         // linearcluster
         PARAM_KMER_PER_SEQ(PARAM_KMER_PER_SEQ_ID, "--kmer-per-seq", "k-mers per sequence", "k-mers per sequence", typeid(int), (void *) &kmersPerSequence, "^[1-9]{1}[0-9]*$", MMseqsParameter::COMMAND_CLUSTLINEAR),
         PARAM_KMER_PER_SEQ_SCALE(PARAM_KMER_PER_SEQ_SCALE_ID, "--kmer-per-seq-scale", "Scale k-mers per sequence", "Scale k-mer per sequence based on sequence length as kmer-per-seq val + scale x seqlen", typeid(MultiParam<NuclAA<float>>), (void *) &kmersPerSequenceScale, "^0(\\.[0-9]+)?|1(\\.0+)?$", MMseqsParameter::COMMAND_CLUSTLINEAR),
@@ -151,7 +153,8 @@ Parameters::Parameters():
         PARAM_PICK_N_SIMILAR(PARAM_PICK_N_SIMILAR_ID, "--pick-n-sim-kmer", "Add N similar to search", "Add N similar k-mers to search", typeid(int), (void *) &pickNbest, "^[1-9]{1}[0-9]*$", MMseqsParameter::COMMAND_CLUSTLINEAR | MMseqsParameter::COMMAND_EXPERT),
         PARAM_ADJUST_KMER_LEN(PARAM_ADJUST_KMER_LEN_ID, "--adjust-kmer-len", "Adjust k-mer length", "Adjust k-mer length based on specificity (only for nucleotides)", typeid(bool), (void *) &adjustKmerLength, "", MMseqsParameter::COMMAND_CLUSTLINEAR | MMseqsParameter::COMMAND_EXPERT),
         PARAM_RESULT_DIRECTION(PARAM_RESULT_DIRECTION_ID, "--result-direction", "Result direction", "result is 0: query, 1: target centric", typeid(int), (void *) &resultDirection, "^[0-1]{1}$", MMseqsParameter::COMMAND_CLUSTLINEAR | MMseqsParameter::COMMAND_EXPERT),
-
+        PARAM_WEIGHT_FILE(PARAM_WEIGHT_FILE_ID, "--weights", "Weight file name", "Weights used for cluster priorization", typeid(std::string), (void*) &weightFile, "", MMseqsParameter::COMMAND_CLUSTLINEAR | MMseqsParameter::COMMAND_EXPERT ),
+        PARAM_WEIGHT_THR(PARAM_WEIGHT_THR_ID, "--cluster-weight-threshold", "Cluster Weight threshold", "Weight threshold used for cluster priorization", typeid(float), (void*) &weightThr, "^[0-9]*(\\.[0-9]+)?$", MMseqsParameter::COMMAND_CLUSTLINEAR | MMseqsParameter::COMMAND_EXPERT ),
         // workflow
         PARAM_RUNNER(PARAM_RUNNER_ID, "--mpi-runner", "MPI runner", "Use MPI on compute cluster with this MPI command (e.g. \"mpirun -np 42\")", typeid(std::string), (void *) &runner, "", MMseqsParameter::COMMAND_COMMON | MMseqsParameter::COMMAND_EXPERT),
         PARAM_REUSELATEST(PARAM_REUSELATEST_ID, "--force-reuse", "Force restart with latest tmp", "Reuse tmp filse in tmp/latest folder ignoring parameters and version changes", typeid(bool), (void *) &reuseLatest, "", MMseqsParameter::COMMAND_COMMON | MMseqsParameter::COMMAND_EXPERT),
@@ -184,6 +187,7 @@ Parameters::Parameters():
         // indexdb
         PARAM_CHECK_COMPATIBLE(PARAM_CHECK_COMPATIBLE_ID, "--check-compatible", "Check compatible", "0: Always recreate index, 1: Check if recreating index is needed, 2: Fail if index is incompatible", typeid(int), (void *) &checkCompatible, "^[0-2]{1}$", MMseqsParameter::COMMAND_MISC),
         PARAM_SEARCH_TYPE(PARAM_SEARCH_TYPE_ID, "--search-type", "Search type", "Search type 0: auto 1: amino acid, 2: translated, 3: nucleotide, 4: translated nucleotide alignment", typeid(int), (void *) &searchType, "^[0-4]{1}"),
+        PARAM_INDEX_SUBSET(PARAM_INDEX_SUBSET_ID, "--index-subset", "Index subset", "Create specialized index with subset of entries 0: normal index 1: index without headers 1: index without prefiltering data", typeid(int), (void *) &indexSubset, "^[0-2]{1}", MMseqsParameter::COMMAND_EXPERT),
         // createdb
         PARAM_USE_HEADER(PARAM_USE_HEADER_ID, "--use-fasta-header", "Use fasta header", "Use the id parsed from the fasta header as the index key instead of using incrementing numeric identifiers", typeid(bool), (void *) &useHeader, ""),
         PARAM_ID_OFFSET(PARAM_ID_OFFSET_ID, "--id-offset", "Offset of numeric ids", "Numeric ids in index file are offset by this value", typeid(int), (void *) &identifierOffset, "^(0|[1-9]{1}[0-9]*)$"),
@@ -285,7 +289,7 @@ Parameters::Parameters():
         PARAM_TAR_INCLUDE(PARAM_TAR_INCLUDE_ID, "--tar-include", "Tar Inclusion Regex", "Include file names based on this regex", typeid(std::string), (void *) &tarInclude, "^.*$"),
         PARAM_TAR_EXCLUDE(PARAM_TAR_EXCLUDE_ID, "--tar-exclude", "Tar Exclusion Regex", "Exclude file names based on this regex", typeid(std::string), (void *) &tarExclude, "^.*$"),
         // unpackdb
-        PARAM_UNPACK_SUFFIX(PARAM_UNPACK_SUFFIX_ID, "--unpack-suffix", "Unpack suffix", "File suffix for unpacked files", typeid(std::string), (void *) &unpackSuffix, "^.*$"),
+        PARAM_UNPACK_SUFFIX(PARAM_UNPACK_SUFFIX_ID, "--unpack-suffix", "Unpack suffix", "File suffix for unpacked files.\nAdd .gz suffix to write compressed files.", typeid(std::string), (void *) &unpackSuffix, "^.*$"),
         PARAM_UNPACK_NAME_MODE(PARAM_UNPACK_NAME_MODE_ID, "--unpack-name-mode", "Unpack name mode", "Name unpacked files by 0: DB key, 1: accession (through .lookup)", typeid(int), (void *) &unpackNameMode, "^[0-1]{1}$"),
         // for modules that should handle -h themselves
         PARAM_HELP(PARAM_HELP_ID, "-h", "Help", "Help", typeid(bool), (void *) &help, "", MMseqsParameter::COMMAND_HIDDEN),
@@ -402,6 +406,7 @@ Parameters::Parameters():
     prefilter.push_back(&PARAM_MASK_PROBABILTY);
     prefilter.push_back(&PARAM_MASK_LOWER_CASE);
     prefilter.push_back(&PARAM_MIN_DIAG_SCORE);
+    prefilter.push_back(&PARAM_TAXON_LIST);
     prefilter.push_back(&PARAM_INCLUDE_IDENTITY);
     prefilter.push_back(&PARAM_SPACED_KMER_MODE);
     prefilter.push_back(&PARAM_PRELOAD_MODE);
@@ -425,6 +430,7 @@ Parameters::Parameters():
     ungappedprefilter.push_back(&PARAM_THREADS);
     ungappedprefilter.push_back(&PARAM_COMPRESSED);
     ungappedprefilter.push_back(&PARAM_V);
+    ungappedprefilter.push_back(&PARAM_TAXON_LIST);
 
     // clustering
     clust.push_back(&PARAM_CLUSTER_MODE);
@@ -433,6 +439,8 @@ Parameters::Parameters():
     clust.push_back(&PARAM_THREADS);
     clust.push_back(&PARAM_COMPRESSED);
     clust.push_back(&PARAM_V);
+    clust.push_back(&PARAM_WEIGHT_FILE);
+    clust.push_back(&PARAM_WEIGHT_THR);
 
     // rescorediagonal
     rescorediagonal.push_back(&PARAM_SUB_MAT);
@@ -514,7 +522,9 @@ Parameters::Parameters():
     result2profile.push_back(&PARAM_PRELOAD_MODE);
     result2profile.push_back(&PARAM_GAP_OPEN);
     result2profile.push_back(&PARAM_GAP_EXTEND);
+#ifdef GAP_POS_SCORING
     result2profile.push_back(&PARAM_GAP_PSEUDOCOUNT);
+#endif
     result2profile.push_back(&PARAM_THREADS);
     result2profile.push_back(&PARAM_COMPRESSED);
     result2profile.push_back(&PARAM_V);
@@ -579,6 +589,19 @@ Parameters::Parameters():
     //result2msa.push_back(&PARAM_FIRST_SEQ_REP_SEQ);
     result2dnamsa.push_back(&PARAM_V);
 
+
+    // filtera3m
+    filtera3m.push_back(&PARAM_SUB_MAT);
+    filtera3m.push_back(&PARAM_GAP_OPEN);
+    filtera3m.push_back(&PARAM_GAP_EXTEND);
+    filtera3m.push_back(&PARAM_FILTER_MIN_ENABLE);
+    filtera3m.push_back(&PARAM_FILTER_MAX_SEQ_ID);
+    filtera3m.push_back(&PARAM_FILTER_QID);
+    filtera3m.push_back(&PARAM_FILTER_QSC);
+    filtera3m.push_back(&PARAM_FILTER_COV);
+    filtera3m.push_back(&PARAM_FILTER_NDIFF);
+    filtera3m.push_back(&PARAM_V);
+
     // filterresult
     filterresult.push_back(&PARAM_SUB_MAT);
     filterresult.push_back(&PARAM_GAP_OPEN);
@@ -624,7 +647,9 @@ Parameters::Parameters():
     msa2profile.push_back(&PARAM_GAP_OPEN);
     msa2profile.push_back(&PARAM_GAP_EXTEND);
     msa2profile.push_back(&PARAM_SKIP_QUERY);
+#ifdef GAP_POS_SCORING
     msa2profile.push_back(&PARAM_GAP_PSEUDOCOUNT);
+#endif
     msa2profile.push_back(&PARAM_THREADS);
     msa2profile.push_back(&PARAM_COMPRESSED);
     msa2profile.push_back(&PARAM_V);
@@ -724,6 +749,7 @@ Parameters::Parameters():
     indexdb.push_back(&PARAM_SEARCH_TYPE);
     indexdb.push_back(&PARAM_SPLIT);
     indexdb.push_back(&PARAM_SPLIT_MEMORY_LIMIT);
+    indexdb.push_back(&PARAM_INDEX_SUBSET);
     indexdb.push_back(&PARAM_V);
     indexdb.push_back(&PARAM_THREADS);
 
@@ -911,6 +937,8 @@ Parameters::Parameters():
     kmermatcher.push_back(&PARAM_THREADS);
     kmermatcher.push_back(&PARAM_COMPRESSED);
     kmermatcher.push_back(&PARAM_V);
+    kmermatcher.push_back(&PARAM_WEIGHT_FILE);
+    kmermatcher.push_back(&PARAM_WEIGHT_THR);
 
     // kmermatcher
     kmersearch.push_back(&PARAM_SEED_SUB_MAT);
@@ -1130,7 +1158,9 @@ Parameters::Parameters():
     expand2profile.push_back(&PARAM_SUB_MAT);
     expand2profile.push_back(&PARAM_GAP_OPEN);
     expand2profile.push_back(&PARAM_GAP_EXTEND);
+#ifdef GAP_POS_SCORING
     expand2profile.push_back(&PARAM_GAP_PSEUDOCOUNT);
+#endif
     expand2profile.push_back(&PARAM_MAX_SEQ_LEN);
     expand2profile.push_back(&PARAM_SCORE_BIAS);
     expand2profile.push_back(&PARAM_NO_COMP_BIAS_CORR);
@@ -1303,6 +1333,7 @@ Parameters::Parameters():
 
     databases.push_back(&PARAM_HELP);
     databases.push_back(&PARAM_HELP_LONG);
+    databases.push_back(&PARAM_TSV);
     databases.push_back(&PARAM_REUSELATEST);
     databases.push_back(&PARAM_REMOVE_TMP_FILES);
     databases.push_back(&PARAM_COMPRESSED);
@@ -2006,9 +2037,15 @@ void Parameters::checkIfDatabaseIsValid(const Command& command, int argc, const 
                 }
 
                 if (filenames[fileIdx] != "stdin" && FileUtil::fileExists((filenames[fileIdx]).c_str()) == false && FileUtil::fileExists((filenames[fileIdx] + ".dbtype").c_str()) == false) {
-                    printParameters(command.cmd, argc, argv, *command.params);
-                    Debug(Debug::ERROR) << "Input " << filenames[fileIdx] << " does not exist\n";
-                    EXIT(EXIT_FAILURE);
+                    regex_t regex;
+                    compileRegex(&regex, "[a-zA-Z][a-zA-Z0-9+-.]*:\\/\\/");
+                    int nomatch = regexec(&regex, filenames[fileIdx].c_str(), 0, NULL, 0);
+                    regfree(&regex);
+                    if (nomatch) {
+                        printParameters(command.cmd, argc, argv, *command.params);
+                        Debug(Debug::ERROR) << "Input " << filenames[fileIdx] << " does not exist\n";
+                        EXIT(EXIT_FAILURE);
+                    }
                 }
                 int dbtype = FileUtil::parseDbType(filenames[fileIdx].c_str());
                 if (db.specialType & DbType::NEED_HEADER && FileUtil::fileExists((filenames[fileIdx] + "_h.dbtype").c_str()) == false && Parameters::isEqualDbtype(dbtype, Parameters::DBTYPE_INDEX_DB) == false) {
@@ -2034,6 +2071,12 @@ void Parameters::checkIfDatabaseIsValid(const Command& command, int argc, const 
                     int validatorDbtype = db.validator->at(i);
                     if (validatorDbtype == Parameters::DBTYPE_STDIN) {
                         dbtypeFound = (filenames[fileIdx] == "stdin");
+                    } else if (validatorDbtype == Parameters::DBTYPE_URI) {
+                        regex_t regex;
+                        compileRegex(&regex, "[a-zA-Z][a-zA-Z0-9+-.]*:\\/\\/");
+                        int nomatch = regexec(&regex, filenames[fileIdx].c_str(), 0, NULL, 0);
+                        regfree(&regex);
+                        dbtypeFound = nomatch == false;
                     } else if (validatorDbtype == Parameters::DBTYPE_FLATFILE) {
                         dbtypeFound = (FileUtil::fileExists(filenames[fileIdx].c_str()) == true &&
                                        FileUtil::directoryExists(filenames[fileIdx].c_str()) == false);
@@ -2229,7 +2272,9 @@ void Parameters::setDefaults() {
     altAlignment = 0;
     gapOpen = MultiParam<NuclAA<int>>(NuclAA<int>(11, 5));
     gapExtend = MultiParam<NuclAA<int>>(NuclAA<int>(1, 2));
+#ifdef GAP_POS_SCORING
     gapPseudoCount = 10;
+#endif
     zdrop = 40;
     addBacktrace = false;
     realign = false;
@@ -2261,6 +2306,7 @@ void Parameters::setDefaults() {
     // indexdb
     checkCompatible = 0;
     searchType = SEARCH_TYPE_AUTO;
+    indexSubset = INDEX_SUBSET_NORMAL;
 
     // createdb
     createdbMode = SEQUENCE_SPLIT_MODE_HARD;
@@ -2414,6 +2460,9 @@ void Parameters::setDefaults() {
     pickNbest = 1;
     adjustKmerLength = false;
     resultDirection = Parameters::PARAM_RESULT_DIRECTION_TARGET;
+    weightThr = 0.9;
+    weightFile = "";
+
     // result2stats
     stat = "";
 

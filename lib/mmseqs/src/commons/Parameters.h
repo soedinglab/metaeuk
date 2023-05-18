@@ -82,6 +82,7 @@ public:
     static const int DBTYPE_FLATFILE = 17; // needed for verification
     static const int DBTYPE_SEQTAXDB = 18; // needed for verification
     static const int DBTYPE_STDIN = 19; // needed for verification
+    static const int DBTYPE_URI = 20; // needed for verification
 
     static const unsigned int DBTYPE_EXTENDED_COMPRESSED = 1;
     static const unsigned int DBTYPE_EXTENDED_INDEX_NEED_SRC = 2;
@@ -181,8 +182,9 @@ public:
     static const int OUTFMT_TORFEND = 38;
     static const int OUTFMT_FIDENT = 39;
 
-
-
+    static const int INDEX_SUBSET_NORMAL = 0;
+    static const int INDEX_SUBSET_NO_HEADERS = 1;
+    static const int INDEX_SUBSET_NO_PREFILTER = 2;
 
     static std::vector<int> getOutputFormat(int formatMode, const std::string &outformat, bool &needSequences, bool &needBacktrace, bool &needFullHeaders,
                                             bool &needLookup, bool &needSource, bool &needTaxonomyMapping, bool &needTaxonomy);
@@ -398,6 +400,7 @@ public:
     std::string spacedKmerPattern;       // User-specified kmer pattern
     std::string localTmp;                // Local temporary path
 
+
     // ALIGNMENT
     int alignmentMode;                   // alignment mode 0=fastest on parameters,
                                          // 1=score only, 2=score, cov, start/end pos, 3=score, cov, start/end pos, seq.id,
@@ -417,7 +420,9 @@ public:
     MultiParam<NuclAA<int>> gapOpen;             // gap open cost
     MultiParam<NuclAA<int>> gapExtend;           // gap extension cost
     float correlationScoreWeight; // correlation score weight
+#ifdef GAP_POS_SCORING
     int    gapPseudoCount;               // for calculation of position-specific gap opening penalties
+#endif
     int    zdrop;                        // zdrop
 
     // workflow
@@ -524,10 +529,13 @@ public:
     int pickNbest;
     int adjustKmerLength;
     int resultDirection;
+    float weightThr;
+    std::string weightFile;
 
     // indexdb
     int checkCompatible;
     int searchType;
+    int indexSubset;
 
     // createdb
     int identifierOffset;
@@ -747,7 +755,9 @@ public:
     PARAMETER(PARAM_ALT_ALIGNMENT)
     PARAMETER(PARAM_GAP_OPEN)
     PARAMETER(PARAM_GAP_EXTEND)
+#ifdef GAP_POS_SCORING
     PARAMETER(PARAM_GAP_PSEUDOCOUNT)
+#endif
     PARAMETER(PARAM_ZDROP)
 
     // clustering
@@ -825,6 +835,9 @@ public:
     PARAMETER(PARAM_PICK_N_SIMILAR)
     PARAMETER(PARAM_ADJUST_KMER_LEN)
     PARAMETER(PARAM_RESULT_DIRECTION)
+    PARAMETER(PARAM_WEIGHT_FILE)
+    PARAMETER(PARAM_WEIGHT_THR)
+
     // workflow
     PARAMETER(PARAM_RUNNER)
     PARAMETER(PARAM_REUSELATEST)
@@ -860,6 +873,7 @@ public:
     // indexdb
     PARAMETER(PARAM_CHECK_COMPATIBLE)
     PARAMETER(PARAM_SEARCH_TYPE)
+    PARAMETER(PARAM_INDEX_SUBSET)
 
     // createdb
     PARAMETER(PARAM_USE_HEADER) // also used by extractorfs
@@ -1029,6 +1043,7 @@ public:
     std::vector<MMseqsParameter*> result2profile;
     std::vector<MMseqsParameter*> result2msa;
     std::vector<MMseqsParameter*> result2dnamsa;
+    std::vector<MMseqsParameter*> filtera3m;
     std::vector<MMseqsParameter*> filterresult;
     std::vector<MMseqsParameter*> convertmsa;
     std::vector<MMseqsParameter*> msa2profile;
@@ -1101,6 +1116,7 @@ public:
     std::vector<MMseqsParameter*> renamedbkeys;
     std::vector<MMseqsParameter*> createtaxdb;
     std::vector<MMseqsParameter*> profile2pssm;
+    std::vector<MMseqsParameter*> profile2neff;
     std::vector<MMseqsParameter*> profile2seq;
     std::vector<MMseqsParameter*> besthitbyset;
     std::vector<MMseqsParameter*> combinepvalbyset;
@@ -1152,6 +1168,7 @@ public:
             case DBTYPE_DIRECTORY: return "Directory";
             case DBTYPE_FLATFILE: return "Flatfile";
             case DBTYPE_STDIN: return "stdin";
+            case DBTYPE_URI: return "uri";
 
             default: return "Unknown";
         }
