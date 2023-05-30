@@ -225,9 +225,9 @@ Compiling MetaEuk from source has the advantage that it will be optimized to the
         
 :exclamation: If you want to compile metaeuk on macOS, please install and use `gcc` from Homebrew. The default macOS `clang` compiler does not support OpenMP and MetaEuk will not be able to run multithreaded. Use the following cmake call:
 
-      CXX="$(brew --prefix)/bin/g++-10" cmake -DCMAKE_BUILD_TYPE=RELEASE -DCMAKE_INSTALL_PREFIX=. ..
+      CC="$(brew --prefix)/bin/gcc-13" CXX="$(brew --prefix)/bin/g++-13" cmake -DCMAKE_BUILD_TYPE=RELEASE -DCMAKE_INSTALL_PREFIX=. ..
 
 ## Hardware requirements
-MetaEuk will scale its memory consumption based on the available main memory of the machine. MetaEuk needs a CPU with at least the SSE4.1 instruction set to run. 
+MetaEuk will scale its memory consumption based on the available main memory of the machine. MetaEuk needs a CPU with at least the SSE2 instruction set to run. 
 
 
