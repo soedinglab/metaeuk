@@ -37,6 +37,7 @@ Parameters::Parameters():
         alphabetSize(NuclAA<int>(INT_MAX,INT_MAX)),
         PARAM_S(PARAM_S_ID, "-s", "Sensitivity", "Sensitivity: 1.0 faster; 4.0 fast; 7.5 sensitive", typeid(float), (void *) &sensitivity, "^[0-9]*(\\.[0-9]+)?$", MMseqsParameter::COMMAND_PREFILTER),
         PARAM_K(PARAM_K_ID, "-k", "k-mer length", "k-mer length (0: automatically set to optimum)", typeid(int), (void *) &kmerSize, "^[0-9]{1}[0-9]*$", MMseqsParameter::COMMAND_PREFILTER | MMseqsParameter::COMMAND_CLUSTLINEAR | MMseqsParameter::COMMAND_EXPERT),
+        PARAM_TARGET_SEARCH_MODE(PARAM_TARGET_SEARCH_MODE_ID, "--target-search-mode", "Target search mode", "target search mode (0: regular k-mer, 1: similar k-mer)", typeid(int), (void *) &targetSearchMode, "^[0-1]{1}$", MMseqsParameter::COMMAND_PREFILTER | MMseqsParameter::COMMAND_CLUSTLINEAR | MMseqsParameter::COMMAND_EXPERT),
         PARAM_THREADS(PARAM_THREADS_ID, "--threads", "Threads", "Number of CPU-cores used (all by default)", typeid(int), (void *) &threads, "^[1-9]{1}[0-9]*$", MMseqsParameter::COMMAND_COMMON),
         PARAM_COMPRESSED(PARAM_COMPRESSED_ID, "--compressed", "Compressed", "Write compressed output", typeid(int), (void *) &compressed, "^[0-1]{1}$", MMseqsParameter::COMMAND_COMMON),
         PARAM_ALPH_SIZE(PARAM_ALPH_SIZE_ID, "--alph-size", "Alphabet size", "Alphabet size (range 2-21)", typeid(MultiParam<NuclAA<int>>), (void *) &alphabetSize, "", MMseqsParameter::COMMAND_PREFILTER | MMseqsParameter::COMMAND_CLUSTLINEAR | MMseqsParameter::COMMAND_EXPERT),
@@ -187,7 +188,8 @@ Parameters::Parameters():
         // indexdb
         PARAM_CHECK_COMPATIBLE(PARAM_CHECK_COMPATIBLE_ID, "--check-compatible", "Check compatible", "0: Always recreate index, 1: Check if recreating index is needed, 2: Fail if index is incompatible", typeid(int), (void *) &checkCompatible, "^[0-2]{1}$", MMseqsParameter::COMMAND_MISC),
         PARAM_SEARCH_TYPE(PARAM_SEARCH_TYPE_ID, "--search-type", "Search type", "Search type 0: auto 1: amino acid, 2: translated, 3: nucleotide, 4: translated nucleotide alignment", typeid(int), (void *) &searchType, "^[0-4]{1}"),
-        PARAM_INDEX_SUBSET(PARAM_INDEX_SUBSET_ID, "--index-subset", "Index subset", "Create specialized index with subset of entries 0: normal index 1: index without headers 1: index without prefiltering data", typeid(int), (void *) &indexSubset, "^[0-2]{1}", MMseqsParameter::COMMAND_EXPERT),
+        PARAM_INDEX_SUBSET(PARAM_INDEX_SUBSET_ID, "--index-subset", "Index subset", "Create specialized index with subset of entries\n0: normal index\n1: index without headers\n2: index without prefiltering data\n4: index without aln (for cluster db)\nFlags can be combined bit wise", typeid(int), (void *) &indexSubset, "^[0-7]{1}", MMseqsParameter::COMMAND_EXPERT),
+        PARAM_INDEX_DBSUFFIX(PARAM_INDEX_DBSUFFIX_ID, "--index-dbsuffix", "Index dbsuffix", "A suffix of the db (used for cluster dbs)", typeid(std::string), (void *) &indexDbsuffix, "", MMseqsParameter::COMMAND_HIDDEN),
         // createdb
         PARAM_USE_HEADER(PARAM_USE_HEADER_ID, "--use-fasta-header", "Use fasta header", "Use the id parsed from the fasta header as the index key instead of using incrementing numeric identifiers", typeid(bool), (void *) &useHeader, ""),
         PARAM_ID_OFFSET(PARAM_ID_OFFSET_ID, "--id-offset", "Offset of numeric ids", "Numeric ids in index file are offset by this value", typeid(int), (void *) &identifierOffset, "^(0|[1-9]{1}[0-9]*)$"),
@@ -196,10 +198,14 @@ Parameters::Parameters():
         PARAM_SHUFFLE(PARAM_SHUFFLE_ID, "--shuffle", "Shuffle input database", "Shuffle input database", typeid(bool), (void *) &shuffleDatabase, ""),
         PARAM_WRITE_LOOKUP(PARAM_WRITE_LOOKUP_ID, "--write-lookup", "Write lookup file", "write .lookup file containing mapping from internal id, fasta id and file number", typeid(int), (void *) &writeLookup, "^[0-1]{1}", MMseqsParameter::COMMAND_EXPERT),
         PARAM_USE_HEADER_FILE(PARAM_USE_HEADER_FILE_ID, "--use-header-file", "Use header DB", "use the sequence header DB instead of the body to map the entry keys", typeid(bool), (void *) &useHeaderFile, ""),
+        // setextendeddbtype
+        PARAM_EXTENDED_DBTYPE(PARAM_EXTENDED_DBTYPE_ID, "--extended-dbtype", "Extended dbtype", "Set extended dbtype 1: compressed, 2: need src, 4: context pseudoe cnts", typeid(int), (void *) &extendedDbtype, "^[0-4]{1}"),
         // splitsequence
         PARAM_SEQUENCE_OVERLAP(PARAM_SEQUENCE_OVERLAP_ID, "--sequence-overlap", "Overlap between sequences", "Overlap between sequences", typeid(int), (void *) &sequenceOverlap, "^(0|[1-9]{1}[0-9]*)$"),
         PARAM_SEQUENCE_SPLIT_MODE(PARAM_SEQUENCE_SPLIT_MODE_ID, "--sequence-split-mode", "Sequence split mode", "Sequence split mode 0: copy data, 1: soft link data and write new index,", typeid(int), (void *) &sequenceSplitMode, "^[0-1]{1}$"),
         PARAM_HEADER_SPLIT_MODE(PARAM_HEADER_SPLIT_MODE_ID, "--headers-split-mode", "Header split mode", "Header split mode: 0: split position, 1: original header", typeid(int), (void *) &headerSplitMode, "^[0-1]{1}$"),
+        // createclusearchdb
+        PARAM_DB_SUFFIX_LIST(PARAM_DB_SUFFIX_LIST_ID, "--db-suffix-list", "Database suffixes", "Suffixes for database to be split in rep/seq", typeid(std::string), (void *) &dbSuffixList, ""),
         // gff2db
         PARAM_GFF_TYPE(PARAM_GFF_TYPE_ID, "--gff-type", "GFF type", "Comma separated list of feature types in the GFF file to select", typeid(std::string), (void *) &gffType, ""),
         // translatenucs
@@ -270,6 +276,9 @@ Parameters::Parameters():
         // aggregatetax
         PARAM_MAJORITY(PARAM_MAJORITY_ID, "--majority", "Majority threshold", "minimal fraction of agreement among taxonomically assigned sequences of a set", typeid(float), (void *) &majorityThr, "^0(\\.[0-9]+)?|^1(\\.0+)?$"),
         PARAM_VOTE_MODE(PARAM_VOTE_MODE_ID, "--vote-mode", "Vote mode", "Mode of assigning weights to compute majority. 0: uniform, 1: minus log E-value, 2: score", typeid(int), (void *) &voteMode, "^[0-2]{1}$"),
+        // pairaln
+        PARAM_PAIRING_DUMMY_MODE(PARAM_PAIRING_DUMMY_MODE_ID, "--pairing-dummy-mode", "Include dummy pairing", "0: dont include, 1: include - an entry that will cause result2msa to write a gap only line", typeid(int), (void *) &pairdummymode, "^[0-1]{1}$", MMseqsParameter::COMMAND_EXPERT),
+        PARAM_PAIRING_MODE(PARAM_PAIRING_MODE_ID, "--pairing-mode", "Pairing mode", "0: pair maximal per species, 1: pair only if all chains are covered per species", typeid(int), (void *) &pairmode, "^[0-1]{1}$", MMseqsParameter::COMMAND_EXPERT),
         // taxonomyreport
         PARAM_REPORT_MODE(PARAM_REPORT_MODE_ID, "--report-mode", "Report mode", "Taxonomy report mode 0: Kraken 1: Krona", typeid(int), (void *) &reportMode, "^[0-1]{1}$"),
         // createtaxdb
@@ -317,6 +326,12 @@ Parameters::Parameters():
     threadsandcompression.push_back(&PARAM_THREADS);
     threadsandcompression.push_back(&PARAM_COMPRESSED);
     threadsandcompression.push_back(&PARAM_V);
+
+    // createclusearchdb
+    createclusearchdb.push_back(&PARAM_THREADS);
+    createclusearchdb.push_back(&PARAM_COMPRESSED);
+    createclusearchdb.push_back(&PARAM_V);
+    createclusearchdb.push_back(&PARAM_DB_SUFFIX_LIST);
 
     // alignall
     alignall.push_back(&PARAM_SUB_MAT);
@@ -389,6 +404,7 @@ Parameters::Parameters():
     prefilter.push_back(&PARAM_SEED_SUB_MAT);
     prefilter.push_back(&PARAM_S);
     prefilter.push_back(&PARAM_K);
+    prefilter.push_back(&PARAM_TARGET_SEARCH_MODE);
     prefilter.push_back(&PARAM_K_SCORE);
     prefilter.push_back(&PARAM_ALPH_SIZE);
     prefilter.push_back(&PARAM_MAX_SEQ_LEN);
@@ -427,10 +443,28 @@ Parameters::Parameters():
     ungappedprefilter.push_back(&PARAM_NO_COMP_BIAS_CORR_SCALE);
     ungappedprefilter.push_back(&PARAM_MIN_DIAG_SCORE);
     ungappedprefilter.push_back(&PARAM_MAX_SEQS);
+    ungappedprefilter.push_back(&PARAM_TAXON_LIST);
+    ungappedprefilter.push_back(&PARAM_PRELOAD_MODE);
     ungappedprefilter.push_back(&PARAM_THREADS);
     ungappedprefilter.push_back(&PARAM_COMPRESSED);
     ungappedprefilter.push_back(&PARAM_V);
-    ungappedprefilter.push_back(&PARAM_TAXON_LIST);
+
+    // gappedprefilter
+    gappedprefilter.push_back(&PARAM_SUB_MAT);
+    gappedprefilter.push_back(&PARAM_GAP_OPEN);
+    gappedprefilter.push_back(&PARAM_GAP_EXTEND);
+    gappedprefilter.push_back(&PARAM_E);
+    gappedprefilter.push_back(&PARAM_C);
+    gappedprefilter.push_back(&PARAM_COV_MODE);
+    gappedprefilter.push_back(&PARAM_NO_COMP_BIAS_CORR);
+    gappedprefilter.push_back(&PARAM_NO_COMP_BIAS_CORR_SCALE);
+    gappedprefilter.push_back(&PARAM_MIN_DIAG_SCORE);
+    gappedprefilter.push_back(&PARAM_MAX_SEQS);
+    gappedprefilter.push_back(&PARAM_TAXON_LIST);
+    gappedprefilter.push_back(&PARAM_PRELOAD_MODE);
+    gappedprefilter.push_back(&PARAM_THREADS);
+    gappedprefilter.push_back(&PARAM_COMPRESSED);
+    gappedprefilter.push_back(&PARAM_V);
 
     // clustering
     clust.push_back(&PARAM_CLUSTER_MODE);
@@ -738,6 +772,7 @@ Parameters::Parameters():
     indexdb.push_back(&PARAM_NO_COMP_BIAS_CORR_SCALE);
     indexdb.push_back(&PARAM_MAX_SEQ_LEN);
     indexdb.push_back(&PARAM_MAX_SEQS);
+    indexdb.push_back(&PARAM_INDEX_DBSUFFIX);
     indexdb.push_back(&PARAM_MASK_RESIDUES);
     indexdb.push_back(&PARAM_MASK_PROBABILTY);
     indexdb.push_back(&PARAM_MASK_LOWER_CASE);
@@ -903,6 +938,10 @@ Parameters::Parameters():
     subtractdbs.push_back(&PARAM_E);
     subtractdbs.push_back(&PARAM_COMPRESSED);
     subtractdbs.push_back(&PARAM_V);
+
+    // setextendeddbtype
+    extendeddbtype.push_back(&PARAM_EXTENDED_DBTYPE);
+    extendeddbtype.push_back(&PARAM_V);
 
     // clusthash
     clusthash.push_back(&PARAM_SUB_MAT);
@@ -1191,6 +1230,8 @@ Parameters::Parameters():
     expand2profile.push_back(&PARAM_V);
 
     pairaln.push_back(&PARAM_PRELOAD_MODE);
+    pairaln.push_back(&PARAM_PAIRING_DUMMY_MODE);
+    pairaln.push_back(&PARAM_PAIRING_MODE);
     pairaln.push_back(&PARAM_COMPRESSED);
     pairaln.push_back(&PARAM_THREADS);
     pairaln.push_back(&PARAM_V);
@@ -2206,6 +2247,7 @@ void Parameters::setDefaults() {
     seedScoringMatrixFile = MultiParam<NuclAA<std::string>>(NuclAA<std::string>("VTML80.out", "nucleotide.out"));
 
     kmerSize =  0;
+    targetSearchMode = 0;
     kmerScore.values = INT_MAX;
     alphabetSize = MultiParam<NuclAA<int>>(NuclAA<int>(21,5));
     maxSeqLen = MAX_SEQ_LEN; // 2^16
@@ -2307,6 +2349,7 @@ void Parameters::setDefaults() {
     checkCompatible = 0;
     searchType = SEARCH_TYPE_AUTO;
     indexSubset = INDEX_SUBSET_NORMAL;
+    indexDbsuffix = "";
 
     // createdb
     createdbMode = SEQUENCE_SPLIT_MODE_HARD;
@@ -2442,6 +2485,9 @@ void Parameters::setDefaults() {
     overlap = 0.0f;
     msaType = 2;
 
+    // createclusterdb
+    dbSuffixList = "_h";
+
     // summarize header
     headerType = Parameters::HEADER_TYPE_UNICLUST;
 
@@ -2511,6 +2557,10 @@ void Parameters::setDefaults() {
     // aggregatetax
     majorityThr = 0.5;
     voteMode = AGG_TAX_MINUS_LOG_EVAL;
+
+    // pairaln
+    pairdummymode = PAIRALN_DUMMY_MODE_OFF;
+    pairmode = PAIRALN_MODE_ALL_PER_SPECIES;
 
     // taxonomyreport
     reportMode = 0;

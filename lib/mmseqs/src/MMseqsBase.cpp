@@ -583,6 +583,14 @@ std::vector<Command> baseCommands = {
                 CITATION_MMSEQS2, {{"queryDB", DbType::ACCESS_MODE_INPUT, DbType::NEED_DATA, &DbValidator::sequenceDb },
                                                            {"targetDB", DbType::ACCESS_MODE_INPUT, DbType::NEED_DATA, &DbValidator::sequenceDb },
                                                            {"prefilterDB", DbType::ACCESS_MODE_OUTPUT, DbType::NEED_DATA, &DbValidator::prefilterDb }}},
+        {"gappedprefilter",      gappedprefilter,      &par.gappedprefilter,      COMMAND_PREFILTER,
+                "Optimal Smith-Waterman-based prefiltering (slow)",
+                NULL,
+                "Martin Steinegger <martin.steinegger@snu.ac.kr>",
+                "<i:queryDB> <i:targetDB> <o:prefilterDB>",
+                CITATION_MMSEQS2, {{"queryDB", DbType::ACCESS_MODE_INPUT, DbType::NEED_DATA, &DbValidator::sequenceDb },
+                                                           {"targetDB", DbType::ACCESS_MODE_INPUT, DbType::NEED_DATA, &DbValidator::sequenceDb },
+                                                           {"prefilterDB", DbType::ACCESS_MODE_OUTPUT, DbType::NEED_DATA, &DbValidator::prefilterDb }}},
         {"kmermatcher",          kmermatcher,          &par.kmermatcher,          COMMAND_PREFILTER,
                 "Find bottom-m-hashed k-mer matches within sequence DB",
                 NULL,
@@ -793,8 +801,13 @@ std::vector<Command> baseCommands = {
                 CITATION_MMSEQS2, {{"resultDBLeft", DbType::ACCESS_MODE_INPUT, DbType::NEED_DATA, &DbValidator::resultDb },
                                           {"resultDBRight", DbType::ACCESS_MODE_INPUT, DbType::NEED_DATA, &DbValidator::resultDb },
                                           {"resultDB", DbType::ACCESS_MODE_OUTPUT, DbType::NEED_DATA, &DbValidator::resultDb }}},
-
-
+        {"setextendeddbtype",                 setextendeddbtype,                 &par.extendeddbtype,                 COMMAND_DB,
+                "Write an extended DB ",
+                "# Print entries with keys 1, 2 and 3 from a sequence DB to stdout\n"
+                "mmseqs setextendedbtype db --extended-dbtype 2\n",
+                "Martin Steinegger <martin.steinegger@snu.ac.kr>",
+                "<i:DB>",
+                CITATION_MMSEQS2, {{"DB", DbType::ACCESS_MODE_INPUT, DbType::NEED_DATA, &DbValidator::allDb }}},
 
         {"view",                 view,                 &par.view,                 COMMAND_DB,
                 "Print DB entries given in --id-list to stdout",
@@ -1245,9 +1258,14 @@ std::vector<Command> baseCommands = {
                 "Martin Steinegger <martin.steinegger@snu.ac.kr>",
                 "<i:sequenceDB> ",
                 CITATION_MMSEQS2, {{"sequenceDB", DbType::ACCESS_MODE_INPUT, DbType::NEED_DATA, &DbValidator::sequenceDb }}},
-
-
-
+        {"createclusearchdb",           createclusearchdb,             &par.createclusearchdb,            COMMAND_HIDDEN,
+                "Separates a sequence DB into a representative and a non-representative DB",
+                NULL,
+                "Martin Steinegger <martin.steinegger@snu.ac.kr>",
+                "<i:sequenceDB> <i:resultDB> <o:sequenceDB>",
+                CITATION_MMSEQS2, {{"sequenceDB", DbType::ACCESS_MODE_INPUT, DbType::NEED_DATA, &DbValidator::sequenceDb },
+                                          {"resultDB", DbType::ACCESS_MODE_INPUT, DbType::NEED_DATA, &DbValidator::resultDb },
+                                          {"sequenceDB", DbType::ACCESS_MODE_OUTPUT, DbType::NEED_DATA, &DbValidator::sequenceDb }}},
         {"dbtype",              dbtype,                &par.empty,                COMMAND_HIDDEN,
                 "",
                 NULL,
