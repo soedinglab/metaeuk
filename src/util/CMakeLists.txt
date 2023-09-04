@@ -36,6 +36,7 @@ set(util_source_files
         util/mergeclusters.cpp
         util/mergeresultsbyset.cpp
         util/mergedbs.cpp
+        util/createclusterdb.cpp
         util/msa2profile.cpp
         util/msa2result.cpp
         util/nrtotaxmapping.cpp
@@ -56,8 +57,10 @@ set(util_source_files
         util/cpmvrmlndb.cpp
         util/extractframes.cpp
         util/sequence2profile.cpp
+        util/setextendeddbtype.cpp
         util/sortresult.cpp
         util/splitdb.cpp
+        util/setextendeddbtype.cpp
         util/splitsequence.cpp
         util/subtractdbs.cpp
         util/summarizealis.cpp
