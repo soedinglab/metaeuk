@@ -103,6 +103,7 @@ private:
         predictexonsworkflow = combineList(searchworkflow, collectoptimalset);
         predictexonsworkflow.push_back(&PARAM_REVERSE_FRAGMENTS);
         predictexonsworkflow = removeParameter(predictexonsworkflow, PARAM_NUM_ITERATIONS);
+        predictexonsworkflow = removeParameter(predictexonsworkflow, PARAM_ADD_ORF_STOP);
 
         reduceredundancy.push_back(&PARAM_ALLOW_OVERLAP);
         reduceredundancy.push_back(&PARAM_THREADS);
