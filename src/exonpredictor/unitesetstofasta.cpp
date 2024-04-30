@@ -22,9 +22,99 @@ void reverseComplement (const std::string & seq, std::string & revCompSeq) {
     }
 }
 
+int findStartInString (const std::string & seq) {
+    int lastPosOfClosestStart = 0;
+    // In a case like this: ATGcccATGccc
+    // The returned index will be 8 (the last char of the last ATG in the string)
+    for (size_t i = 0; i < seq.size(); i += 3) {
+        if ((seq.substr(i,3).compare("ATG") == 0) or (seq.substr(i,3).compare("atg") == 0)) {
+            lastPosOfClosestStart = i + 2;
+        }
+    }
+    return(lastPosOfClosestStart);
+}
+
+int searchForStartBeforeFirstExon(Prediction & pred, const char* contigData, std::ostringstream & joinedExonsStream, const int searchLen) {
+    // check if first exon's first codon is start and if so return 0 - already a start codon
+    if (pred.strand == PLUS) {
+        std::string firstCodon(&contigData[pred.lowContigCoord], 3);
+        int lastPosOfStart = findStartInString(firstCodon);
+        if (lastPosOfStart > 0) {
+            return 0;
+        }
+    }
+    if (pred.strand == MINUS) {
+        std::string firstCodon(&contigData[pred.highContigCoord - 2], 3);
+        std::string firstCodonRevCompSeq(firstCodon);
+        reverseComplement (firstCodon, firstCodonRevCompSeq);
+        int lastPosOfStart = findStartInString(firstCodonRevCompSeq);
+        if (lastPosOfStart > 0) {
+            return 0;
+        }
+    }
+
+    int seachLenLegal = searchLen - (searchLen % 3);
+
+    // case PLUS                                        
+    int coordToStartSearch = pred.lowContigCoord - seachLenLegal;
+    int posAfterStopCodon = pred.optimalExonSet[0].potentialExonContigStartBeforeTrim;
+    // case MINUS
+    if (pred.strand == MINUS) {
+        coordToStartSearch = pred.highContigCoord + 1;
+        posAfterStopCodon = pred.optimalExonSet[0].potentialExonContigEndBeforeTrim;
+    }
+
+    // be careful at the edge of the first exon - don't go over stop
+    // case PLUS
+    if ((pred.strand == PLUS) && (coordToStartSearch < posAfterStopCodon)) {
+        coordToStartSearch = posAfterStopCodon;
+        seachLenLegal = pred.lowContigCoord - coordToStartSearch;
+    }
+    // case MINUS
+    if ((pred.strand == MINUS) && ((posAfterStopCodon - pred.highContigCoord) < (size_t)seachLenLegal)) {
+        seachLenLegal = (posAfterStopCodon - pred.highContigCoord);
+        if (seachLenLegal % 3 != 0) {
+            Debug(Debug::ERROR) << "ERROR: seachLenLegal mod 3 is not 0.\n";
+            EXIT(EXIT_FAILURE);
+        }
+    }
+
+    // extract the segment from the contig:
+    std::string beforeFirstExonSeq(&contigData[coordToStartSearch], (size_t)seachLenLegal);
+    std::string beforeFirstExonSeqRevCompSeq(beforeFirstExonSeq);
+    if (pred.strand == MINUS) {
+        reverseComplement (beforeFirstExonSeq, beforeFirstExonSeqRevCompSeq);
+    }
+
+    size_t posLastCharStart = 0;
+    // if not found, findStartInString will return 0, not changing anything
+    if (pred.strand == PLUS) {
+        posLastCharStart = findStartInString(beforeFirstExonSeq);
+        if (posLastCharStart > 0) {
+            std::string seqToAdd(beforeFirstExonSeq.substr(posLastCharStart - 2));
+            int numNucsAdded = seqToAdd.size();
+            pred.lowContigCoord = pred.lowContigCoord - numNucsAdded;
+            joinedExonsStream << seqToAdd;
+            return numNucsAdded;
+        }
+    } else {
+        posLastCharStart = findStartInString(beforeFirstExonSeqRevCompSeq);
+        if (posLastCharStart > 0) {
+            std::string seqToAdd(beforeFirstExonSeqRevCompSeq.substr(posLastCharStart - 2));
+            int numNucsAdded = seqToAdd.size();
+            pred.highContigCoord = pred.highContigCoord + numNucsAdded;
+            joinedExonsStream << seqToAdd;
+            return numNucsAdded;
+        }
+    }
+
+    // start codon not found - not changing anything, returning 0
+    return 0;
+}
+
 void preparePredDataAndHeader (Prediction & pred, const std::string & targetHeaderAcc, const std::string & contigHeaderAcc, 
                                     const char* contigData, std::ostringstream & joinedHeaderStream, std::ostringstream & joinedExonsStream, 
-                                    const int writeFragCoords, const size_t contigLen) {
+                                    const int writeFragCoords, const int lenSearchStart, const size_t contigLen) {
     
     // clear streams:
     joinedHeaderStream.str("");
@@ -44,7 +134,20 @@ void preparePredDataAndHeader (Prediction & pred, const std::string & targetHead
         joinedHeaderStream << "-|";
     }
     joinedHeaderStream << pred.totalBitscore << "|" << pred.combinedEvalue << "|" << pred.numExons << "|";
-    joinedHeaderStream << pred.lowContigCoord << "|" << pred.highContigCoord;
+    if (lenSearchStart == 0) {
+        // default case: user doesn't want to search for start codon before the first exon:
+        joinedHeaderStream << pred.lowContigCoord << "|" << pred.highContigCoord;
+    } else {
+        // special case: user wants to search for start codon before the first exon:
+        // if found - padd it up/downstream and indicate the padding != 0 in []
+        int numNucsAdded = searchForStartBeforeFirstExon(pred, contigData, joinedExonsStream, lenSearchStart);
+        if (pred.strand == PLUS) {
+            joinedHeaderStream << pred.lowContigCoord << "[" << numNucsAdded << "]" << "|" << pred.highContigCoord;
+        } else {
+            joinedHeaderStream << pred.lowContigCoord << "|" << pred.highContigCoord << "[" << numNucsAdded << "]";
+        }
+    }
+    
 
     // add all exons:
     int lastTargetPosMatched = -1;
@@ -71,13 +174,13 @@ void preparePredDataAndHeader (Prediction & pred, const std::string & targetHead
             exonAdjustedContigStart += (3 * diffInAAs);
             exonAdjustedNucleotideLen -= (3 * diffInAAs);
         }
-        int lowContigCoord = (pred.strand == PLUS) ? exonAdjustedContigStart : (-1 * exonContigEnd);
+        int exonLowContigCoord = (pred.strand == PLUS) ? exonAdjustedContigStart : (-1 * exonContigEnd);
         
         // update the field:
         pred.optimalExonSet[i].adjustedContigStart = exonAdjustedContigStart;
         
         // extract the segment from the contig:
-        std::string exonContigSeq(&contigData[lowContigCoord], (size_t)exonAdjustedNucleotideLen);
+        std::string exonContigSeq(&contigData[exonLowContigCoord], (size_t)exonAdjustedNucleotideLen);
         // update the last AA of the target that was matched:
         lastTargetPosMatched = targetMatchEnd;
 
@@ -369,7 +472,7 @@ int unitesetstofasta(int argn, const char **argv, const Command& command) {
                     }
                     
                     if (plusPred.optimalExonSet.size() > 0) {
-                        preparePredDataAndHeader(plusPred, targetHeaderAcc, contigHeaderAcc, contigData, joinedHeaderStream, joinedExonsStream, par.writeFragCoords, contigLen);
+                        preparePredDataAndHeader(plusPred, targetHeaderAcc, contigHeaderAcc, contigData, joinedHeaderStream, joinedExonsStream, par.writeFragCoords, par.lenSearchStart, contigLen);
                         std::string result = ">" + joinedHeaderStream.str();
                         fastaAaWriter.writeData(result.c_str(), result.size(), 0, thread_idx, false, false);
                         fastaCodonWriter.writeData(result.c_str(), result.size(), 0, thread_idx, false, false);
@@ -401,7 +504,7 @@ int unitesetstofasta(int argn, const char **argv, const Command& command) {
                         fastaCodonWriter.writeData(result.c_str(), result.size(), 0, thread_idx, false, false);
                     }
                     if (minusPred.optimalExonSet.size() > 0) {
-                        preparePredDataAndHeader(minusPred, targetHeaderAcc, contigHeaderAcc, contigData, joinedHeaderStream, joinedExonsStream, par.writeFragCoords, contigLen);
+                        preparePredDataAndHeader(minusPred, targetHeaderAcc, contigHeaderAcc, contigData, joinedHeaderStream, joinedExonsStream, par.writeFragCoords, par.lenSearchStart, contigLen);
                         std::string result = ">" + joinedHeaderStream.str();
                         fastaAaWriter.writeData(result.c_str(), result.size(), 0, thread_idx, false, false);
                         fastaCodonWriter.writeData(result.c_str(), result.size(), 0, thread_idx, false, false);
@@ -463,7 +566,7 @@ int unitesetstofasta(int argn, const char **argv, const Command& command) {
             }
             
             if (plusPred.optimalExonSet.size() > 0) {
-                preparePredDataAndHeader(plusPred, targetHeaderAcc, contigHeaderAcc, contigData, joinedHeaderStream, joinedExonsStream, par.writeFragCoords, contigLen);
+                preparePredDataAndHeader(plusPred, targetHeaderAcc, contigHeaderAcc, contigData, joinedHeaderStream, joinedExonsStream, par.writeFragCoords, par.lenSearchStart, contigLen);
                 std::string result = ">" + joinedHeaderStream.str();
                 fastaAaWriter.writeData(result.c_str(), result.size(), 0, thread_idx, false, false);
                 fastaCodonWriter.writeData(result.c_str(), result.size(), 0, thread_idx, false, false);
@@ -495,7 +598,7 @@ int unitesetstofasta(int argn, const char **argv, const Command& command) {
                 fastaCodonWriter.writeData(result.c_str(), result.size(), 0, thread_idx, false, false);
             }
             if (minusPred.optimalExonSet.size() > 0) {
-                preparePredDataAndHeader(minusPred, targetHeaderAcc, contigHeaderAcc, contigData, joinedHeaderStream, joinedExonsStream, par.writeFragCoords, contigLen);
+                preparePredDataAndHeader(minusPred, targetHeaderAcc, contigHeaderAcc, contigData, joinedHeaderStream, joinedExonsStream, par.writeFragCoords, par.lenSearchStart, contigLen);
                 std::string result = ">" + joinedHeaderStream.str();
                 fastaAaWriter.writeData(result.c_str(), result.size(), 0, thread_idx, false, false);
                 fastaCodonWriter.writeData(result.c_str(), result.size(), 0, thread_idx, false, false);

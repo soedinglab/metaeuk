@@ -67,6 +67,9 @@ public:
     PARAMETER(PARAM_WRITE_FRAG_COORDS)
     int writeFragCoords;
 
+    PARAMETER(PARAM_LEN_SEARCH_START)
+    int lenSearchStart;
+
 private:
     LocalParameters() : 
         Parameters(),
@@ -83,7 +86,9 @@ private:
         PARAM_SHOULD_TRANSLATE(PARAM_SHOULD_TRANSLATE_ID,"--protein", "translate codons to AAs", "translate the joint exons coding sequence to amino acids [0,1]", typeid(int), (void *) &shouldTranslate, "^[0-1]{1}$"),
         PARAM_ALLOW_OVERLAP(PARAM_ALLOW_OVERLAP_ID,"--overlap", "allow same-strand overlaps", "allow predictions to overlap another on the same strand. when not allowed (default), only the prediction with better E-value will be retained [0,1]", typeid(int), (void *) &overlapAllowed, "^[0-1]{1}$"),
         PARAM_WRITE_TKEY(PARAM_WRITE_TKEY_ID,"--target-key", "write target key instead of accession", "write the target key (internal DB identifier) instead of its accession. By default (0) target accession will be written [0,1]", typeid(int), (void *) &writeTargetKey, "^[0-1]{1}$"),
-        PARAM_WRITE_FRAG_COORDS(PARAM_WRITE_FRAG_COORDS_ID,"--write-frag-coords", "write fragment contig coords", "write the contig coords of the stop-to-stop fragment in which putative exon lies. By default (0) only putative exon coords will be written [0,1]", typeid(int), (void *) &writeFragCoords, "^[0-1]{1}$")
+        PARAM_WRITE_FRAG_COORDS(PARAM_WRITE_FRAG_COORDS_ID,"--write-frag-coords", "write fragment contig coords", "write the contig coords of the stop-to-stop fragment in which putative exon lies. By default (0) only putative exon coords will be written [0,1]", typeid(int), (void *) &writeFragCoords, "^[0-1]{1}$"),
+        PARAM_LEN_SEARCH_START(PARAM_LEN_SEARCH_START_ID,"--len-search-start", "length to search for start codon", "length to search for a start codon before the first exon and in the same frame. By default (0) no search", typeid(int), (void *) &lenSearchStart, "^[0-9]+$")
+        
     {
         collectoptimalset.push_back(&PARAM_METAEUK_EVAL_THR);
         collectoptimalset.push_back(&PARAM_METAEUK_TARGET_COV_THR);
@@ -114,6 +119,7 @@ private:
         unitesetstofasta.push_back(&PARAM_TRANSLATION_TABLE);
         unitesetstofasta.push_back(&PARAM_WRITE_TKEY);
         unitesetstofasta.push_back(&PARAM_WRITE_FRAG_COORDS);
+        unitesetstofasta.push_back(&PARAM_LEN_SEARCH_START);
         unitesetstofasta.push_back(&PARAM_MAX_SEQ_LEN);
         unitesetstofasta.push_back(&PARAM_THREADS);
         unitesetstofasta.push_back(&PARAM_V);
@@ -148,6 +154,9 @@ private:
 
         // default value 0 means only coords of putative exon are written
         writeFragCoords = 0;
+
+        // default value 0 means no searching before the first exon
+        lenSearchStart = 0;
 
         citations.emplace(CITATION_METAEUK, "Levy Karin E, Mirdita M, Soeding J: MetaEuk – sensitive, high-throughput gene discovery and annotation for large-scale eukaryotic metagenomics. biorxiv, 851964 (2019).");
     }
