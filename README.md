@@ -103,7 +103,7 @@ This module will extract all putative protein fragments from each contig and str
 Since this step involves a search, it is the most time-demanding of all analyses steps. Upon completion, it will output a database (contigs are keys), where each line contains information about a **TCS** and its exon (multi-exon **TCS**s will span several lines).
 
 
-#### Optional calling of sub-optimal exon sets:
+#### OPTIONAL - calling of sub-optimal exon sets:
 
 By default, MetaEuk calls a single and optimal compatible exon set from each **C** & **S** for each **T**. If you are interested in calling several matches to a certain **T** from each **C** & **S** (for example, to look for **gene duplications**), you can change the default value of ```max-exon-sets``` to the number of sets to look for (from version 6). A few important notes:
 
@@ -133,7 +133,7 @@ It will result in **predsResults.fas** (protein sequences), **predsResults.codon
 
 #### The MetaEuk header:
 
-The header is composed of several sections, separated by pipes ('|'):
+The basic header is composed of several sections, separated by pipes ('|'):
 
 *>T_acc|C_acc|S|bitscore|E-Value|number_exons|low_coord|high_coord|exon1_coords|exon2_coords|...*
 
@@ -148,11 +148,30 @@ Example header (two exons on the minus strand):
 
 *>protein_acc|contig_acc|-|1146|0|2|3|1875|1875[1875]:970[970]:906[906]|893[869]:3[3]:891[867]*
 
-Optionally, by setting the flag `--write-frag-coords 1`, information about the position of stop codons will be added to the output. In this case the exon_coords will be given in the following structure:
+##### OPTIONAL - adding information about stop codon positions:
+By setting the flag `--write-frag-coords 1`, information about the position of stop codons will be added to the output. In this case the exon_coords will be given in the following structure:
 
 *[fragment_low]low[taken_low]:[fragment_high]high[taken_high]:nucleotide_length[taken_nucleotide_length]*
 
 In its initial stage, MetaEuk extracts putative coding fragments between stop codons. It later discovers exons within them by matching targets. The fragment coordinates in square brackets refer to the original fragment in which the exon was found. In addition to reporting these coordinates, MetaEuk will print the stop codon (`*` in the protein output) right at the end of the last exon, if it exists.
+
+##### OPTIONAL - scanning for start codon before the first exon:
+By default (`--len-scan-for-start 0`), MetaEuk only reports parts of the contig that match a target. In case of fragmented targets or very distantly-related targets, it can therefore produce predictions, which do not start with a methionine. By setting `--len-scan-for-start` to a positive number, e.g., 50, MetaEuk will scan up-to 50 nucleotides (16 codons) before the first exon of each prediction (upstream for predictions on the plus strand, downstream - for minus). 
+
+The scan will be in the same frame as the first exon and not beyond its stop codon border. Within this "legal" window, the scan will finish at the closest methionine to the first exon's matched start. The fragment from the found ATG until the first exon's matched start will be padded to the reported sequence. In the case of predictions on the plus strand, the *low_coord* value (7th field) will be updated to a lower value and the length of the padded fragment will be reported in square brackets. If the scan is turned on but no padding occurred (if the prediction already started with methionine or if no ATG was found), then the *low_coord* value will remain the same, followed by 0 in square brackets. For predictions on the minus strand, the change will be to *high_coord* (8th field). All other fields, including the exon fields, will remain unchanged. Examples:
+
+*>protein_acc|contig_acc|+|784|1.213e-233|4|100[18]|1444|...*
+ Here, six codons including ATG, were padded before the first exon of a prediction on the plus strand, which starts at position 118 (100+18).
+
+*>protein_acc|contig_acc|-|499|7.54e-148|2|100|911[12]|...*
+ Here, four codons including ATG, were padded before the first exon of a prediction on the minus strand, which starts at position 899 (911-12).
+
+*>protein_acc|contig_acc|-|499|7.54e-148|2|100|899[0]|...*
+ Here, no padding occurred, but the scan option was set to a positive number.
+
+
+Of note, for simplicity, MetaEuk considers only ATG as a start for this scan.
+
 
 ##### The MetaEuk GFF:
 
