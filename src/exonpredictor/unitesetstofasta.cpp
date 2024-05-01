@@ -385,6 +385,16 @@ int unitesetstofasta(int argn, const char **argv, const Command& command) {
 
     // for the translated result
     TranslateNucl translateNucl(static_cast<TranslateNucl::GenCode>(par.translationTable));
+    if ((par.translationTable != 1) && (par.lenSearchStart > 0)) {
+        Debug(Debug::WARNING) << "Selected translation table is not canonical and search for start is turned on. Please note that only ATG/atg is considered a start codon for the search!\n";
+    }
+    // for now, opting to use only ATG/atg as start codon because:
+    // In Euks ATG is super dominant, unlike proks
+    // The other two alternative codons in the standard table: TTG, CTG are NOT translated as M inside the gene
+    // std::vector<std::string> startCodonsInTable = translateNucl.getStartCodons();
+    // for (std::vector<std::string>::iterator t=startCodonsInTable.begin(); t!=startCodonsInTable.end(); ++t) {
+        // std::cout << *t << std::endl;
+    // }
 
     Debug::Progress progress(predsPerContig.getSize());
 #pragma omp parallel
