@@ -70,7 +70,6 @@ public:
     PARAMETER(PARAM_LEN_SCAN_FOR_START)
     int lenScanForStart;
 
-private:
     LocalParameters() : 
         Parameters(),
         PARAM_REVERSE_FRAGMENTS(PARAM_REVERSE_FRAGMENTS_ID,"--reverse-fragments", "Reverse AA Fragments", "reverse AA fragments to compute under null [0,1]", typeid(int), (void *) &reverseFragments, "^[0-1]{1}$"),
@@ -160,6 +159,7 @@ private:
 
         citations.emplace(CITATION_METAEUK, "Levy Karin E, Mirdita M, Soeding J: MetaEuk – sensitive, high-throughput gene discovery and annotation for large-scale eukaryotic metagenomics. biorxiv, 851964 (2019).");
     }
+private:
     LocalParameters(LocalParameters const&);
     ~LocalParameters() {};
     void operator=(LocalParameters const&);

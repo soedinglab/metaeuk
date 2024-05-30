@@ -18,7 +18,7 @@ void (*validatorUpdate)(void) = 0;
 std::vector<KmerThreshold> externalThreshold = {};
 
 LocalParameters& localPar = LocalParameters::getLocalInstance();
-std::vector<struct Command> commands = {
+std::vector<struct Command> metaeukCommands = {
         // Main tools (workflows for non-experts)
         {"predictexons",             predictexons,            &localPar.predictexonsworkflow,    COMMAND_MAIN,
                 "Call optimal exon sets based on protein similarity",
@@ -96,3 +96,12 @@ std::vector<struct Command> commands = {
 };
 
 std::vector<DatabaseDownload> externalDownloads = {};
+
+extern std::vector<Command> baseCommands;
+void init() {
+    registerCommands(&baseCommands);
+    registerCommands(&metaeukCommands);
+}
+
+void (*initCommands)(void) = init;
+void initParameterSingleton() { new LocalParameters; }
