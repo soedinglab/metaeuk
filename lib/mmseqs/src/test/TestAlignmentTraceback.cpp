@@ -18,6 +18,7 @@
 #include "Parameters.h"
 
 const char* binary_name = "test_alignmenttraceback";
+DEFAULT_PARAMETER_SINGLETON_INIT
 
 struct scores{
     short H;
@@ -87,16 +88,16 @@ void sw(
     // backtrace
     int i=target_length - 1;
     int j=query_length - 1;
-    int step = 0;
+    // int step = 0;
     int state = get_val(bt, i, j);
-    int matched_cols = 0;
+    // int matched_cols = 0;
     while (state!=-1)     // while (state!=STOP)  because STOP=0
     {
-        step++;
+        // step++;
         //std::cout << step<< " " << i << " " << j << " " << state << std::endl;
         switch (state) {
             case M: // current state is MM, previous state is bMM[i][j]
-                matched_cols++;
+                // matched_cols++;
                 fprintf(stdout,"%c", subMat.num2aa[db_sequence[target_start+i]]);
                 if(query_sequence[query_start + j] == db_sequence[target_start + i]){
                     fprintf(stdout, "|");

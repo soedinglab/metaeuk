@@ -321,8 +321,8 @@ int expandaln(int argc, const char **argv, const Command& command, bool returnAl
                             continue;
                         }
                     } else {
-                        size_t cSeqId = cReader->getId(cSeqKey);
                         if (returnAlnRes == false || par.expansionMode == Parameters::EXPAND_RESCORE_BACKTRACE) {
+                            size_t cSeqId = cReader->getId(cSeqKey);
                             cSeq.mapSequence(cSeqId, cSeqKey, cReader->getData(cSeqId, thread_idx), cReader->getSeqLen(cSeqId));
                         }
                         //rescoreResultByBacktrace(resultAc, aSeq, cSeq, subMat, compositionBias, par.gapOpen.values.aminoacid(), par.gapExtend.values.aminoacid());
@@ -393,7 +393,7 @@ int expandaln(int argc, const char **argv, const Command& command, bool returnAl
                                                         (int)(par.filterMaxSeqId * 100), par.Ndiff, par.filterMinEnable,
                                                         (const char **) res.msaSequence, true)
                                          : res.setSize;
-                PSSMCalculator::Profile pssmRes = calculator->computePSSMFromMSA(filteredSetSize, aSeq.L, (const char **) res.msaSequence, par.wg);
+                PSSMCalculator::Profile pssmRes = calculator->computePSSMFromMSA(filteredSetSize, aSeq.L, (const char **) res.msaSequence, par.wg, 0.0);
                 if (par.maskProfile == true) {
                     masker->mask(aSeq, par.maskProb, pssmRes);
                 }

@@ -23,6 +23,7 @@ extern int convertkb(int argc, const char **argv, const Command& command);
 extern int convertmsa(int argc, const char **argv, const Command& command);
 extern int convertprofiledb(int argc, const char **argv, const Command& command);
 extern int createdb(int argc, const char **argv, const Command& command);
+extern int makepaddedseqdb(int argc, const char **argv, const Command& command);
 extern int createindex(int argc, const char **argv, const Command& command);
 extern int createlinindex(int argc, const char **argv, const Command& command);
 extern int createseqfiledb(int argc, const char **argv, const Command& command);
@@ -97,6 +98,7 @@ extern int ungappedprefilter(int argc, const char **argv, const Command& command
 extern int gappedprefilter(int argc, const char **argv, const Command& command);
 extern int unpackdb(int argc, const char **argv, const Command& command);
 extern int rbh(int argc, const char **argv, const Command& command);
+extern int recoverlongestorf(int argc, const char **argv, const Command& command);
 extern int result2flat(int argc, const char **argv, const Command& command);
 extern int result2msa(int argc, const char **argv, const Command& command);
 extern int result2dnamsa(int argc, const char **argv, const Command& command);

@@ -59,6 +59,8 @@ struct MMseqsParameter {
     }
 };
 
+void initParameterSingleton(void);
+#define DEFAULT_PARAMETER_SINGLETON_INIT void initParameterSingleton() { new Parameters; }
 
 class Parameters {
 public:
@@ -182,6 +184,7 @@ public:
     static const int OUTFMT_TORFSTART = 37;
     static const int OUTFMT_TORFEND = 38;
     static const int OUTFMT_FIDENT = 39;
+    static const int OUTFMT_PPOS = 40;
 
     static const int INDEX_SUBSET_NORMAL = 0;
     static const int INDEX_SUBSET_NO_HEADERS = 1;
@@ -304,6 +307,11 @@ public:
 
     static const int ID_MODE_KEYS = 0;
     static const int ID_MODE_LOOKUP = 1;
+
+    // prefilter mode
+    static const int PREF_MODE_KMER = 0;
+    static const int PREF_MODE_UNGAPPED = 1;
+    static const int PREF_MODE_EXHAUSTIVE = 2;
 
     // unpackdb
     static const int UNPACK_NAME_KEY = 0;
@@ -449,6 +457,7 @@ public:
 
     // SEARCH WORKFLOW
     int numIterations;
+    int prefMode;
     float startSens;
     int sensSteps;
     bool exhaustiveSearch;
@@ -705,13 +714,11 @@ public:
     static Parameters& getInstance()
     {
         if (instance == NULL) {
-            initInstance();
+            initParameterSingleton();
         }
         return *instance;
     }
-    static void initInstance() {
-        new Parameters;
-    }
+    friend void initParameterSingleton(void);
 
     void setDefaults();
     void initMatrices();
@@ -871,6 +878,7 @@ public:
     PARAMETER(PARAM_NUM_ITERATIONS)
     PARAMETER(PARAM_START_SENS)
     PARAMETER(PARAM_SENS_STEPS)
+    PARAMETER(PARAM_PREF_MODE)
     PARAMETER(PARAM_EXHAUSTIVE_SEARCH)
     PARAMETER(PARAM_EXHAUSTIVE_SEARCH_FILTER)
     PARAMETER(PARAM_STRAND)
@@ -1158,6 +1166,7 @@ public:
     std::vector<MMseqsParameter*> profile2seq;
     std::vector<MMseqsParameter*> besthitbyset;
     std::vector<MMseqsParameter*> combinepvalbyset;
+    std::vector<MMseqsParameter*> mergeresultsbyset;
     std::vector<MMseqsParameter*> multihitdb;
     std::vector<MMseqsParameter*> multihitsearch;
     std::vector<MMseqsParameter*> expandaln;
