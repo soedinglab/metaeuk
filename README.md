@@ -114,7 +114,7 @@ By default, MetaEuk calls a single and optimal compatible exon set from each **C
 
 ### Reducing redundancy:
 
-If there are homologies in referenceDB (e.g., T1 is highly similar to T2), the same optimal exons set from a **C** & **S** combination will be called more than once. This module will group together **TCS**s that share an exon and will choose their representative **prediction**. By default, it will greedily obtain a subset of the **predictions**, such that there is no overlap of **predictions** on the same contig and strand (to allow same-strand overlaps, run with ```--overlap 1```).
+If there are homologies in referenceDB (e.g., T1 is highly similar to T2), the same optimal exon set from a **C** & **S** combination will be called more than once. This module will group together **TCS**s that share an exon and will choose their representative **prediction**. By default, it will greedily obtain a subset of the **predictions**, such that there is no overlap of **predictions** on the same contig and strand (to allow same-strand overlaps, run with ```--overlap 1```).
     
     metaeuk reduceredundancy callsResultDB predsResultDB predGroupsDB
     
@@ -137,7 +137,7 @@ The basic header is composed of several sections, separated by pipes ('|'):
 
 *>T_acc|C_acc|S|bitscore|E-Value|number_exons|low_coord|high_coord|exon1_coords|exon2_coords|...*
 
-*coord* refers to the coordination on the contig (first base has coordinate 0). It is advisable to keep T_acc and C_acc short and without pipes. The exon_coords are of the structure:
+*coord* refers to the coordinates on the contig (first base has coordinate 0). It is advisable to keep T_acc and C_acc short and without pipes. The exon_coords are of the structure:
 *low[taken_low]:high[taken_high]:nucleotide_length[taken_nucleotide_length]*
 
 Since MetaEuk allows for a very short overlap on T of two putative exons (see P2 and P3 in the illustration below), when joining the sequences of the exons, one of them is shortened. The coordinates of the codons taken from this exon will be in square brackets (*[taken_low]*, *[taken_high]* and *[taken_nucleotide_length]*). These refer to the orange section of P3 below, while the coordinates outside the brackets refer to the yellow+orange section of P3.
