@@ -337,9 +337,6 @@ int convertalignments(int argc, const char **argv, const Command &command) {
         std::string queryProfData;
         queryProfData.reserve(1024);
 
-        std::string queryBuffer;
-        queryBuffer.reserve(1024);
-
         std::string queryHeaderBuffer;
         queryHeaderBuffer.reserve(1024);
 
@@ -366,10 +363,6 @@ int convertalignments(int argc, const char **argv, const Command &command) {
                 size_t qId = qDbr.sequenceReader->getId(queryKey);
                 querySeqData = qDbr.sequenceReader->getData(qId, thread_idx);
                 querySeqLen = qDbr.sequenceReader->getSeqLen(qId);
-                if(sameDB && qDbr.sequenceReader->isCompressed()){
-                    queryBuffer.assign(querySeqData, querySeqLen);
-                    querySeqData = (char*) queryBuffer.c_str();
-                }
                 if (queryProfile) {
                     size_t queryEntryLen = qDbr.sequenceReader->getEntryLen(qId);
                     Sequence::extractProfileConsensus(querySeqData, queryEntryLen, *subMat, queryProfData);
@@ -643,10 +636,11 @@ int convertalignments(int argc, const char **argv, const Command &command) {
                                         float pPositive = 0;
                                         int matchCount = 0;
                                         if (res.backtrace.empty() == false) {
-                                            int qPos = 0;
-                                            int tPos = 0;
-                                            for (size_t pos = 0; pos < res.backtrace.size(); pos++) {
-                                                switch (res.backtrace[pos]) {
+                                            int qPos = res.qStartPos;
+                                            int tPos = res.dbStartPos;
+                                            std::string unpackedBt = Matcher::uncompressAlignment(res.backtrace);
+                                            for (size_t pos = 0; pos < unpackedBt.size(); pos++) {
+                                                switch (unpackedBt[pos]) {
                                                     case 'M': {
                                                         char qRes = queryProfile ? queryProfData[qPos] : querySeqData[qPos];
                                                         char tRes = targetProfile ? targetProfData[tPos] : targetSeqData[tPos];
@@ -657,14 +651,14 @@ int convertalignments(int argc, const char **argv, const Command &command) {
                                                         break;
                                                     }
                                                     case 'D':
-                                                        qPos++;
+                                                        tPos++;
                                                         break;
                                                     case 'I':
-                                                        tPos++;
+                                                        qPos++;
                                                         break;
                                                 }
                                             }
-                                            pPositive /= matchCount;
+                                            pPositive /= static_cast<float>(matchCount);
                                         }
                                         result.append(SSTR(pPositive));
                                         break;
@@ -722,7 +716,7 @@ int convertalignments(int argc, const char **argv, const Command &command) {
                         uint32_t mapq = -4.343 * log(exp(static_cast<double>(-rawScore)));
                         mapq = (uint32_t) (mapq + 4.99);
                         mapq = mapq < 254 ? mapq : 254;
-                        int count = snprintf(buffer, sizeof(buffer), "%s\t%d\t%s\t%d\t%d\t",  queryId.c_str(), (forward) ? 0 : 16, targetId.c_str(), res.dbStartPos + 1, mapq);
+                        int count = snprintf(buffer, sizeof(buffer), "%s\t%d\t%s\t%d\t%d\t",  queryId.c_str(), (forward) ? 0 : 16, targetId.c_str(), std::min(res.dbStartPos + 1, res.dbEndPos + 1), mapq);
                         if (count < 0 || static_cast<size_t>(count) >= sizeof(buffer)) {
                             Debug(Debug::WARNING) << "Truncated line in entry" << i << "!\n";
                             continue;

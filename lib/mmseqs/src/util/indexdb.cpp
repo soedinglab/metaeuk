@@ -94,7 +94,6 @@ int indexdb(int argc, const char **argv, const Command &command) {
 
     int splitMode = Parameters::TARGET_DB_SPLIT;
     par.maxResListLen = std::min(dbr.getSize(), par.maxResListLen);
-    Prefiltering::setupSplit(dbr, seedSubMat->alphabetSize - 1, dbr.getDbtype(), par.threads, false, memoryLimit, 1, par.maxResListLen, par.kmerSize, par.split, splitMode);
 
     bool kScoreSet = false;
     for (size_t i = 0; i < par.indexdb.size(); i++) {
@@ -115,8 +114,15 @@ int indexdb(int argc, const char **argv, const Command &command) {
         par.maskMode = 0;
     }
 
-    // query seq type is actually unknown here, but if we pass DBTYPE_HMM_PROFILE then its +20 k-score
-    int kmerScore = Prefiltering::getKmerThreshold(par.sensitivity, isProfileSearch, contextPseudoCnts, par.kmerScore.values, par.kmerSize);
+    const bool noKmerIndex = (par.indexSubset & Parameters::INDEX_SUBSET_NO_PREFILTER) != 0;
+    int kmerScore = 0;
+    if (noKmerIndex) {
+        par.kmerSize = 0;
+        par.split = 1;
+    } else {
+        Prefiltering::setupSplit(dbr, seedSubMat->alphabetSize - 1, dbr.getDbtype(), par.threads, false, memoryLimit, 1, par.maxResListLen, par.kmerSize, par.split, splitMode);
+        kmerScore = Prefiltering::getKmerThreshold(par.sensitivity, isProfileSearch, contextPseudoCnts, par.kmerScore.values, par.kmerSize);
+    }
 
     const std::string& baseDB = ppDB ? par.db1 + par.indexDbsuffix : par.db2;
     std::string indexDB = PrefilteringIndexReader::indexName(baseDB);
@@ -177,7 +183,7 @@ int indexdb(int argc, const char **argv, const Command &command) {
         PrefilteringIndexReader::createIndexFile(indexDB, &dbr, dbr2, hdbr1, hdbr2, alndbr, seedSubMat, par.maxSeqLen,
                                                  par.spacedKmer, par.spacedKmerPattern, par.compBiasCorrection,
                                                  seedSubMat->alphabetSize, par.kmerSize, par.maskMode, par.maskLowerCaseMode,
-                                                 par.maskProb, kmerScore, par.targetSearchMode, par.split, par.indexSubset);
+                                                 par.maskProb, par.maskNrepeats,kmerScore, par.targetSearchMode, par.split, par.indexSubset);
 
         if (alndbr != NULL) {
             alndbr->close();

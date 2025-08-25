@@ -3,6 +3,7 @@ set(util_source_files
         util/alignbykmer.cpp
         util/appenddbtoindex.cpp
         util/apply.cpp
+        util/calculatelambda.cpp
         util/clusthash.cpp
         util/compress.cpp
         util/convert2fasta.cpp
@@ -30,6 +31,7 @@ set(util_source_files
         util/filtera3m.cpp
         util/filterdb.cpp
         util/gff2db.cpp
+        util/gpuserver.cpp
         util/renamedbkeys.cpp
         util/makepaddedseqdb.cpp
         util/masksequence.cpp
@@ -62,7 +64,6 @@ set(util_source_files
         util/setextendeddbtype.cpp
         util/sortresult.cpp
         util/splitdb.cpp
-        util/setextendeddbtype.cpp
         util/splitsequence.cpp
         util/subtractdbs.cpp
         util/summarizealis.cpp

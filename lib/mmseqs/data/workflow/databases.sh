@@ -40,13 +40,22 @@ downloadFile() {
         ARIA)
             FILENAME=$(basename "${OUTPUT}")
             DIR=$(dirname "${OUTPUT}")
-            aria2c --max-connection-per-server="$ARIA_NUM_CONN" --allow-overwrite=true -o "$FILENAME" -d "$DIR" "$URL" && return 0
+            if aria2c -c --max-connection-per-server="$ARIA_NUM_CONN" --allow-overwrite=true -o "${FILENAME}.aria2" -d "$DIR" "$URL"; then
+                mv -f -- "${OUTPUT}.aria2" "${OUTPUT}"
+                return 0
+            fi
             ;;
         CURL)
-            curl -L -o "$OUTPUT" "$URL" && return 0
+            if curl -L -C - -o "${OUTPUT}.curl" "$URL"; then
+                mv -f -- "${OUTPUT}.curl" "${OUTPUT}"
+                return 0
+            fi
             ;;
         WGET)
-            wget -O "$OUTPUT" "$URL" && return 0
+            if wget -O "${OUTPUT}.wget" -c "$URL"; then
+                mv -f -- "${OUTPUT}.wget" "${OUTPUT}"
+                return 0
+            fi
             ;;
         esac
     done
@@ -156,7 +165,7 @@ case "${SELECTION}" in
         if notExists "${TMP_PATH}/msa.index"; then
             date "+%s" > "${TMP_PATH}/version"
             downloadFile "http://wwwuser.gwdg.de/~compbiol/data/hhsuite/databases/hhsuite_dbs/pdb70_from_mmcif_latest.tar.gz" "${TMP_PATH}/pdb70.tar.gz"
-            tar -xOzf "${TMP_PATH}/pdb70.tar.gz" pdb70_a3m.ffdata | tr -d '\000' | awk -v outfile="${TMP_PATH}/msa" 'function writeEntry() { printf "%s\0", data >> outfile; size = length(data) + 1; data=""; print id"\t"offset"\t"size >> outindex; offset = offset + size; } BEGIN { data = ""; offset = 0; id = 1; if(length(outfile) == 0) { outfile="output"; } outindex = outfile".index"; printf("") > outfile; printf("") > outindex; printf("%c%c%c%c",11,0,0,0) > outfile".dbtype"; } /^>ss_/ { inss = 1; entry = 0; next; } inss == 1 { inss = 0; next; } /^>/ && entry == 0 { if (id > 1) { writeEntry(); } id = id + 1; data = ">"substr($1, 2)"\n"; entry = entry + 1; next; } entry > 0 { data = data""$0"\n"; entry = entry + 1; next; } END { writeEntry(); close(outfile); close(outfile".index"); }'
+            tar -xOzf "${TMP_PATH}/pdb70.tar.gz" pdb70_a3m.ffdata | tr -d '\000' | awk -v outfile="${TMP_PATH}/msa" 'function writeEntry() { printf "%s\0", data >> outfile; size = length(data) + 1; data=""; printf("%s\t%.0f\t%s\n", id, offset, size) >> outindex; offset = offset + size; } BEGIN { data = ""; offset = 0; id = 1; if(length(outfile) == 0) { outfile="output"; } outindex = outfile".index"; printf("") > outfile; printf("") > outindex; printf("%c%c%c%c",11,0,0,0) > outfile".dbtype"; } /^>ss_/ { inss = 1; entry = 0; next; } inss == 1 { inss = 0; next; } /^>/ && entry == 0 { if (id > 1) { writeEntry(); } id = id + 1; data = ">"substr($1, 2)"\n"; entry = entry + 1; next; } entry > 0 { data = data""$0"\n"; entry = entry + 1; next; } END { writeEntry(); close(outfile); close(outfile".index"); }'
             rm -f "${TMP_PATH}/pdb70.tar.gz"
         fi
         INPUT_TYPE="A3M"
@@ -297,7 +306,7 @@ case "${INPUT_TYPE}" in
     "FASTA_LIST")
         eval "set -- $ARR"
         # shellcheck disable=SC2086
-        "${MMSEQS}" createdb "${@}" "${OUTDB}" ${COMP_PAR} \
+        "${MMSEQS}" createdb "${@}" "${OUTDB}" ${COMP_PAR} --gpu 1 \
             || fail "createdb died"
         for i in "${@}"; do
             rm -f -- "$i"
@@ -305,7 +314,7 @@ case "${INPUT_TYPE}" in
     ;;
     "FSA")
         # shellcheck disable=SC2086
-        "${MMSEQS}" createdb "${TMP_PATH}/"*.fsa "${OUTDB}" ${COMP_PAR} \
+        "${MMSEQS}" createdb "${TMP_PATH}/"*.fsa "${OUTDB}" ${COMP_PAR} --gpu 1 \
             || fail "createdb died"
         rm -f -- "${TMP_PATH}/"*.fsa
     ;;
@@ -376,7 +385,7 @@ case "${INPUT_TYPE}" in
         sed 's|_protein\.faa\.gz||g' "${TMP_PATH}/tardb.lookup" > "${TMP_PATH}/tardb.lookup.tmp"
         mv -f -- "${TMP_PATH}/tardb.lookup.tmp" "${TMP_PATH}/tardb.lookup"
         # shellcheck disable=SC2086
-        "${MMSEQS}" createdb "${TMP_PATH}/tardb" "${OUTDB}" ${COMP_PAR} \
+        "${MMSEQS}" createdb "${TMP_PATH}/tardb" "${OUTDB}" ${COMP_PAR} --gpu 1 \
             || fail "createdb died"
         if [ -n "${REMOVE_TMP}" ]; then
             # shellcheck disable=SC2086

@@ -16,11 +16,14 @@ set(commons_header_files
         commons/Domain.h
         commons/ExpressionParser.h
         commons/FileUtil.h
+        commons/GpuUtil.h
         commons/HeaderSummarizer.h
         commons/IndexReader.h
         commons/itoa.h
         commons/KSeqBufferReader.h
         commons/KSeqWrapper.h
+        commons/LambdaCalculation.h
+        commons/Masker.h
         commons/MathUtil.h
         commons/MemoryMapped.h
         commons/MemoryTracker.h
@@ -38,7 +41,6 @@ set(commons_header_files
         commons/StringBlock.h
         commons/SubstitutionMatrix.h
         commons/SubstitutionMatrixProfileStates.h
-        commons/tantan.h
         commons/TranslateNucl.h
         commons/Timer.h
         commons/UniprotKB.h
@@ -58,8 +60,11 @@ set(commons_source_files
         commons/Debug.cpp
         commons/ExpressionParser.cpp
         commons/FileUtil.cpp
+        commons/GpuUtil.cpp
         commons/HeaderSummarizer.cpp
         commons/KSeqWrapper.cpp
+        commons/LambdaCalculation.cpp
+        commons/Masker.cpp
         commons/MemoryMapped.cpp
         commons/MemoryTracker.cpp
         commons/MMseqsMPI.cpp
@@ -72,7 +77,6 @@ set(commons_source_files
         commons/Sequence.cpp
         commons/SequenceWeights.cpp
         commons/SubstitutionMatrix.cpp
-        commons/tantan.cpp
         commons/UniprotKB.cpp
         commons/Util.cpp
         PARENT_SCOPE

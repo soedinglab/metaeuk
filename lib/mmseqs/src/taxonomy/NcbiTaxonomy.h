@@ -1,8 +1,3 @@
-// Ported from blast2lca
-// Copyright: 2010 Miguel Pignatelli
-// License: GPLv2 or later
-// https://github.com/emepyc/Blast2lca
-
 #ifndef MMSEQS_NCBITAXONOMY_H
 #define MMSEQS_NCBITAXONOMY_H
 
@@ -112,7 +107,8 @@ public:
     TaxonNode const* taxonNode(TaxID taxonId, bool fail = true) const;
     bool nodeExists(TaxID taxId) const;
 
-    std::unordered_map<TaxID, TaxonCounts> getCladeCounts(std::unordered_map<TaxID, unsigned int>& taxonCounts) const;
+    std::unordered_map<TaxID, std::vector<TaxID>> getParentToChildren() const;
+    std::unordered_map<TaxID, TaxonCounts> getCladeCounts(const std::unordered_map<TaxID, unsigned int>& taxonCounts, const std::unordered_map<TaxID, std::vector<TaxID>>& parentToChildren) const;
 
     WeightedTaxResult weightedMajorityLCA(const std::vector<WeightedTaxHit> &setTaxa, const float majorityCutoff);
 
@@ -123,12 +119,13 @@ public:
 
     TaxonNode* taxonNodes;
     size_t maxNodes;
+    int maxTaxID;
 private:
     size_t loadNodes(std::vector<TaxonNode> &tmpNodes, const std::string &nodesFile);
     size_t loadMerged(const std::string &mergedFile);
     void loadNames(std::vector<TaxonNode> &tmpNodes, const std::string &namesFile);
     void elh(std::vector<std::vector<TaxID>> const & children, int node, int level, std::vector<int> &tmpE, std::vector<int> &tmpL);
-    void InitRangeMinimumQuery();
+    void computeSparseTable();
     int nodeId(TaxID taxId) const;
 
     int RangeMinimumQuery(int i, int j) const;
@@ -136,7 +133,6 @@ private:
 
     NcbiTaxonomy(TaxonNode* taxonNodes, size_t maxNodes, int maxTaxID, int *D, int *E, int *L, int *H, int **M, StringBlock<unsigned int> *block)
         : taxonNodes(taxonNodes), maxNodes(maxNodes), maxTaxID(maxTaxID), D(D), E(E), L(L), H(H), M(M), block(block), externalData(true), mmapData(NULL), mmapSize(0) {};
-    int maxTaxID;
     int *D; // maps from taxID to node ID in taxonNodes
     int *E; // for Euler tour sequence (size 2N-1)
     int *L; // Level of nodes in tour sequence (size 2N-1)
