@@ -10,35 +10,36 @@ jobs:
   - job: build_ubuntu
     displayName: Ubuntu
     pool:
-      vmImage: 'ubuntu-latest'
-
+      vmImage: 'Ubuntu-22.04'
+    timeoutInMinutes: 120
     strategy:
       matrix:
         avx2:
           SIMD: 'AVX2'
           STATIC: 1
           MPI: 0
-          BUILD_TYPE: RelWithDebInfo
+          BUILD_TYPE: Release
         sse41:
           SIMD: 'SSE4_1'
           STATIC: 1
           MPI: 0
-          BUILD_TYPE: RelWithDebInfo
+          BUILD_TYPE: Release
         sse2:
           SIMD: 'SSE2'
           STATIC: 1
           MPI: 0
-          BUILD_TYPE: RelWithDebInfo
+          BUILD_TYPE: Release
         avx2_mpi:
           SIMD: 'AVX2'
           STATIC: 0
           MPI: 1
-          BUILD_TYPE: RelWithDebInfo
+          BUILD_TYPE: Release
         asan:
           SIMD: 'AVX2'
           STATIC: 0
           MPI: 0
           BUILD_TYPE: ASanOpt
+    
     steps:
       - checkout: self
         submodules: true
@@ -46,22 +47,25 @@ jobs:
           #sudo add-apt-repository ppa:ubuntu-toolchain-r/test
           sudo apt-get update
           sudo apt-get install -y gcc-11 g++-11 libgcc-11-dev build-essential
+        retryCountOnTaskFailure: "2"
+        displayName: Install newer G++
       - script: |
           sudo apt-get update
           sudo apt-get -y install mpi-default-dev mpi-default-bin
         displayName: Install Dependencies
+        retryCountOnTaskFailure: "2"
         condition: eq(variables['MPI'], 1)
       - script: |
           mkdir build && cd build
           export CC=gcc-11 ; export CXX=g++-11
           if [ "${STATIC}" -eq "1" ]; then
-              cmake -DCMAKE_BUILD_TYPE=${BUILD_TYPE}  -DBUILD_SHARED_LIBS=OFF \
-                -DCMAKE_EXE_LINKER_FLAGS="-static -static-libgcc \
-                -static-libstdc++" -DCMAKE_FIND_LIBRARY_SUFFIXES=".a" \
-                -DENABLE_WERROR=1 -DHAVE_${SIMD}=1 -DHAVE_MPI=${MPI} ..
+            LIBGOMP=/usr/lib/gcc/x86_64-linux-gnu/11
+            cmake -DCMAKE_BUILD_TYPE=${BUILD_TYPE} -DFORCE_STATIC_DEPS=1 -DHAVE_TESTS=1 \
+              -DOpenMP_C_FLAGS="-fopenmp -I${LIBGOMP}" -DOpenMP_C_LIB_NAMES=gomp -DOpenMP_CXX_FLAGS="-fopenmp -I${LIBGOMP}" -DOpenMP_CXX_LIB_NAMES=gomp -DOpenMP_gomp_LIBRARY=${LIBGOMP}/libgomp.a \
+              -DENABLE_WERROR=1 -DHAVE_${SIMD}=1 -DHAVE_MPI=${MPI} ..
           else
-              cmake -DHAVE_SANITIZER=1 -DCMAKE_BUILD_TYPE=${BUILD_TYPE} \
-                -DENABLE_WERROR=1 -DHAVE_${SIMD}=1 -DHAVE_MPI=${MPI} ..
+            cmake -DHAVE_SANITIZER=1 -DCMAKE_BUILD_TYPE=${BUILD_TYPE} -DHAVE_TESTS=1 \
+              -DENABLE_WERROR=1 -DHAVE_${SIMD}=1 -DHAVE_MPI=${MPI} ..
           fi
 
           make -j $(nproc --all)
@@ -80,13 +84,14 @@ jobs:
   - job: build_ubuntu_cross
     displayName: Ubuntu Cross-Compile
     pool:
-      vmImage: 'ubuntu-latest'
+      vmImage: 'Ubuntu-22.04'
+    timeoutInMinutes: 120
     strategy:
       matrix:
-        power8:
-          SIMD: POWER8
-          ARCH: ppc64el
-          CPREF: powerpc64le
+        #power8:
+        #  SIMD: POWER8
+        #  ARCH: ppc64el
+        #  CPREF: powerpc64le
         power9:
           SIMD: POWER9
           ARCH: ppc64el
@@ -95,6 +100,7 @@ jobs:
           SIMD: ARM8
           ARCH: arm64
           CPREF: aarch64
+
     steps:
       - script: |
           CODENAME=$(lsb_release -cs)
@@ -111,14 +117,14 @@ jobs:
           HEREDOC
           sudo apt-get update
           sudo apt-get -y install -o APT::Immediate-Configure=false crossbuild-essential-$ARCH zlib1g-dev:$ARCH libbz2-dev:$ARCH
+        retryCountOnTaskFailure: "2"
         displayName: Install Toolchain
       - script: |
           mkdir build && cd build
+          LIBGOMP=/usr/lib/gcc-cross/${CPREF}-linux-gnu/11;
           CC=${CPREF}-linux-gnu-gcc CXX=${CPREF}-linux-gnu-g++ \
-           cmake -DCMAKE_BUILD_TYPE=${BUILD_TYPE} -DHAVE_TESTS=1 \
-            -DBUILD_SHARED_LIBS=OFF \
-            -DCMAKE_EXE_LINKER_FLAGS="-static -static-libgcc \
-            -static-libstdc++" -DCMAKE_FIND_LIBRARY_SUFFIXES=".a" \
+           cmake -DCMAKE_BUILD_TYPE=${BUILD_TYPE} -DHAVE_TESTS=1 -DFORCE_STATIC_DEPS=1 \
+            -DOpenMP_C_FLAGS="-fopenmp -I${LIBGOMP}" -DOpenMP_C_LIB_NAMES=gomp -DOpenMP_CXX_FLAGS="-fopenmp -I${LIBGOMP}" -DOpenMP_CXX_LIB_NAMES=gomp -DOpenMP_gomp_LIBRARY=${LIBGOMP}/libgomp.a \
             -DENABLE_WERROR=1 -DHAVE_${SIMD}=1 ..
           make -j $(nproc --all)
         displayName: Build MetaEuk
@@ -223,18 +229,18 @@ jobs:
           archiveFile: $(Build.SourcesDirectory)/metaeuk-linux-arm64.tar.gz
           includeRootFolder: true
           archiveType: tar
-      - task: DownloadPipelineArtifact@1
-        inputs:
-          artifactName: metaeuk-linux-POWER8
-          targetPath: $(Build.SourcesDirectory)/metaeuk/bin
-      - script:
-          chmod +x "${BUILD_SOURCESDIRECTORY}/metaeuk/bin/metaeuk"
-      - task: ArchiveFiles@2
-        inputs:
-          rootFolderOrFile: $(Build.SourcesDirectory)/metaeuk
-          archiveFile: $(Build.SourcesDirectory)/metaeuk-linux-ppc64le-power8.tar.gz
-          includeRootFolder: true
-          archiveType: tar
+      # - task: DownloadPipelineArtifact@1
+      #   inputs:
+      #     artifactName: metaeuk-linux-POWER8
+      #     targetPath: $(Build.SourcesDirectory)/metaeuk/bin
+      # - script:
+      #     chmod +x "${BUILD_SOURCESDIRECTORY}/metaeuk/bin/metaeuk"
+      # - task: ArchiveFiles@2
+      #   inputs:
+      #     rootFolderOrFile: $(Build.SourcesDirectory)/metaeuk
+      #     archiveFile: $(Build.SourcesDirectory)/metaeuk-linux-ppc64le-power8.tar.gz
+      #     includeRootFolder: true
+      #     archiveType: tar
       - task: DownloadPipelineArtifact@1
         inputs:
           artifactName: metaeuk-linux-POWER9
@@ -262,7 +268,6 @@ jobs:
             metaeuk-linux-sse41.tar.gz \
             metaeuk-linux-avx2.tar.gz \
             metaeuk-linux-arm64.tar.gz \
-            metaeuk-linux-ppc64le-power8.tar.gz \
             metaeuk-linux-ppc64le-power9.tar.gz
           curl --retry 5 --retry-all-errors -X POST \
             -F file[]=@metaeuk-osx-universal.tar.gz -F signature[]=@metaeuk-osx-universal.tar.gz.sig \
@@ -270,7 +275,6 @@ jobs:
             -F file[]=@metaeuk-linux-sse41.tar.gz -F signature[]=@metaeuk-linux-sse41.tar.gz.sig \
             -F file[]=@metaeuk-linux-avx2.tar.gz -F signature[]=@metaeuk-linux-avx2.tar.gz.sig \
             -F file[]=@metaeuk-linux-arm64.tar.gz -F signature[]=@metaeuk-linux-arm64.tar.gz.sig \
-            -F file[]=@metaeuk-linux-ppc64le-power8.tar.gz -F signature[]=@metaeuk-linux-ppc64le-power8.tar.gz.sig \
             -F file[]=@metaeuk-linux-ppc64le-power9.tar.gz -F signature[]=@metaeuk-linux-ppc64le-power9.tar.gz.sig \
             -F identifier="metaeuk" -F directory="${BUILD_SOURCEVERSION}" \
               https://mmseqs.com/upload
