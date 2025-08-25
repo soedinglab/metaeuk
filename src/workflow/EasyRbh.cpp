@@ -23,9 +23,6 @@ int easyrbh(int argc, const char **argv, const Command &command) {
     for (size_t i = 0; i < par.extractorfs.size(); i++){
         par.extractorfs[i]->addCategory(MMseqsParameter::COMMAND_EXPERT);
     }
-    for (size_t i = 0; i < par.translatenucs.size(); i++){
-        par.translatenucs[i]->addCategory(MMseqsParameter::COMMAND_EXPERT);
-    }
     for (size_t i = 0; i < par.result2profile.size(); i++){
         par.result2profile[i]->addCategory(MMseqsParameter::COMMAND_EXPERT);
     }
@@ -38,6 +35,7 @@ int easyrbh(int argc, const char **argv, const Command &command) {
     par.alignmentMode = Parameters::ALIGNMENT_MODE_SCORE_COV_SEQID;
     par.writeLookup = false;
     par.createdbMode = Parameters::SEQUENCE_SPLIT_MODE_SOFT;
+    par.PARAM_CREATEDB_MODE.wasSet = true;
     par.parseParameters(argc, argv, command, true, Parameters::PARSE_VARIADIC, 0);
     par.PARAM_S.wasSet = true;
     par.PARAM_REMOVE_TMP_FILES.wasSet = true;
@@ -97,9 +95,10 @@ int easyrbh(int argc, const char **argv, const Command &command) {
     cmd.addVariable("RUNNER", par.runner.c_str());
     cmd.addVariable("VERBOSITY", par.createParameterString(par.onlyverbosity).c_str());
 
-    cmd.addVariable("CREATEDB_QUERY_PAR", par.createParameterString(par.createdb).c_str());
+    cmd.addVariable("CREATEDB_QUERY_PAR", par.createParameterString(par.createdb,true).c_str());
     par.createdbMode = Parameters::SEQUENCE_SPLIT_MODE_HARD;
-    cmd.addVariable("CREATEDB_PAR", par.createParameterString(par.createdb).c_str());
+    par.PARAM_GPU.wasSet = true;
+    cmd.addVariable("CREATEDB_PAR", par.createParameterString(par.createdb, true).c_str());
     cmd.addVariable("CONVERT_PAR", par.createParameterString(par.convertalignments).c_str());
 
     std::string program = tmpDir + "/easyrbh.sh";

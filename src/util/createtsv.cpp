@@ -59,6 +59,15 @@ int createtsv(int argc, const char **argv, const Command &command) {
     }
     reader->open(DBReader<unsigned int>::LINEAR_ACCCESS);
 
+    uint16_t extended = DBReader<unsigned int>::getExtendedDbtype(reader->getDbtype());
+    bool needSET = false;
+    std::map<unsigned int, std::string> qSetToSource, tSetToSource;
+    if (extended & Parameters::DBTYPE_EXTENDED_SET) {
+        needSET = true;
+        qSetToSource = Util::readLookup((par.db1 + ".source"), false);
+        tSetToSource = Util::readLookup((par.db2 + ".source"), false);
+    }
+
     const std::string& dataFile = hasTargetDB ? par.db4 : par.db3;
     const std::string& indexFile = hasTargetDB ? par.db4Index : par.db3Index;
     const bool shouldCompress = par.dbOut == true && par.compressed == true;
@@ -83,16 +92,21 @@ int createtsv(int argc, const char **argv, const Command &command) {
 #pragma omp for schedule(dynamic, 1000)
         for (size_t i = 0; i < reader->getSize(); ++i) {
             unsigned int queryKey = reader->getDbKey(i);
-            size_t queryIndex = queryDB->getId(queryKey);
-
-            char *headerData = queryDB->getData(queryIndex, thread_idx);
-            if (headerData == NULL) {
-                Debug(Debug::WARNING) << "Invalid header entry in query " << queryKey << "!\n";
-                continue;
+            size_t queryIndex;
+            char *headerData;
+            if(needSET == false) {
+                queryIndex = queryDB->getId(queryKey);
+                headerData = queryDB->getData(queryIndex, thread_idx);
+                if (headerData == NULL) {
+                    Debug(Debug::WARNING) << "Invalid header entry in query " << queryKey << "!\n";
+                    continue;
+                }
             }
 
             std::string queryHeader;
-            if (par.fullHeader) {
+            if (needSET == true) {
+                queryHeader = qSetToSource[queryKey];
+            } else if (par.fullHeader) {
                 queryHeader = "\"";
                 queryHeader.append(headerData, qHeaderIndex[queryIndex].length - 2);
                 queryHeader.append("\"");
@@ -118,17 +132,22 @@ int createtsv(int argc, const char **argv, const Command &command) {
                 } else if (hasTargetDB) {
                     unsigned int targetKey = (unsigned int) strtoul(dbKey, NULL, 10);
                     size_t targetIndex = targetDB->getId(targetKey);
-                    char *targetData = targetDB->getData(targetIndex, thread_idx);
-                    if (targetData == NULL) {
-                        Debug(Debug::WARNING) << "Invalid header entry in query " << queryKey << " and target " << targetKey << "!\n";
-                        continue;
-                    }
-                    if (par.fullHeader) {
-                        targetAccession = "\"";
-                        targetAccession.append(targetData, tHeaderIndex[targetIndex].length - 2);
-                        targetAccession.append("\"");
+                    char *targetData;
+                    if(needSET == false) {
+                        targetData = targetDB->getData(targetIndex, thread_idx);
+                        if (targetData == NULL) {
+                            Debug(Debug::WARNING) << "Invalid header entry in query " << queryKey << " and target " << targetKey << "!\n";
+                            continue;
+                        }
+                        if (par.fullHeader) {
+                            targetAccession = "\"";
+                            targetAccession.append(targetData, tHeaderIndex[targetIndex].length - 2);
+                            targetAccession.append("\"");
+                        } else {
+                            targetAccession = Util::parseFastaHeader(targetData);
+                        }
                     } else {
-                        targetAccession = Util::parseFastaHeader(targetData);
+                        targetAccession = tSetToSource[targetKey];
                     }
                 } else {
                     targetAccession = dbKey;
@@ -178,6 +197,8 @@ int createtsv(int argc, const char **argv, const Command &command) {
             delete tDbrHeader;
         }
     }
+    qSetToSource.clear();
+    tSetToSource.clear();
 
     return EXIT_SUCCESS;
 }

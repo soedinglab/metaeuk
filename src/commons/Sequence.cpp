@@ -7,7 +7,6 @@
 #include "MathUtil.h"
 #include "SubstitutionMatrixProfileStates.h"
 #include "PSSMCalculator.h"
-
 #include <climits> // short_max
 #include <cstddef>
 
@@ -227,7 +226,11 @@ void Sequence::mapSequence(size_t id, unsigned int dbKey, std::pair<const unsign
             numSequence = static_cast<unsigned char *>(realloc(numSequence, this->L+1));
             maxLen = this->L;
         }
-        memcpy(this->numSequence, data.first, this->L);
+        // map softmasked sequences to regular sequences
+        // softmasked character start at 32
+        for(int i = 0; i < this->L; i++){
+            this->numSequence[i] = ( data.first[i] >= 32) ? data.first[i] - 32 : data.first[i];
+        }
     } else {
         Debug(Debug::ERROR) << "Invalid sequence type!\n";
         EXIT(EXIT_FAILURE);
@@ -302,18 +305,22 @@ void Sequence::nextProfileKmer() {
 }
 
 void Sequence::mapSequence(const char * sequence, unsigned int dataLen){
-    size_t l = 0;
-    char curr = sequence[l];
     if(dataLen >= maxLen){
         numSequence = static_cast<unsigned char*>(realloc(numSequence, dataLen+1));
         maxLen = dataLen;
     }
-    while (curr != '\0' && curr != '\n' && l < dataLen &&  l < maxLen){
-        this->numSequence[l] = subMat->aa2num[static_cast<int>(curr)];
-        l++;
-        curr  = sequence[l];
+    const unsigned char* lookup = subMat->aa2num;  // local pointer for speed
+    unsigned int i = 0;
+    for (; i + 4 <= dataLen; i += 4) {
+        numSequence[i]   = lookup[(unsigned char)sequence[i]];
+        numSequence[i+1] = lookup[(unsigned char)sequence[i+1]];
+        numSequence[i+2] = lookup[(unsigned char)sequence[i+2]];
+        numSequence[i+3] = lookup[(unsigned char)sequence[i+3]];
     }
-    this->L = l;
+    for (; i < dataLen; i++) {
+        numSequence[i]   = lookup[(unsigned char)sequence[i]];
+    }
+    this->L = i;
 }
 
 void Sequence::printPSSM(){
