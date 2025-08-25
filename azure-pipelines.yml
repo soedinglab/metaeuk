@@ -10,7 +10,7 @@ jobs:
   - job: build_ubuntu
     displayName: Ubuntu
     pool:
-      vmImage: 'Ubuntu-20.04'
+      vmImage: 'ubuntu-latest'
 
     strategy:
       matrix:
@@ -44,9 +44,8 @@ jobs:
         submodules: true
       - script: |
           #sudo add-apt-repository ppa:ubuntu-toolchain-r/test
-          #sudo apt-get update
-          sudo apt-get install -y g++-10
-        condition: eq(variables['BUILD_TYPE'], 'ASanOpt')
+          sudo apt-get update
+          sudo apt-get install -y gcc-11 g++-11 libgcc-11-dev build-essential
       - script: |
           sudo apt-get update
           sudo apt-get -y install mpi-default-dev mpi-default-bin
@@ -54,9 +53,7 @@ jobs:
         condition: eq(variables['MPI'], 1)
       - script: |
           mkdir build && cd build
-          if [ "${BUILD_TYPE}" = "ASanOpt" ]; then
-              export CC=gcc-10 ; export CXX=g++-10
-          fi
+          export CC=gcc-11 ; export CXX=g++-11
           if [ "${STATIC}" -eq "1" ]; then
               cmake -DCMAKE_BUILD_TYPE=${BUILD_TYPE}  -DBUILD_SHARED_LIBS=OFF \
                 -DCMAKE_EXE_LINKER_FLAGS="-static -static-libgcc \
@@ -83,7 +80,7 @@ jobs:
   - job: build_ubuntu_cross
     displayName: Ubuntu Cross-Compile
     pool:
-      vmImage: 'Ubuntu-20.04'
+      vmImage: 'ubuntu-latest'
     strategy:
       matrix:
         power8:
@@ -100,16 +97,17 @@ jobs:
           CPREF: aarch64
     steps:
       - script: |
-          sudo dpkg --add-architecture $ARCH
+          CODENAME=$(lsb_release -cs)
+          sudo dpkg --add-architecture "$ARCH"
           cat << HEREDOC | sudo tee /etc/apt/sources.list
-          deb [arch=amd64,i386] http://archive.ubuntu.com/ubuntu/ focal main universe multiverse
-          deb [arch=amd64,i386] http://archive.ubuntu.com/ubuntu/ focal-updates main universe multiverse
-          deb [arch=amd64,i386] http://archive.ubuntu.com/ubuntu/ focal-backports main universe multiverse
-          deb [arch=amd64,i386] http://security.ubuntu.com/ubuntu/ focal-security main universe multiverse
-          deb [arch=$ARCH] http://ports.ubuntu.com/ubuntu-ports/ focal main  universe multiverse
-          deb [arch=$ARCH] http://ports.ubuntu.com/ubuntu-ports/ focal-updates main universe multiverse
-          deb [arch=$ARCH] http://ports.ubuntu.com/ubuntu-ports/ focal-backports main universe multiverse
-          deb [arch=$ARCH] http://ports.ubuntu.com/ubuntu-ports/ focal-security main universe multiverse
+          deb [arch=amd64,i386] http://archive.ubuntu.com/ubuntu/ ${CODENAME} main universe multiverse
+          deb [arch=amd64,i386] http://archive.ubuntu.com/ubuntu/ ${CODENAME}-updates main universe multiverse
+          deb [arch=amd64,i386] http://archive.ubuntu.com/ubuntu/ ${CODENAME}-backports main universe multiverse
+          deb [arch=amd64,i386] http://security.ubuntu.com/ubuntu/ ${CODENAME}-security main universe multiverse
+          deb [arch=$ARCH] http://ports.ubuntu.com/ubuntu-ports/ ${CODENAME} main universe multiverse
+          deb [arch=$ARCH] http://ports.ubuntu.com/ubuntu-ports/ ${CODENAME}-updates main universe multiverse
+          deb [arch=$ARCH] http://ports.ubuntu.com/ubuntu-ports/ ${CODENAME}-backports main universe multiverse
+          deb [arch=$ARCH] http://ports.ubuntu.com/ubuntu-ports/ ${CODENAME}-security main universe multiverse
           HEREDOC
           sudo apt-get update
           sudo apt-get -y install -o APT::Immediate-Configure=false crossbuild-essential-$ARCH zlib1g-dev:$ARCH libbz2-dev:$ARCH
@@ -132,7 +130,7 @@ jobs:
   - job: build_macos
     displayName: macOS
     pool:
-      vmImage: 'macos-12'
+      vmImage: 'macos-latest'
     steps:
       - checkout: self
         submodules: true
