@@ -6,9 +6,10 @@
 
 class IndexBuilder {
 public:
-    static void fillDatabase(IndexTable *indexTable, SequenceLookup **externalLookup, BaseMatrix &subMat,
+    static void fillDatabase(IndexTable *indexTable, SequenceLookup **externalLookup,
+                             BaseMatrix &subMat,
                              ScoreMatrix & three,  ScoreMatrix & two, Sequence *seq,
-                             DBReader<unsigned int> *dbr, size_t dbFrom, size_t dbTo, int kmerThr,
+                             DBReader<DBKeyType> *dbr, size_t dbFrom, size_t dbTo, int kmerThr,
                              bool mask, bool maskLowerCaseMode, float maskProb, int maskNrepeats, int targetSearchMode);
 };
 

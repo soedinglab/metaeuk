@@ -10,6 +10,7 @@
 #include <utility>
 #include <vector>
 #include <string>
+#include "IndexTypes.h"
 #include "Sequence.h"
 #include "Parameters.h"
 #include "FileUtil.h"
@@ -115,7 +116,7 @@ public:
     struct LookupEntry {
         T id;
         std::string entryName;
-        unsigned int fileNumber;
+        DBKeyType fileNumber;
 
         // we need a non-strict-weak ordering function here
         // so our upper_bound call works correctly
@@ -157,6 +158,31 @@ public:
             if (y.fileNumber < x.fileNumber)
                 return false;
             return false;
+        }
+    };
+
+    struct SourceEntry{
+        T id;
+        std::string fileName;
+
+        static bool compareByIdOnly(const SourceEntry& x, const SourceEntry& y) {
+            return x.id <= y.id;
+        }
+
+        static bool compareById(const SourceEntry& x, const SourceEntry& y) {
+            if (x.id < y.id)
+                return true;
+            if (y.id < x.id)
+                return false;
+             return (x.fileName < y.fileName);
+        }
+
+        static bool compareByFileNameOnly(const SourceEntry& x, const SourceEntry& y){
+            return x.fileName.compare(y.fileName) <= 0;
+        }
+
+        static bool compareByFileName(const SourceEntry& x, const SourceEntry& y) {
+            return (x.fileName < y.fileName);
         }
     };
 
@@ -250,7 +276,7 @@ public:
     size_t bsearch(const Index * index, size_t size, T value);
 
     // does a binary search in the index and returns index of the entry with dbKey
-    // returns UINT_MAX if the key is not contained in index
+    // returns DB_ENTRY_NOT_FOUND if the key is not contained in index
     size_t getId (T dbKey);
 
     // does a binary search in the lookup and returns index of the entry
@@ -259,8 +285,16 @@ public:
     size_t getLookupIdByAccession(const std::string& accession);
     T getLookupKey(size_t id);
     std::string getLookupEntryName(size_t id);
-    unsigned int getLookupFileNumber(size_t id);
+    DBKeyType getLookupFileNumber(size_t id);
     LookupEntry* getLookup() { return lookup; };
+
+    size_t getSourceSize() const;
+    std::string getSourceFileName(size_t id);
+    size_t getSourceIdByFileName(const std::string& fileName);
+    T getSourceKey(size_t id);
+
+    void sortSourceById(); // temporary way to sort source by id
+    void sortSourceByFileName(); // temporary way to sort source by filename
 
     static const int NOSORT = 0;
     static const int SORT_BY_LENGTH = 1;
@@ -280,6 +314,8 @@ public:
     static const unsigned int USE_FREAD      = 4;
     static const unsigned int USE_LOOKUP     = 8;
     static const unsigned int USE_LOOKUP_REV = 16;
+    static const unsigned int USE_SOURCE     = 32;
+    static const unsigned int USE_SOURCE_REV = 64;
 
 
     // compressed
@@ -324,9 +360,11 @@ public:
 
     void readLookup(char *data, size_t dataSize, LookupEntry *lookup);
 
+    void readSource(char *data, size_t dataSize, SourceEntry *source);
+
     void readIndexId(T* id, char * line, const char** cols);
 
-    unsigned int indexIdToNum(T* id);
+    DBKeyType indexIdToNum(T* id);
 
     void readMmapedDataInMemory();
 
@@ -357,11 +395,11 @@ public:
 
     T getLastKey();
 
-    static size_t indexMemorySize(const DBReader<unsigned int> &idx);
+    static size_t indexMemorySize(const DBReader<DBKeyType> &idx);
 
-    static char* serialize(const DBReader<unsigned int> &idx);
+    static char* serialize(const DBReader<DBKeyType> &idx);
 
-    static DBReader<unsigned int> *unserialize(const char* data, int threads);
+    static DBReader<DBKeyType> *unserialize(const char* data, int threads);
 
     int getDbtype() const {
         return dbtype;
@@ -383,20 +421,20 @@ public:
 
     struct sortIndecesById {
         sortIndecesById(const Index * ind) : _ind(ind) {}
-        bool operator() (unsigned int i, unsigned int j) const { 
+        bool operator() (size_t i, size_t j) const {
             return (_ind[i].id < _ind[j].id); 
         }
         const Index * _ind;
     };
 
     struct compareIndexLengthPairByIdKeepTrack {
-        bool operator() (const std::pair<Index, std::pair<size_t, unsigned int> >& lhs, const std::pair<Index, std::pair<size_t, unsigned int> >& rhs) const{
+        bool operator() (const std::pair<Index, std::pair<size_t, size_t> >& lhs, const std::pair<Index, std::pair<size_t, size_t> >& rhs) const{
             return (lhs.first.id < rhs.first.id);
         }
     };
 
     struct comparePairBySeqLength {
-        bool operator() (const std::pair<unsigned int, unsigned  int>& lhs, const std::pair<unsigned int, unsigned  int>& rhs) const{
+        bool operator() (const std::pair<size_t, unsigned int>& lhs, const std::pair<size_t, unsigned int>& rhs) const{
             if(lhs.second > rhs.second)
                 return true;
             if(rhs.second > lhs.second)
@@ -410,7 +448,7 @@ public:
     };
 
     struct comparePairByWeight {
-        bool operator() (const std::pair<unsigned int, float>& lhs, const std::pair<unsigned int, float>& rhs) const{
+        bool operator() (const std::pair<size_t, float>& lhs, const std::pair<size_t, float>& rhs) const{
             if(lhs.second > rhs.second)
                 return true;
             if(rhs.second > lhs.second)
@@ -424,7 +462,7 @@ public:
     };
 
     struct comparePairByIdAndOffset {
-        bool operator() (const std::pair<unsigned int, Index>& lhs, const std::pair<unsigned int, Index>& rhs) const{
+        bool operator() (const std::pair<size_t, Index>& lhs, const std::pair<size_t, Index>& rhs) const{
             if(lhs.second.id < rhs.second.id)
                 return true;
             if(rhs.second.id < lhs.second.id)
@@ -439,7 +477,7 @@ public:
 
 
     struct comparePairByOffset{
-        bool operator() (const std::pair<unsigned int, size_t >& lhs, const std::pair<unsigned int, size_t >& rhs) const{
+        bool operator() (const std::pair<size_t, size_t >& lhs, const std::pair<size_t, size_t >& rhs) const{
             return (lhs.second < rhs.second);
         }
     };
@@ -495,6 +533,8 @@ private:
     int dbtype;
     int compression;
     int padded;
+    // set when the DB packs two alphabets into one byte; see the note in the DBReader constructor
+    bool packedAlphabet;
     char ** compressedBuffers;
     size_t * compressedBufferSizes;
     ZSTD_DStream ** dstream;
@@ -502,10 +542,14 @@ private:
     Index * index;
     size_t lookupSize;
     LookupEntry * lookup;
+    size_t sourceSize;
+    SourceEntry * source;
     bool sortedByOffset;
 
-    unsigned int * id2local;
-    unsigned int * local2id;
+    // local indices into this reader's own arrays (0..size); DBLocalId is 32-bit by default and
+    // 64-bit under MMSEQS_INT64_IDS, so this stays 4 bytes/entry in the default build.
+    DBLocalId * id2local;
+    DBLocalId * local2id;
 
     bool dataMapped;
     int accessType;
@@ -518,5 +562,10 @@ private:
     char magicBytes;
 
 };
+
+// Defined in DBReaderSortIndex.cpp
+template<> void DBReader<std::string>::sortIndex(bool isSortedById);
+template<> void DBReader<DBKeyType>::sortIndex(bool isSortedById);
+template<> void DBReader<DBKeyType>::sortIndex(float *weights);
 
 #endif

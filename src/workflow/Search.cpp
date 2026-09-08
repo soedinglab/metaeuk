@@ -227,8 +227,8 @@ int search(int argc, const char **argv, const Command& command) {
     int targetSrcDbType = -1;
     if(indexStr != "" || Parameters::isEqualDbtype(targetDbType, Parameters::DBTYPE_INDEX_DB)){
         indexStr = par.db2;
-        DBReader<unsigned int> dbr(targetDB.c_str(), (targetDB+".index").c_str(), par.threads, DBReader<unsigned int>::USE_INDEX|DBReader<unsigned int>::USE_DATA);
-        dbr.open(DBReader<unsigned int>::NOSORT);
+        DBReader<DBKeyType> dbr(targetDB.c_str(), (targetDB+".index").c_str(), par.threads, DBReader<DBKeyType>::USE_INDEX|DBReader<DBKeyType>::USE_DATA);
+        dbr.open(DBReader<DBKeyType>::NOSORT);
         PrefilteringIndexData data = PrefilteringIndexReader::getMetadata(&dbr);
         targetSrcDbType = data.srcSeqType;
         targetDbType = data.seqType;
@@ -483,6 +483,11 @@ int search(int argc, const char **argv, const Command& command) {
         for (int i = 0; i < par.numIterations; i++) {
             if (i == 0 && (searchMode & Parameters::SEARCH_MODE_FLAG_TARGET_PROFILE) == false) {
                 par.realign = true;
+            }
+
+            // disable realign for iterative nucl search
+            if (searchMode & Parameters::SEARCH_MODE_FLAG_QUERY_NUCLEOTIDE && searchMode & Parameters::SEARCH_MODE_FLAG_TARGET_NUCLEOTIDE) {
+                par.realign = false;
             }
 
             if (i > 0) {

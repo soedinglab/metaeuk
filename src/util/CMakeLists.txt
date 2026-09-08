@@ -8,6 +8,7 @@ set(util_source_files
         util/compress.cpp
         util/convert2fasta.cpp
         util/convertalignments.cpp
+        util/convertblastdb.cpp
         util/convertca3m.cpp
         util/convertkb.cpp
         util/convertmsa.cpp
@@ -56,6 +57,7 @@ set(util_source_files
         util/result2rbh.cpp
         util/result2profile.cpp
         util/result2repseq.cpp
+        util/pickrepprofile.cpp
         util/result2stats.cpp
         util/reverseseq.cpp
         util/cpmvrmlndb.cpp
@@ -79,6 +81,8 @@ set(util_source_files
         util/tar2db.cpp
         util/unpackdb.cpp
         util/proteinaln2nucl.cpp
+        util/proteomecluster.cpp
+        util/parseproteomealignments.cpp
         util/versionstring.cpp
         util/diskspaceavail.cpp
         PARENT_SCOPE

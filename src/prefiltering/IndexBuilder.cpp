@@ -2,6 +2,7 @@
 #include "tantan.h"
 #include "ExtendedSubstitutionMatrix.h"
 #include "Masker.h"
+#include <vector>
 
 #ifdef OPENMP
 #include <omp.h>
@@ -23,7 +24,7 @@ char* getScoreLookup(BaseMatrix &matrix) {
 
 class DbInfo {
 public:
-    DbInfo(size_t dbFrom, size_t dbTo, unsigned int effectiveKmerSize, DBReader<unsigned int> & reader) {
+    DbInfo(size_t dbFrom, size_t dbTo, unsigned int effectiveKmerSize, DBReader<DBKeyType> & reader) {
         tableSize = 0;
         aaDbSize = 0;
         size_t dbSize = dbTo - dbFrom;
@@ -52,9 +53,9 @@ public:
 };
 
 
-void IndexBuilder::fillDatabase(IndexTable *indexTable, SequenceLookup ** externalLookup, BaseMatrix &subMat,
-                                ScoreMatrix & three, ScoreMatrix & two, Sequence *seq,
-                                DBReader<unsigned int> *dbr, size_t dbFrom, size_t dbTo, int kmerThr,
+void IndexBuilder::fillDatabase(IndexTable *indexTable, SequenceLookup ** externalLookup,
+                                BaseMatrix &subMat, ScoreMatrix & three, ScoreMatrix & two, Sequence *seq,
+                                DBReader<DBKeyType> *dbr, size_t dbFrom, size_t dbTo, int kmerThr,
                                 bool mask, bool maskLowerCaseMode, float maskProb, int maskNrepeats, int targetSearchMode) {
     Debug(Debug::INFO) << "Index table: counting k-mers\n";
 
@@ -62,11 +63,22 @@ void IndexBuilder::fillDatabase(IndexTable *indexTable, SequenceLookup ** extern
     const bool isTargetSimiliarKmerSearch = isProfile || targetSearchMode;
     dbTo = std::min(dbTo, dbr->getSize());
     size_t dbSize = dbTo - dbFrom;
+    // IndexEntryLocal::seqId is stored split-local in 32 bits, so a target split must hold < 2^32
+    // sequences. Prefiltering::setupSplit guarantees this; guard here in case the index is built
+    // through another path.
+    if (dbSize > static_cast<size_t>(UINT_MAX)) {
+        Debug(Debug::ERROR) << "Target split has " << dbSize << " sequences (> 2^32). "
+                            << "The prefilter requires more target splits.\n";
+        EXIT(EXIT_FAILURE);
+    }
     DbInfo* info = new DbInfo(dbFrom, dbTo, seq->getEffectiveKmerSize(), *dbr);
 
     *externalLookup = new SequenceLookup(dbSize, info->aaDbSize);
     SequenceLookup *sequenceLookup = *externalLookup;
 
+    // Look up aux alphabet size for reconstructing packed bytes after masking
+    const Sequence::SeqAuxInfo *auxInfo = Sequence::getAuxInfo(seq->getSeqType());
+    const unsigned int auxAlphabetSize = (auxInfo != NULL) ? auxInfo->auxAlphabetSize : 0;
 
     // identical scores for memory reduction code
     char *idScoreLookup = getScoreLookup(subMat);
@@ -109,7 +121,7 @@ void IndexBuilder::fillDatabase(IndexTable *indexTable, SequenceLookup ** extern
 
             s.resetCurrPos();
             char *seqData = dbr->getData(id, thread_idx);
-            unsigned int qKey = dbr->getDbKey(id);
+            DBKeyType qKey = dbr->getDbKey(id);
 
             s.mapSequence(id - dbFrom, qKey, seqData, dbr->getSeqLen(id));
             if(s.getMaxLen() >= bufferSize ){
@@ -122,17 +134,36 @@ void IndexBuilder::fillDatabase(IndexTable *indexTable, SequenceLookup ** extern
                 if(indexTable != NULL){
                     totalKmerCount += indexTable->addSimilarKmerCount(&s, generator);
                 }
-                unsigned char * seq = (isProfile) ? s.numConsensusSequence : s.numSequence;
-
-                sequenceLookup->addSequence(seq, s.L, id - dbFrom, info->sequenceOffsets[id - dbFrom]);
-
+                if (s.activePrimaryRemap != NULL) {
+                    // Reconstruct packed bytes from remapped seq + aux values
+                    for (int i = 0; i < s.L; i++) {
+                        s.numSequence[i] = s.numSequence[i] * auxAlphabetSize + s.numSequenceAux[i];
+                    }
+                    sequenceLookup->addSequence(s.numSequence, s.L, id - dbFrom, info->sequenceOffsets[id - dbFrom]);
+                } else {
+                    unsigned char * seq = (isProfile) ? s.numConsensusSequence : s.numSequence;
+                    sequenceLookup->addSequence(seq, s.L, id - dbFrom, info->sequenceOffsets[id - dbFrom]);
+                }
             } else {
                 // Do not mask if column state sequences are used
-                maskedResidues += masker->maskSequence(s, mask, maskProb, maskLowerCaseMode, maskNrepeats);
-                sequenceLookup->addSequence(s.numSequence, s.L, id - dbFrom, info->sequenceOffsets[id - dbFrom]);
+                // Skip lowercase masking for packed-byte sequences (raw binary, not characters)
+                bool lowerCaseMask = (s.activePrimaryRemap != NULL) ? false : maskLowerCaseMode;
+                maskedResidues += masker->maskSequence(s, mask, maskProb, lowerCaseMask, maskNrepeats);
 
+                // Count k-mers before reconstructing packed bytes
                 if(indexTable != NULL){
                     totalKmerCount += indexTable->addKmerCount(&s, &idxer, buffer, kmerThr, idScoreLookup);
+                }
+
+                if (s.activePrimaryRemap != NULL) {
+                    // Reconstruct packed bytes: masked sequence + aux alphabet
+                    // Masked positions have sequence=X (invalid), aux alphabet
+                    for (int i = 0; i < s.L; i++) {
+                        s.numSequence[i] = s.numSequence[i] * auxAlphabetSize + s.numSequenceAux[i];
+                    }
+                    sequenceLookup->addSequence(s.numSequence, s.L, id - dbFrom, info->sequenceOffsets[id - dbFrom]);
+                } else {
+                    sequenceLookup->addSequence(s.numSequence, s.L, id - dbFrom, info->sequenceOffsets[id - dbFrom]);
                 }
             }
         }
@@ -206,17 +237,18 @@ void IndexBuilder::fillDatabase(IndexTable *indexTable, SequenceLookup ** extern
                     generator->setDivideStrategy(&three, &two);
                 }
             }
-
 #pragma omp for schedule(dynamic, 100)
             for (size_t id = dbFrom; id < dbTo; id++) {
                 s.resetCurrPos();
                 progress2.updateProgress();
 
-                unsigned int qKey = dbr->getDbKey(id);
+                DBKeyType qKey = dbr->getDbKey(id);
                 if (isTargetSimiliarKmerSearch) {
                     s.mapSequence(id - dbFrom, qKey, dbr->getData(id, thread_idx), dbr->getSeqLen(id));
                     indexTable->addSimilarSequence(&s, generator, &buffer, bufferSize, &idxer);
                 } else {
+                    // sequenceLookup has packed bytes with masking baked in (seq=X at masked positions)
+                    // mapSequence applies primaryRemap to recover masked seq values for k-mer indexing
                     s.mapSequence(id - dbFrom, qKey, sequenceLookup->getSequence(id - dbFrom));
                     indexTable->addSequence(&s, &idxer, &buffer, bufferSize, kmerThr, idScoreLookup);
                 }
