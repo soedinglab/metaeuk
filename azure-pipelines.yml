@@ -46,7 +46,7 @@ jobs:
       - script: |
           #sudo add-apt-repository ppa:ubuntu-toolchain-r/test
           sudo apt-get update
-          sudo apt-get install -y gcc-11 g++-11 libgcc-11-dev build-essential
+          sudo apt-get install -y gcc-11 g++-11 libgcc-11-dev build-essential rustc cargo
         retryCountOnTaskFailure: "2"
         displayName: Install newer G++
       - script: |
@@ -116,7 +116,8 @@ jobs:
           deb [arch=$ARCH] http://ports.ubuntu.com/ubuntu-ports/ ${CODENAME}-security main universe multiverse
           HEREDOC
           sudo apt-get update
-          sudo apt-get -y install -o APT::Immediate-Configure=false crossbuild-essential-$ARCH zlib1g-dev:$ARCH libbz2-dev:$ARCH
+          sudo apt-get -y install -o APT::Immediate-Configure=false crossbuild-essential-$ARCH zlib1g-dev:$ARCH libbz2-dev:$ARCH rustc cargo
+          rustup target add ${CPREF}-unknown-linux-gnu
         retryCountOnTaskFailure: "2"
         displayName: Install Toolchain
       - script: |
@@ -125,7 +126,7 @@ jobs:
           CC=${CPREF}-linux-gnu-gcc CXX=${CPREF}-linux-gnu-g++ \
            cmake -DCMAKE_BUILD_TYPE=${BUILD_TYPE} -DHAVE_TESTS=1 -DFORCE_STATIC_DEPS=1 \
             -DOpenMP_C_FLAGS="-fopenmp -I${LIBGOMP}" -DOpenMP_C_LIB_NAMES=gomp -DOpenMP_CXX_FLAGS="-fopenmp -I${LIBGOMP}" -DOpenMP_CXX_LIB_NAMES=gomp -DOpenMP_gomp_LIBRARY=${LIBGOMP}/libgomp.a \
-            -DENABLE_WERROR=1 -DHAVE_${SIMD}=1 ..
+            -DENABLE_WERROR=1 -DHAVE_${SIMD}=1 -DRust_CARGO_TARGET=${CPREF}-unknown-linux-gnu ..
           make -j $(nproc --all)
         displayName: Build MetaEuk
       - task: PublishPipelineArtifact@0
@@ -140,6 +141,11 @@ jobs:
     steps:
       - checkout: self
         submodules: true
+      - script: |
+          rustup update
+          rustup target install x86_64-apple-darwin
+          rustup target install aarch64-apple-darwin
+        displayName: Install Rust Toolchain
       - script: |
           cd ${BUILD_SOURCESDIRECTORY}
           ./lib/mmseqs/util/build_osx.sh . build metaeuk
