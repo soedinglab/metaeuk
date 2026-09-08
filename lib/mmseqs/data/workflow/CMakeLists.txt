@@ -3,6 +3,8 @@ set(GENERATED_WORKFLOWS
         workflow/easycluster.sh
         workflow/easytaxonomy.sh
         workflow/easyrbh.sh
+        workflow/easyproteomecluster.sh
+        workflow/easyproteomesearch.sh
         workflow/blastp.sh
         workflow/blastpgp.sh
         workflow/map.sh
@@ -25,6 +27,7 @@ set(GENERATED_WORKFLOWS
         workflow/linsearch.sh
         workflow/databases.sh
         workflow/pickconsensusrep.sh
+        workflow/pickconsensusrepfast.sh
         workflow/nucleotide_clustering.sh
         workflow/iterativepp.sh
         workflow/tsv2exprofiledb.sh

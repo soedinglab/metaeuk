@@ -31,7 +31,7 @@ struct statistics_t{
 };
 
 struct hit_t {
-    unsigned int seqId;
+    DBKeyType seqId;
     int prefScore;
     unsigned short diagonal;
 
@@ -56,12 +56,14 @@ public:
                  BaseMatrix *kmerSubMat, BaseMatrix *ungappedAlignmentSubMat,
                  short kmerThr, int kmerSize, size_t dbSize, unsigned int maxSeqLen,
                  size_t maxHitsPerQuery, bool aaBiasCorrection, float aaBiasCorrectionScale, bool diagonalScoringMode,
-                 unsigned int minDiagScoreThr, bool takeOnlyBestKmer, bool isNucleotide);
+                 unsigned int minDiagScoreThr, bool takeOnlyBestKmer, bool isNucleotide,
+                 BaseMatrix *ungappedAlignmentSubMatAux = NULL,
+                 int targetSeqType = 0);
     ~QueryMatcher();
 
     // returns result for the sequence
-    // identityId is the id of the identitical sequence in the target database if there is any, UINT_MAX otherwise
-    std::pair<hit_t*, size_t> matchQuery(Sequence *querySeq, unsigned int identityId,  bool isNucleotide);
+    // identityId is the id of the identical sequence in the target database if there is any, DB_LOCAL_ID_INVALID otherwise
+    std::pair<hit_t*, size_t> matchQuery(Sequence *querySeq, DBLocalId identityId, bool isNucleotide);
 
     void setQueryMatcherHook(QueryMatcherHook* hook) {
         this->hook = hook;
@@ -87,7 +89,7 @@ public:
         const char *wordCnt[255];
         size_t cols = Util::getWordsOfLine(data, wordCnt, 254);
         if (cols == 3) {
-            result.seqId = Util::fast_atoi<unsigned int>(wordCnt[0]);
+            result.seqId = Util::fast_atoi<DBKeyType>(wordCnt[0]);
             result.prefScore = Util::fast_atoi<int>(wordCnt[1]);
             result.diagonal = static_cast<unsigned short>(Util::fast_atoi<short>(wordCnt[2]));
         } else {
@@ -117,7 +119,7 @@ public:
 
     static size_t prefilterHitToBuffer(char *buff1, hit_t &h) {
         char * basePos = buff1;
-        char * tmpBuff = Itoa::u32toa_sse2((uint32_t) h.seqId, buff1);
+        char * tmpBuff = Itoa::u64toa_sse2(static_cast<uint64_t>(h.seqId), buff1);
         *(tmpBuff-1) = '\t';
         int score = static_cast<int>(h.prefScore);
         tmpBuff = Itoa::i32toa_sse2(score, tmpBuff);
@@ -153,8 +155,8 @@ protected:
     // kmer threshold for kmer generator
     short kmerThr;
 
-    unsigned int maxDbMatches;
-    unsigned int dbSize;
+    size_t maxDbMatches;
+    size_t dbSize;
 
     // result hit buffer
     //CacheFriendlyOperations * diagonalMatcher;
@@ -162,6 +164,7 @@ protected:
 
     // matcher for diagonal
     UngappedAlignment *ungappedAlignment;
+    UngappedAlignment *ungappedAlignmentAux;
 
     // score distribution of current query
     unsigned int *scoreSizes;
@@ -188,6 +191,7 @@ protected:
     size_t maxHitsPerQuery;
 
     float *compositionBias;
+    unsigned int *scoreBackup;
 
     // diagonal scoring active
     bool diagonalScoring;
@@ -202,6 +206,7 @@ protected:
     QueryMatcherHook* hook;
 
     void updateScoreBins(CounterResult *result, size_t elementCount);
+    unsigned int scoreSingleSequenceCombined(CounterResult &result);
 
     static unsigned int computeScoreThreshold(unsigned int * scoreSizes, size_t maxHitsPerQuery) {
         size_t foundHits = 0;
@@ -222,7 +227,7 @@ protected:
     template <int TYPE>
     std::pair<hit_t *, size_t> getResult(CounterResult * results,
                                          size_t resultSize,
-                                         const unsigned int id,
+                                         const DBLocalId id,
                                          const unsigned short thr,
                                          UngappedAlignment *ungappedAlignment,
                                          const int rescale);
@@ -250,7 +255,7 @@ protected:
     CacheFriendlyOperations(2048);
 #undef CacheFriendlyOperations
 
-    void initDiagonalMatcher(size_t dbsize, unsigned int maxDbMatches);
+    void initDiagonalMatcher(size_t dbsize, size_t maxDbMatches);
 
     void deleteDiagonalMatcher(unsigned int activeCounter);
 

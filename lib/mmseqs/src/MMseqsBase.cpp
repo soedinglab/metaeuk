@@ -3,7 +3,11 @@
 #include "CommandDeclarations.h"
 #include "DownloadDatabase.h"
 
+#ifdef MMSEQS_INT64_IDS
+const char* MMSEQS_CURRENT_INDEX_VERSION = "16-64";
+#else
 const char* MMSEQS_CURRENT_INDEX_VERSION = "16";
+#endif
 
 Parameters& par = Parameters::getInstance();
 std::vector<Command> baseCommands = {
@@ -79,6 +83,32 @@ std::vector<Command> baseCommands = {
                 CITATION_MMSEQS2|CITATION_LINCLUST, {{"fastaFile[.gz|.bz2]", DbType::ACCESS_MODE_INPUT, DbType::NEED_DATA|DbType::VARIADIC, &DbValidator::flatfileAndStdin },
                                                             {"clusterPrefix", DbType::ACCESS_MODE_OUTPUT, DbType::NEED_DATA, &DbValidator::flatfile },
                                                             {"tmpDir", DbType::ACCESS_MODE_OUTPUT, DbType::NEED_DATA, &DbValidator::directory }}},
+        {"easy-proteomecluster", easyproteomecluster, &par.easyproteomeclusterworkflow, COMMAND_EASY,
+                "Cluster proteomes and identify reference proteomes",
+                "mmseqs easy-proteomecluster examples/ProteomeDBPaths.tsv(examples/fastaFile1.fa...fastaFile1.fa) result tmp\n\n"
+                "# ProteomeCluster output\n"
+                "#  - result_protein_cluster.tsv:  Results of protein clustering (linclust/cluster)\n"
+                "#  - result_proteome_cluster.tsv: Results of proteome clustering including similarity to the reference proteome \n"
+                "#  - result_protein_align.tsv: Results of protein alignments\n"
+                "#  - result_cluster_count.tsv: Number of clusters containing proteins from each proteome (from protein clustering results)\n"
+                "# Clustering multiple proteomes with linclust for protein clustering(cluster-module 0)\n"
+                "mmseqs easy-proteomecluster examples/ProteomeDBPaths.tsv(examples/fastaFile1.fa...fastaFile1.fa) result tmp --proteome-similarity 0.9 -c 0.8 --cov-mode 1 --cluster-module 0 \n"
+                "# Cascade clustering: iteratively cluster remaining proteomes with protein clustering while selecting reference proteomes\n"
+                "mmseqs easy-proteomecluster examples/ProteomeDBPaths.tsv(examples/fastaFile1.fa...fastaFile1.fa) result tmp --proteome-similarity 0.9 -c 0.8 --cov-mode 1 --proteome-cascaded-clustering 1 \n",
+                "Gyuri Kim <gyuribio@snu.ac.kr> & Martin Steinegger <martin.steinegger@snu.ac.kr>",
+                "<i:fastaFile1[.gz|.bz2]> ... <i:fastaFileN[.gz|.bz2]> <o:clusterPrefix> <tmpDir>",
+                CITATION_MMSEQS2, {{"fastaFile[.gz|.bz2]", DbType::ACCESS_MODE_INPUT, DbType::NEED_DATA|DbType::VARIADIC, &DbValidator::flatfileAndStdin },
+                                        {"outputReports", DbType::ACCESS_MODE_OUTPUT, DbType::NEED_DATA, &DbValidator::flatfile },
+                                        {"tmpDir", DbType::ACCESS_MODE_OUTPUT, DbType::NEED_DATA, &DbValidator::directory }}},
+        {"easy-proteomesearch", easyproteomesearch, &par.easyproteomesearchworkflow, COMMAND_EASY,
+                "Calculate pairwise proteome similarity",
+                "mmseqs easy-proteomesearch examples/QueryProteomeDBPaths.tsv examples/TargetProteomeDBPaths.tsv result tmp\n\n",
+                "Gyuri Kim <gyuribio@snu.ac.kr> & Martin Steinegger <martin.steinegger@snu.ac.kr>",
+                "<i:queryFastaFile1[.gz|.bz2]> ... <i:queryFastaFileN[.gz|.bz2]> <i:targetFastaFile[.gz]>|<i:targetDB> <o:outPrefix> <tmpDir>",
+                CITATION_MMSEQS2, {{"queryFastaPath[.tsv]", DbType::ACCESS_MODE_INPUT, DbType::NEED_DATA|DbType::VARIADIC, &DbValidator::flatfileAndStdin },
+                                        {"targetFastaPath[.tsv]", DbType::ACCESS_MODE_INPUT, DbType::NEED_DATA|DbType::VARIADIC, &DbValidator::flatfileAndStdin },
+                                        {"outPrefix", DbType::ACCESS_MODE_OUTPUT, DbType::NEED_DATA, &DbValidator::flatfile },
+                                        {"tmpDir", DbType::ACCESS_MODE_OUTPUT, DbType::NEED_DATA, &DbValidator::directory }}},
         {"easy-taxonomy",        easytaxonomy,         &par.easytaxonomy,         COMMAND_EASY,
                 "Taxonomic classification",
                 "# Assign taxonomic labels to FASTA sequences\n"
@@ -588,6 +618,23 @@ std::vector<Command> baseCommands = {
                                           {"clusterDB", DbType::ACCESS_MODE_INPUT, DbType::NEED_DATA, &DbValidator::clusterDb },
                                           {"clusterDB", DbType::ACCESS_MODE_OUTPUT, DbType::NEED_DATA, &DbValidator::clusterDb },
                                           {"tmpDir", DbType::ACCESS_MODE_OUTPUT, DbType::NEED_DATA, &DbValidator::directory }}},
+        {"pickconsensusrepfast", pickconsensusrepfast,    &par.pickconsensusrepfast,          COMMAND_CLUSTER,
+                "Fast profile-guided representative selection reusing clustering alignments (workflow)",
+                "Reuses the representative-to-member alignments produced by clustering (run with --include-align-files) to score observed members against each cluster profile and rewrite the cluster DB with the best-scoring member as the new representative, without profile-vs-member realignment.",
+                "Gyuri Kim <gyuribio@snu.ac.kr>",
+                "<i:seqDB> <i:clusterDB> <o:clusterDB> <tmpDir>",
+                CITATION_MMSEQS2, {{"seqDB", DbType::ACCESS_MODE_INPUT, DbType::NEED_DATA, &DbValidator::sequenceDb },
+                                          {"clusterDB", DbType::ACCESS_MODE_INPUT, DbType::NEED_DATA, &DbValidator::clusterDb },
+                                          {"clusterDB", DbType::ACCESS_MODE_OUTPUT, DbType::NEED_DATA, &DbValidator::clusterDb },
+                                          {"tmpDir", DbType::ACCESS_MODE_OUTPUT, DbType::NEED_DATA, &DbValidator::directory }}},
+        {"pickrepprofile",       pickrepprofile,          &par.pickrepprofile,                COMMAND_CLUSTER,
+                "Score observed cluster members against the cluster profile and pick the best (core of pickconsensusrepfast)",
+                "Reuses representative-to-member alignments to build the center-star MSA/profile and selects the best-scoring observed member, without profile-vs-member realignment. Emits a per-cluster mapping oldRepKey -> newRepKey score coverage clusterSize.",
+                "Gyuri Kim <gyuribio@snu.ac.kr>",
+                "<i:seqDB> <i:alnResultDB> <o:repMappingDB>",
+                CITATION_MMSEQS2, {{"seqDB", DbType::ACCESS_MODE_INPUT, DbType::NEED_DATA, &DbValidator::sequenceDb },
+                                          {"alnResultDB", DbType::ACCESS_MODE_INPUT, DbType::NEED_DATA, &DbValidator::resultDb },
+                                          {"repMappingDB", DbType::ACCESS_MODE_OUTPUT, DbType::NEED_DATA, &DbValidator::genericDb }}},
         {"prefilter",            prefilter,            &par.prefilter,            COMMAND_PREFILTER,
                 "Double consecutive diagonal k-mer search",
                 NULL,
@@ -616,7 +663,7 @@ std::vector<Command> baseCommands = {
         {"kmermatcher",          kmermatcher,          &par.kmermatcher,          COMMAND_PREFILTER,
                 "Find bottom-m-hashed k-mer matches within sequence DB",
                 NULL,
-                "Martin Steinegger <martin.steinegger@snu.ac.kr>",
+                "Junsu Lee <jounsu@snu.ac.kr> & Gyuri Kim <gyuribio@snu.ac.kr> & Martin Steinegger <martin.steinegger@snu.ac.kr>",
                 "<i:sequenceDB> <o:prefilterDB>",
                 CITATION_MMSEQS2,{{"sequenceDB", DbType::ACCESS_MODE_INPUT, DbType::NEED_DATA, &DbValidator::sequenceDb },
                                          {"prefilterDB", DbType::ACCESS_MODE_OUTPUT, DbType::NEED_DATA, &DbValidator::prefilterDb }}},
@@ -655,6 +702,33 @@ std::vector<Command> baseCommands = {
                 CITATION_MMSEQS2, {{"sequenceDB", DbType::ACCESS_MODE_INPUT, DbType::NEED_DATA, &DbValidator::sequenceDb },
                                                            {"resultDB", DbType::ACCESS_MODE_INPUT, DbType::NEED_DATA, &DbValidator::resultDb },
                                                            {"alignmentDB", DbType::ACCESS_MODE_OUTPUT, DbType::NEED_DATA, &DbValidator::alignmentDb }}},
+        {"align2clust",             align2clust,             &par.align2clust,             COMMAND_ALIGNMENT,
+                "align2clust ",
+                NULL,
+                "Gyuri Kim <gyuribio@snu.ac.kr> & Junsu Lee <jounsu@snu.ac.kr>",
+                "<i:sequenceDB> <i:resultDB> <o:clusterDB>",
+                CITATION_MMSEQS2, {{"sequenceDB", DbType::ACCESS_MODE_INPUT, DbType::NEED_DATA, &DbValidator::sequenceDb },
+                                                            {"resultDB", DbType::ACCESS_MODE_INPUT, DbType::NEED_DATA, &DbValidator::resultDb },
+                                                            {"clusterDB", DbType::ACCESS_MODE_OUTPUT, DbType::NEED_DATA, &DbValidator::clusterDb }}},
+        {"proteomecluster",             proteomecluster,             &par.proteomecluster,             COMMAND_CLUSTPROTEOME,
+                "Cluster proteomes and identify reference proteomes",
+                NULL,
+                "Gyuri Kim <gyuribio@snu.ac.kr> & Martin Steinegger <martin.steinegger@snu.ac.kr>",
+                "<i:sequenceDB> <i:clustresultDB> <o:proteomeAlignmentResultDB> <o:proteomeClusterCountReport> <o:proteinAlignmenResultDB> ",
+                CITATION_MMSEQS2, {{"sequenceDB", DbType::ACCESS_MODE_INPUT, DbType::NEED_DATA, &DbValidator::sequenceDb },
+                                                                {"clustresultDB", DbType::ACCESS_MODE_INPUT, DbType::NEED_DATA, &DbValidator::resultDb },
+                                                                {"proteomeAlignmentResultDB", DbType::ACCESS_MODE_OUTPUT, DbType::NEED_DATA, &DbValidator::alignmentDb },
+                                                                {"proteomeClusterCountReport", DbType::ACCESS_MODE_OUTPUT, DbType::NEED_DATA, &DbValidator::alignmentDb },
+                                                                {"proteinAlignmenResultDB", DbType::ACCESS_MODE_OUTPUT, DbType::NEED_DATA, &DbValidator::alignmentDb }}},
+        {"parseproteomealignments",             parseproteomealignments,             &par.parseproteomealignments,             COMMAND_CLUSTPROTEOME,
+                "Parse alignments and score proteomes",
+                NULL,
+                "Gyuri Kim <gyuribio@snu.ac.kr>",
+                "<i:queryDB> <i:targetDB> <i:alignmentDB> <o:scoreFile> ",
+                CITATION_MMSEQS2, {{"queryDB", DbType::ACCESS_MODE_INPUT, DbType::NEED_DATA, &DbValidator::sequenceDb },
+                                                                {"targetDB", DbType::ACCESS_MODE_INPUT, DbType::NEED_DATA, &DbValidator::sequenceDb },
+                                                                {"alignmentDB", DbType::ACCESS_MODE_INPUT, DbType::NEED_DATA, &DbValidator::alignmentDb },
+                                                                {"scoreFile", DbType::ACCESS_MODE_OUTPUT, DbType::NEED_DATA, &DbValidator::flatfile }}},
         {"transitivealign",      transitivealign,      &par.align,                COMMAND_ALIGNMENT,
                 "Transfer alignments via transitivity",
                 //"Infer the alignment A->C via B, B being the center sequence and A,C each pairwise aligned against B",
@@ -846,7 +920,7 @@ std::vector<Command> baseCommands = {
         {"view",                 view,                 &par.view,                 COMMAND_DB,
                 "Print DB entries given in --id-list to stdout",
                 "# Print entries with keys 1, 2 and 3 from a sequence DB to stdout\n"
-                "mmseqs view sequenecDB --id-list 1,2,3\n",
+                "mmseqs view sequenceDB --id-list 1,2,3\n",
                 "Martin Steinegger <martin.steinegger@snu.ac.kr>",
                 "<i:DB>",
                 CITATION_MMSEQS2, {{"DB", DbType::ACCESS_MODE_INPUT, DbType::NEED_DATA, &DbValidator::allDb }}},
@@ -1269,6 +1343,13 @@ std::vector<Command> baseCommands = {
                 "<i:uniprotkb.dat[.gz]> ... <i:uniprotkb.dat[.gz]> <o:uniprotkbDB>",
                 CITATION_MMSEQS2, {{"DB", DbType::ACCESS_MODE_INPUT, DbType::NEED_DATA | DbType::VARIADIC, &DbValidator::flatfile },
                                                            {"DB", DbType::ACCESS_MODE_OUTPUT, DbType::NEED_DATA, &DbValidator::genericDb }}},
+        {"convertblastdb",       convertblastdb,       &par.onlythreads,          COMMAND_SPECIAL,
+                "Convert BLAST database to a sequence DB",
+                NULL,
+                "Milot Mirdita <milot@mirdita.de>",
+                "<i:blastdb> <o:sequenceDB>",
+                CITATION_MMSEQS2, {{"blastDB", DbType::ACCESS_MODE_INPUT, DbType::NEED_DATA, NULL },
+                                                           {"sequenceDB", DbType::ACCESS_MODE_OUTPUT, DbType::NEED_DATA, &DbValidator::sequenceDb }}},
         {"summarizeheaders",     summarizeheaders,     &par.summarizeheaders,     COMMAND_SPECIAL,
                 "Summarize FASTA headers of result DB",
                 NULL,

@@ -56,15 +56,29 @@ std::vector<DatabaseDownload> downloads = {{
                                                    "NR",
                                                    "Non-redundant protein sequences from GenPept, Swissprot, PIR, PDF, PDB, and NCBI RefSeq.",
                                                    "NCBI Resource Coordinators: Database resources of the National Center for Biotechnology Information. Nucleic Acids Res 46(D1), D8-D13 (2018)",
-                                                   "https://ftp.ncbi.nlm.nih.gov/blast/db/FASTA",
+                                                   "https://ftp.ncbi.nlm.nih.gov/blast/db",
+                                                   true, Parameters::DBTYPE_AMINO_ACIDS, databases_sh, databases_sh_len,
+                                                   { }
+                                           }, {
+                                                   "ClusteredNR",
+                                                   "NR protein database clustered at 90% identity and 90% lengt.",
+                                                   "Sayers et al.: Database resources of the National Center for Biotechnology Information in 2023. Nucleic Acids Res 51(D1), D29-D38 (2023)",
+                                                   "https://ftp.ncbi.nlm.nih.gov/blast/db/experimental",
                                                    true, Parameters::DBTYPE_AMINO_ACIDS, databases_sh, databases_sh_len,
                                                    { }
                                            }, {
                                                    "NT",
                                                    "Partially non-redundant nucleotide sequences from all traditional divisions of GenBank, EMBL, and DDBJ excluding GSS, STS, PAT, EST, HTG, and WGS.",
                                                    "NCBI Resource Coordinators: Database resources of the National Center for Biotechnology Information. Nucleic Acids Res 46(D1), D8-D13 (2018)",
-                                                   "https://ftp.ncbi.nlm.nih.gov/blast/db/FASTA",
-                                                   false, Parameters::DBTYPE_NUCLEOTIDES, databases_sh, databases_sh_len,
+                                                   "https://ftp.ncbi.nlm.nih.gov/blast/db",
+                                                   true, Parameters::DBTYPE_NUCLEOTIDES, databases_sh, databases_sh_len,
+                                                   { }
+                                           }, {
+                                                   "core_nt",
+                                                   "Core nucleotide BLAST database.",
+                                                   "Sayers et al.: Database resources of the National Center for Biotechnology Information in 2025. Nucleic Acids Res 53(D1), D20-D29 (2025)",
+                                                   "https://ftp.ncbi.nlm.nih.gov/blast/db",
+                                                   true, Parameters::DBTYPE_NUCLEOTIDES, databases_sh, databases_sh_len,
                                                    { }
                                            }, {
                                                    "GTDB",
@@ -143,6 +157,13 @@ std::vector<DatabaseDownload> downloads = {{
                                                    "https://www.arb-silva.de",
                                                    true, Parameters::DBTYPE_NUCLEOTIDES, databases_sh, databases_sh_len,
                                                    { { "SILVA_REL", "138" } }
+                                           }, {
+                                                   "RNAcentral",
+                                                   "RNAcentral is a comprehensive database of non-coding RNA sequences that aggregates data from multiple expert databases.",
+                                                   "RNAcentral Consortium: RNAcentral 2021: secondary structure integration, improved sequence search and new member databases. Nucleic Acids Res 49(D1), D212-D220 (2021)",
+                                                   "https://rnacentral.org",
+                                                   false, Parameters::DBTYPE_NUCLEOTIDES, databases_sh, databases_sh_len,
+                                                   { { "RNACENTRAL_REL", "26.0" } }
                                            }, {
                                                    "Resfinder",
                                                    "ResFinder is a database that captures antimicrobial resistance genes from whole-genome data sets.",
@@ -298,6 +319,7 @@ int databases(int argc, const char **argv, const Command &command) {
     cmd.addVariable("REMOVE_TMP", par.removeTmpFiles ? "TRUE" : NULL);
     cmd.addVariable("VERB_PAR", par.createParameterString(par.onlyverbosity).c_str());
     cmd.addVariable("COMP_PAR", par.createParameterString(par.verbandcompression).c_str());
+    cmd.addVariable("GPU_ENABLED", par.gpu ? "1" : "0");
     // aria2c gives an (undocumented error with more than 16 connections)
     cmd.addVariable("ARIA_NUM_CONN", SSTR(std::min(16, par.threads)).c_str());
     cmd.addVariable("THREADS_PAR", par.createParameterString(par.onlythreads).c_str());
