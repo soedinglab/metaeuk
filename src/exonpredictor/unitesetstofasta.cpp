@@ -329,7 +329,7 @@ void preparePredHeaderToGFF (const std::string & contigHeaderAcc, const Predicti
                 }
                 joinedPredHeadToGFFStream << "\t" << pred.optimalExonSet[j].bitScore << "\t";
                 joinedPredHeadToGFFStream << strandStr << "\t";
-                joinedPredHeadToGFFStream << "." << "\t";
+                joinedPredHeadToGFFStream << "0" << "\t";
                 joinedPredHeadToGFFStream << "Target_ID=" << targetHeaderAcc << ";";
                 joinedPredHeadToGFFStream << "TCS_ID=" << TCS << "_CDS_" << j << ";";
                 joinedPredHeadToGFFStream << "Parent=" << TCS << "_exon_" << j << "\n";
